@@ -1,0 +1,14 @@
+{
+  "name": "time-station-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BPM / WWV / WWVH / RWM shortwave time-signal simulator",
+  "license": "MIT",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.cjs -i tailwind.input.css -o tailwind.css --minify",
+    "test": "npm --prefix tests test"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

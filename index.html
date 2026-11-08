@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Station Simulator</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="tailwind.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-black text-white min-h-screen min-w-[320px] p-4 sm:p-8 flex flex-col justify-center">
+  <div class="max-w-3xl mx-auto w-full">
+    <!-- Centered time display -->
+    <div class="text-center mb-6 relative">
+      <div id="time_display" onclick="handleTimeDisplayHotzone(event)"
+        class="text-5xl sm:text-6xl md:text-7xl font-mono font-bold text-white mb-4 whitespace-nowrap seven-seg"><span
+          id="time_core"><span class="main-hm">--:--</span><span class="main-sec text-4xl sm:text-5xl">:--</span><span
+          id="ms_display" class="text-gray-400"><span class="seg-dot">.</span>---</span><span
+          id="timezone_offset" class="hidden"></span></span></div>
+      <div id="zen_offset_badge" class="hidden"></div>
+
+      <!-- Master volume -->
+      <div id="master_control" class="flex justify-center mb-4">
+        <div class="master-control">
+          <span class="master-icon-slot">
+            <span id="master_icon" class="master-icon hidden" aria-hidden="true">&#128263;</span>
+            <span id="master_loading" class="master-loading" aria-hidden="true"></span>
+          </span>
+          <input type="range" id="master_volume" min="0" max="1" step="0.01" value="0"
+            aria-label="Master volume" class="master-slider">
+          <span class="master-icon master-icon-spacer" aria-hidden="true">&#128263;</span>
+        </div>
+      </div>
+
+      <!-- Controls row -->
+      <div class="flex flex-wrap justify-center gap-4 items-center"></div>
+
+      <div id="station_mixer" class="mt-4 space-y-1">
+        <div class="station-item" data-station="bpm">
+          <div class="station-strip">
+            <span class="station-icon">&#128251;</span>
+            <span class="station-name">BPM</span>
+            <span id="bpm_status" class="station-status"><span id="bpm_utc_lock" class="hidden status-lock">&#128274;</span><span id="current_period">--</span><span id="bpm_dut1" class="hidden ml-1.5 text-green-400"></span></span>
+            <button type="button" class="station-volume-toggle" data-station-toggle="bpm" aria-expanded="false">100%</button>
+          </div>
+          <span class="station-volume-panel" id="station_bpm_panel">
+            <input type="range" id="station_bpm_volume" data-station-volume="bpm" min="0" max="1" step="0.01" value="1"
+              class="station-slider">
+          </span>
+        </div>
+        <div class="station-item" data-station="wwv">
+          <div class="station-strip">
+            <span class="station-icon">&#128251;</span>
+            <span class="station-name">WWV</span>
+            <span id="wwv_status" class="station-status">BCD</span>
+            <button type="button" class="station-volume-toggle" data-station-toggle="wwv" aria-expanded="false">0%</button>
+          </div>
+          <span class="station-volume-panel" id="station_wwv_panel">
+            <input type="range" id="station_wwv_volume" data-station-volume="wwv" min="0" max="1" step="0.01" value="0"
+              class="station-slider">
+          </span>
+        </div>
+        <div class="station-item" data-station="wwvh">
+          <div class="station-strip">
+            <span class="station-icon">&#128251;</span>
+            <span class="station-name">WWVH</span>
+            <span id="wwvh_status" class="station-status">BCD</span>
+            <button type="button" class="station-volume-toggle" data-station-toggle="wwvh" aria-expanded="false">0%</button>
+          </div>
+          <span class="station-volume-panel" id="station_wwvh_panel">
+            <input type="range" id="station_wwvh_volume" data-station-volume="wwvh" min="0" max="1" step="0.01" value="0"
+              class="station-slider">
+          </span>
+        </div>
+        <div class="station-item" data-station="rwm">
+          <div class="station-strip">
+            <span class="station-icon">&#128251;</span>
+            <span class="station-name">RWM</span>
+            <span id="rwm_status" class="station-status">—</span>
+            <button type="button" class="station-volume-toggle" data-station-toggle="rwm" aria-expanded="false">0%</button>
+          </div>
+          <span class="station-volume-panel" id="station_rwm_panel">
+            <input type="range" id="station_rwm_volume" data-station-volume="rwm" min="0" max="1" step="0.01" value="0"
+              class="station-slider">
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status display -->
+    <div id="status_bar" class="text-xs flex justify-between items-center mb-4 mt-3 gap-2 min-h-8">
+      <div class="flex items-center gap-2 text-gray-400 min-w-0">
+        <button id="clock_emoji" type="button" class="clock-emoji" aria-label="Clock calibration"></button>
+        <span id="global_offset_indicator" class="hidden text-cyan-400 font-mono text-xs whitespace-nowrap"></span>
+        <button id="clock_warning" type="button" aria-label="Clock may be out of sync; click to dismiss"
+          class="hidden text-yellow-400 text-sm leading-none hover:text-yellow-200 transition">&#9888;</button>
+      </div>
+      <div class="flex items-center gap-1 text-gray-400 shrink-0 whitespace-nowrap">
+        <span id="ut1_time" class="text-green-400 font-mono">--:--:--</span>
+        <span id="ut1_indicator" class="hidden text-green-400">&#128301;</span>
+      </div>
+    </div>
+
+    <!-- Settings panel -->
+    <div id="settings_panel" class="hidden space-y-4 bg-dark-800 p-4 sm:p-6 rounded-xl">
+      <div id="settings_tabs" class="flex items-center gap-1 border-b border-dark-700 pb-2">
+        <button type="button" data-settings-tab="clock" class="settings-tab-btn">&#9201;</button>
+        <button type="button" data-settings-tab="display" class="settings-tab-btn">&#128421;&#65039;</button>
+        <button type="button" data-settings-tab="stations" class="settings-tab-btn">&#128251;</button>
+        <button type="button" data-settings-tab="noise" class="settings-tab-btn">&#9889;</button>
+        <button type="button" id="settings_close" class="settings-tab-btn ml-auto">&#10005;</button>
+      </div>
+      <div id="settings_section_clock" class="settings-section space-y-4"></div>
+      <div id="settings_section_display" class="settings-section hidden space-y-3">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="show_ms" checked class="w-4 h-4 rounded accent-blue-500">
+            <span class="text-gray-400 text-sm">&#13235;</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" id="local_time_mode" class="w-4 h-4 rounded accent-sky-500"
+              aria-label="Show local time zone">
+            <span class="text-sm">&#128205;</span>
+            <span id="local_time_hint" class="-ml-1 text-sm font-mono text-yellow-300"></span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="ut1_detail_mode" class="w-4 h-4 rounded accent-green-500">
+            <span class="text-sm text-green-400">&#128301;</span>
+          </label>
+        </div>
+        <label id="language_row" class="hidden flex items-center justify-end gap-2 w-full">
+          <span class="text-sm text-gray-400">&#127760;</span>
+          <select id="language_select" class="bg-dark-700 text-sm rounded px-2 py-1">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+          </select>
+        </label>
+      </div>
+      <div id="settings_section_stations" class="settings-section hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-gray-500 font-mono">BPM</div>
+          <button type="button" data-station-reset="bpm" aria-label="Reset BPM"
+            class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
+        </div>
+        <div id="bpm_station_panel" class="space-y-2">
+          <div id="bpm_top_row" class="flex items-center gap-x-4 gap-y-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-1 min-w-[10rem]">
+              <span id="low_freq_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(&#32;&#32;0%)</span>
+              <input type="range" id="low_freq_volume" min="0" max="200" step="1" value="0"
+                class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="space-y-1 min-w-0">
+              <span id="bpm_morse_label" class="block text-gray-400 text-xs font-mono whitespace-pre">MCid(100%)</span>
+              <input type="range" id="bpm_morse_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+            </label>
+            <label class="space-y-1 min-w-0">
+              <span id="bpm_voice_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;(100%)</span>
+              <input type="range" id="bpm_voice_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+            </label>
+          </div>
+        </div>
+        <div class="border-t border-dark-700"></div>
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-gray-500 font-mono">WWV</div>
+          <button type="button" data-station-reset="wwv" aria-label="Reset WWV"
+            class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
+        </div>
+        <div id="wwv_station_panel" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span id="wwv_code_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
+            <input type="range" id="wwv_code_volume" min="0" max="200" step="1" value="100"
+              class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="space-y-1 min-w-0">
+              <span id="wwv_tone_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#9834;(100%)</span>
+              <input type="range" id="wwv_tone_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+            </label>
+            <label class="space-y-1 min-w-0">
+              <span id="wwv_voice_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;(100%)</span>
+              <input type="range" id="wwv_voice_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
+            </label>
+          </div>
+        </div>
+        <div class="border-t border-dark-700"></div>
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-gray-500 font-mono">WWVH</div>
+          <button type="button" data-station-reset="wwvh" aria-label="Reset WWVH"
+            class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
+        </div>
+        <div id="wwvh_station_panel" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span id="wwvh_code_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
+            <input type="range" id="wwvh_code_volume" min="0" max="200" step="1" value="100"
+              class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="space-y-1 min-w-0">
+              <span id="wwvh_tone_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#9834;(100%)</span>
+              <input type="range" id="wwvh_tone_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+            </label>
+            <label class="space-y-1 min-w-0">
+              <span id="wwvh_voice_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;(100%)</span>
+              <input type="range" id="wwvh_voice_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
+            </label>
+          </div>
+        </div>
+        <div class="border-t border-dark-700"></div>
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-gray-500 font-mono">RWM</div>
+          <button type="button" data-station-reset="rwm" aria-label="Reset RWM"
+            class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
+        </div>
+        <div id="rwm_station_panel" class="flex flex-col sm:flex-row gap-3">
+          <div class="rwm-lock-group flex sm:flex-col gap-2 shrink-0" role="radiogroup" aria-label="RWM pulse lock">
+            <label class="rwm-lock-option">
+              <input type="radio" name="rwm_lock_mode" value="off" checked>
+              <span>NORMAL</span>
+            </label>
+            <label class="rwm-lock-option">
+              <input type="radio" name="rwm_lock_mode" value="pulse1">
+              <span>1Hz&#128274;</span>
+            </label>
+            <label class="rwm-lock-option">
+              <input type="radio" name="rwm_lock_mode" value="pulse10">
+              <span>10Hz&#128274;</span>
+            </label>
+          </div>
+          <div class="flex-1 min-w-0 space-y-2">
+            <label class="space-y-1 min-w-0 block">
+              <span class="flex items-center gap-2">
+                <span id="rwm_beat_label" class="block text-gray-400 text-xs font-mono whitespace-pre">BF(4000Hz)</span>
+                <button id="rwm_beat_pending" type="button"
+                  class="rwm-beat-pending hidden" aria-label="Apply new RWM beat now"></button>
+              </span>
+              <input type="range" id="rwm_beat_hz" min="0" max="1" step="0.001" value="1"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="space-y-1 min-w-0">
+                <span id="rwm_pulse10_label" class="block text-gray-400 text-xs font-mono whitespace-pre">10Hz_ds(100%)</span>
+                <input type="range" id="rwm_pulse10_volume" min="0" max="100" step="1" value="100"
+                  class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+              </label>
+              <label class="space-y-1 min-w-0">
+                <span id="rwm_morse_label" class="block text-gray-400 text-xs font-mono whitespace-pre">MCid(100%)</span>
+                <input type="range" id="rwm_morse_volume" min="0" max="100" step="1" value="100"
+                  class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="settings_section_noise" class="settings-section hidden space-y-3"></div>
+      <!-- Local UTC offset -->
+      <div id="clock_offset_section">
+        <div class="text-lg mb-3 flex items-center gap-2 flex-wrap">
+          <span class="font-bold">&#9201;</span>
+          <span id="local_offset_val" class="text-blue-400 font-mono">+0.000</span>
+          <span id="network_comp_val" class="text-xs text-gray-400 font-mono cursor-pointer hover:text-gray-200 transition"
+           >(+0ms)</span>
+          <button data-offset="local" data-delta="reset"
+            class="text-sm px-2 py-1 bg-dark-700 rounded hover:bg-dark-600 transition text-blue-400 text-center font-mono">&#8634;</button>
+          <button id="sync_btn"
+            class="text-sm px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-500 transition flex items-center gap-1">SYNC</button>
+          <label class="flex items-center gap-1 cursor-pointer ml-auto">
+            <span class="text-xs text-gray-400 font-bold">AUTO</span>
+            <input type="checkbox" id="auto_sync_mode" class="w-4 h-4 rounded">
+          </label>
+          <button id="sync_log_btn" type="button" aria-label="Sync audit log"
+            class="text-sm px-2 py-1 bg-dark-700 rounded hover:bg-dark-600 transition">&#128195;</button>
+          <span id="sync_error" class="text-xs text-gray-400 font-mono break-words"></span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-offset="local" data-delta="100"
+            class="text-blue-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">+0.1</button>
+          <button data-offset="local" data-delta="10"
+            class="text-blue-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">+0.01</button>
+          <button data-offset="local" data-delta="1"
+            class="text-blue-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">+0.001</button>
+          <button data-offset="local" data-delta="-100"
+            class="text-blue-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">-0.1</button>
+          <button data-offset="local" data-delta="-10"
+            class="text-blue-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">-0.01</button>
+          <button data-offset="local" data-delta="-1"
+            class="text-blue-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">-0.001</button>
+        </div>
+        <div id="base_comp_controls" class="hidden gap-2 mt-2">
+          <button data-offset="comp" data-delta="10"
+            class="text-gray-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">+10ms</button>
+          <button data-offset="comp" data-delta="1"
+            class="text-gray-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">+1ms</button>
+          <button data-offset="comp" data-delta="reset"
+            class="text-gray-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">&#8634;</button>
+          <button data-offset="comp" data-delta="-1"
+            class="text-gray-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">-1ms</button>
+          <button data-offset="comp" data-delta="-10"
+            class="text-gray-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">-10ms</button>
+        </div>
+      </div>
+      <!-- Device profile: base compensation stays above; this is the per-device extra -->
+      <div id="device_profile_section" class="mt-4" aria-label="Device Profile">
+        <div class="relative">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-400">&#127911;</span>
+            <button id="device_name_btn" type="button"
+              class="flex-1 min-w-0 flex items-center gap-1 text-left text-sm text-fuchsia-400 hover:text-fuchsia-300 transition font-sans">
+              <span id="device_name_text" class="truncate">default</span>
+              <span class="text-xs text-gray-500">&#9662;</span>
+            </button>
+            <input id="device_name_input" type="text" maxlength="24" autocomplete="off" spellcheck="false"
+              class="hidden flex-1 min-w-0 bg-dark-700 text-sm text-white rounded px-2 py-1 font-sans outline-none">
+            <span id="device_offset_val" class="hidden font-mono text-sm font-bold text-fuchsia-400 whitespace-nowrap">0ms</span>
+            <button id="device_reset_btn" type="button"
+              class="text-base text-gray-500 hover:text-fuchsia-400 transition px-1">&#8634;</button>
+            <button id="device_delete_btn" type="button"
+              class="hidden font-mono text-gray-500 hover:text-red-400 transition px-1">&#10005;</button>
+          </div>
+          <div id="device_menu"
+            class="hidden absolute left-0 right-0 top-full mt-1 z-30 max-h-56 overflow-y-auto rounded-lg bg-dark-700 border border-dark-600 shadow-xl p-1">
+          </div>
+        </div>
+        <div id="device_adjust_controls" class="hidden gap-2 mt-2">
+          <button data-device-delta="10"
+            class="text-fuchsia-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">+10ms</button>
+          <button data-device-delta="1"
+            class="text-fuchsia-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">+1ms</button>
+          <button data-device-delta="reset"
+            class="text-fuchsia-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">&#8634;</button>
+          <button data-device-delta="-1"
+            class="text-fuchsia-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">-1ms</button>
+          <button data-device-delta="-10"
+            class="text-fuchsia-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono text-sm">-10ms</button>
+        </div>
+      </div>
+      <!-- Force UTC+TC -->
+      <div id="force_utc_row" class="flex items-center gap-2 shrink-0 flex-nowrap">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="force_utc_mode" class="w-4 h-4 rounded accent-yellow-500">
+          <span class="text-xs text-yellow-300">UTC&#128274;</span>
+        </label>
+      </div>
+      <!-- DUT1 offset -->
+      <div id="dut1_section">
+        <div class="text-lg mb-3 flex items-center gap-2 flex-wrap">
+          <div class="flex items-center text-lg gap-2">
+            <span class="font-bold">DUT1</span>
+            <span id="dut1_val" class="text-green-400 font-mono">+0.000</span>
+            <button data-offset="dut1" data-delta="reset"
+              class="text-sm px-2 py-1 bg-dark-700 rounded hover:bg-dark-600 transition text-green-400 text-center font-mono">&#8634;</button>
+          </div>
+          <div class="flex items-center gap-2 ml-auto">
+            <label class="flex items-center gap-1 cursor-pointer">
+              <span class="text-xs text-gray-400 font-bold">AUTO</span>
+              <input type="checkbox" id="auto_dut1_mode" class="w-4 h-4 rounded">
+            </label>
+          </div>
+          <span id="eop_status" class="text-xs font-mono text-gray-500 cursor-pointer select-none"></span>
+        </div>
+        <div id="dut1_manual_controls" class="space-y-3">
+          <div class="flex items-center gap-3 flex-wrap">
+            <div id="dut1_source_links" class="flex flex-col gap-1">
+              <a href="http://www.ut1.ntsc.ac.cn/page/dataFuseList" target="_blank" rel="noopener noreferrer"
+                class="text-xs text-blue-400 hover:text-blue-300 flex items-center font-mono whitespace-nowrap">
+                &#128269;NTSC_EOP_<i>yyyyMMdd</i>.txt
+              </a>
+              <a href="https://datacenter.iers.org/data/latestVersion/bulletinA.txt" target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs text-blue-400 hover:text-blue-300 flex items-center font-mono whitespace-nowrap">
+                &#128190;IERS/BULLETIN-A
+              </a>
+            </div>
+            <span id="dut1_file_controls" class="flex items-center">
+              <input type="file" id="eop_file" accept=".txt"
+                class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-2 file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500" />
+            </span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-offset="dut1" data-delta="100"
+              class="text-green-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">+0.1</button>
+            <button data-offset="dut1" data-delta="10"
+              class="text-green-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">+0.01</button>
+            <button data-offset="dut1" data-delta="1"
+              class="text-green-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">+0.001</button>
+            <button data-offset="dut1" data-delta="-100"
+              class="text-green-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">-0.1</button>
+            <button data-offset="dut1" data-delta="-10"
+              class="text-green-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">-0.01</button>
+            <button data-offset="dut1" data-delta="-1"
+              class="text-green-400 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition text-center font-mono">-0.001</button>
+          </div>
+        </div>
+      </div>
+      <!-- Shortwave Background Noise -->
+      <div id="noise_section" class="flex items-center gap-3 py-2">
+        <input type="range" id="noise_volume" min="0" max="1" step="0.01" value="0.15"
+          class="flex-1 h-2 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+        <pre id="noise_volume_percent" class="text-gray-400 text-xs font-mono w-6 text-right">  0</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="sync_log_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
+    <div class="w-full max-w-5xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <button id="audit_tab_sync" type="button"
+            class="px-3 py-2 rounded bg-blue-600 text-white text-sm">&#128209;</button>
+          <button id="audit_tab_trace" type="button"
+            class="px-3 py-2 rounded bg-dark-700 text-gray-300 text-sm">&#128200;</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="combined_prompt_btn" type="button"
+            class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;+&#129302;</button>
+          <button id="backend_config_btn" type="button" aria-label="Time API backend"
+            class="px-3 py-2 bg-dark-700 text-gray-300 rounded hover:bg-dark-600 transition">&#128268;</button>
+          <button id="sync_log_close" type="button"
+            class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
+        </div>
+      </div>
+      <div id="sync_audit_view" class="flex-1 min-h-0 flex flex-col gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div id="sync_audit_summary" class="text-xs text-gray-400 font-mono break-words leading-relaxed min-w-0"></div>
+          <div class="flex w-full sm:w-auto items-center gap-2 sm:justify-end">
+            <button id="sync_prompt_btn" type="button"
+              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;</button>
+            <button id="sync_log_export" type="button"
+              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#128424;</button>
+            <button id="sync_log_clear" type="button"
+              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#128465;</button>
+          </div>
+        </div>
+        <div id="sync_log_entries" class="flex-1 min-h-0 overflow-y-auto font-mono text-[10px] sm:text-xs space-y-1"></div>
+      </div>
+      <div id="clock_trace_view" class="hidden flex-1 min-h-0 flex flex-col gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div id="clock_trace_summary" class="text-xs text-gray-400 font-mono break-words leading-relaxed cursor-pointer select-none"
+            role="button" tabindex="0" aria-label="Toggle trace diagnostics"></div>
+          <div class="flex w-full sm:w-auto items-center gap-2 sm:justify-end">
+            <button id="trace_prompt_btn" type="button"
+              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;</button>
+            <button id="clock_trace_export" type="button"
+              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#128424;</button>
+            <button id="clock_trace_clear" type="button"
+              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#128465;</button>
+          </div>
+        </div>
+        <div id="clock_trace_scroll" class="flex-1 min-h-0 overflow-y-auto space-y-3">
+          <div class="trace-chart rounded-lg border border-dark-700 bg-dark-900/60 p-2">
+            <div id="clock_trace_offset_chart"></div>
+          </div>
+          <div class="trace-chart rounded-lg border border-dark-700 bg-dark-900/60 p-2">
+            <div id="clock_trace_audio_chart"></div>
+          </div>
+          <div class="trace-chart rounded-lg border border-dark-700 bg-dark-900/60 p-2">
+            <div id="clock_trace_chart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sync_prompt_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
+    <div class="w-full max-w-3xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xl">&#129302;</span>
+        <button id="sync_prompt_close" type="button"
+          class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
+      </div>
+      <div class="flex items-center gap-2 mb-3">
+        <button id="sync_prompt_tab_zh" type="button" data-prompt-tab="zh"
+          class="px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">中文</button>
+        <button id="sync_prompt_tab_en" type="button" data-prompt-tab="en"
+          class="px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">EN</button>
+        <button id="sync_prompt_simple_export" type="button" aria-label="Export simplified 6-hour CSV"
+          class="ml-auto px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">&#128424; 6h</button>
+      </div>
+      <div id="sync_prompt_entries" class="flex-1 min-h-0 overflow-y-auto space-y-3"></div>
+    </div>
+  </div>
+
+  <div id="combined_prompt_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
+    <div class="w-full max-w-3xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xl">&#129302;+&#129302;</span>
+        <button id="combined_prompt_close" type="button"
+          class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
+      </div>
+      <div class="flex items-center gap-2 mb-3">
+        <button id="combined_prompt_tab_zh" type="button"
+          class="px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">中文</button>
+        <button id="combined_prompt_tab_en" type="button"
+          class="px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">EN</button>
+        <button id="combined_prompt_simple_export" type="button" aria-label="Export simplified 6-hour combined CSV"
+          class="ml-auto px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">&#128424; 6h+</button>
+      </div>
+      <div id="combined_prompt_entries" class="flex-1 min-h-0 overflow-y-auto space-y-3"></div>
+    </div>
+  </div>
+
+  <div id="ntp_detail_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6 overflow-y-auto"
+    style="z-index: 60;">
+    <div class="ntp-detail-shell w-full max-w-2xl mx-auto mt-2 sm:mt-8 bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-mono text-gray-300">NTP DETAILS</span>
+        <button id="ntp_detail_close" type="button"
+          class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
+      </div>
+      <div id="ntp_history_chart" class="ntp-history-chart mb-3"></div>
+      <div id="ntp_detail_content" class="min-h-0 overflow-y-auto text-xs text-gray-400 font-mono leading-relaxed"></div>
+    </div>
+  </div>
+
+  <div id="backend_config_panel" class="hidden fixed inset-0 bg-black/80 p-2 sm:p-6"
+    role="dialog" aria-modal="true" aria-labelledby="backend_config_title">
+    <form id="backend_config_form" novalidate
+      class="backend-config-shell w-full max-w-3xl mx-auto mt-2 sm:mt-8 bg-dark-800 rounded-xl p-4 flex flex-col overflow-y-auto">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <span id="backend_config_title" class="text-sm font-mono text-gray-300">&#128268; BACKEND</span>
+        <button id="backend_config_close" type="button" aria-label="Close backend setup"
+          class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
+      </div>
+      <p id="backend_config_note" class="text-xs text-gray-400 leading-relaxed mb-3"></p>
+      <div class="space-y-1">
+        <label id="backend_config_label" for="backend_config_url" class="block text-xs text-gray-400">Time API base URL</label>
+        <div class="flex items-center gap-2">
+          <input id="backend_config_url" type="text" inputmode="url" autocomplete="url" spellcheck="false"
+            aria-describedby="backend_config_hint backend_config_error"
+            class="backend-config-input flex-1 min-w-0 bg-dark-900 text-sm text-white rounded px-2 py-2 font-mono outline-none"
+            placeholder="https://time-api.example.com">
+          <button id="backend_config_origin" type="button" aria-label="Use this page origin"
+            class="hidden px-3 py-2 bg-dark-700 text-gray-300 rounded hover:bg-dark-600 transition">&#8962;</button>
+        </div>
+      </div>
+      <p id="backend_config_hint" class="text-xs text-gray-500 leading-relaxed mt-2"></p>
+      <p id="backend_config_error" class="hidden text-xs text-red-400 leading-relaxed mt-2" role="alert"></p>
+      <div class="flex items-center justify-end gap-2 mt-4">
+        <button id="backend_config_cancel" type="button"
+          class="px-3 py-2 bg-dark-700 text-gray-300 rounded hover:bg-dark-600 transition">LATER</button>
+        <button id="backend_config_save" type="submit"
+          class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">SAVE</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="audio/wwv/sprite.js"></script>
+  <script src="core.js"></script>
+  <script src="audio-engine.js"></script>
+  <script src="time-sync.js"></script>
+  <script src="observability.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

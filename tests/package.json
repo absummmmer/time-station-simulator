@@ -1,0 +1,13 @@
+{
+  "name": "time-station-simulator-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "license": "MIT",
+  "scripts": {
+    "test": "node smoke.test.js && node startup.test.js && node backend-config.test.js && node regression.test.js && node sync-reanchor.test.js && node audio-marker.test.js && node calibration.test.js && node rwm-lock.test.js && node prompts.test.js && node simple-export.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}
