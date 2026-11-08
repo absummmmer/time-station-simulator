@@ -1,90 +1,115 @@
-# Time Station Simulator 使用说明
+# Time Station Simulator Manual
 
-本手册描述页面的实际行为、状态符号和校准流程。页面本身只负责本地音频合成；
-UTC 时间、NTP 健康度和 DUT1 数据由你配置的 Time API 提供。
+[English](MANUAL.md) | [简体中文](MANUAL.zh-CN.md)
 
-## 1. 页面概览
+This manual describes the page's actual behavior, status symbols, and calibration
+workflow. The page only synthesizes audio locally. UTC time, NTP health, and DUT1
+data are supplied by the Time API you configure.
 
-Time Station Simulator 同时模拟四个短波授时信号：
+## 1. Overview
 
-- **BPM**：1 kHz 秒脉冲、UTC/UT1/呼号时段、可选 125 Hz 副载波 BCD 时码；
-- **WWV**：1000 Hz 秒脉冲、100 Hz BCD、分钟音调、语音报时、呼号；
-- **WWVH**：1200 Hz 秒脉冲、100 Hz BCD、分钟音调、语音报时、呼号；
-- **RWM**：1 Hz / 10 Hz 脉冲、DUT1/dUT1、Morse 呼号；CW 通过可变拍频试听。
+Time Station Simulator simulates four shortwave time-signal stations at the same
+time:
 
-四台共享同一 UTC/DUT1 时间基准，但各自独立生成音频。页面不模拟短波发射、
-电离层传播、衰落、同频干扰或接收机调谐；它模拟的是授时信号的音频结构和时序。
+- **BPM:** 1 kHz second pulses, UTC/UT1/call periods, optional 125 Hz subcarrier
+  BCD time code;
+- **WWV:** 1000 Hz second pulses, 100 Hz BCD, minute tones, voice announcements,
+  station identification;
+- **WWVH:** 1200 Hz second pulses, 100 Hz BCD, minute tones, voice announcements,
+  station identification;
+- **RWM:** 1 Hz / 10 Hz pulses, DUT1/dUT1, Morse identification; the CW carrier
+  is monitored through an adjustable beat-frequency (BF) oscillator.
 
-## 2. 启动与后端
+All four stations share the same UTC/DUT1 time base but generate their own audio.
+The page does not simulate shortwave transmission, ionospheric propagation,
+fading, co-channel interference, or receiver tuning. It simulates the audio
+structure and timing of the time signals.
 
-### 2.1 托管页面
+## 2. Startup and backend
 
-页面必须通过 HTTP(S) 访问，不能直接用 `file://` 打开。将项目目录作为静态站点
-托管即可，详细文件清单见 [DEPLOY.md](DEPLOY.md)。
+### 2.1 Serve the page
 
-### 2.2 配置 Time API
+The page must be served over HTTP(S); do not open `index.html` through `file://`.
+Serve the project directory as a static site. The runtime file list is in
+[DEPLOY.md](DEPLOY.md).
 
-页面不内置后端地址。第一次执行以下任一操作时，会弹出后端设置框：
+### 2.2 Configure the Time API
 
-- 勾选 `AUTO`；
-- 点击 `SYNC`；
-- 勾选 DUT1 的 `AUTO`。
+No backend address is embedded in the page. The backend setup dialog appears the
+first time you do any of the following:
 
-填写 Time API 基地址，例如：
+- enable `AUTO`;
+- click `SYNC`;
+- enable DUT1 `AUTO`.
+
+Enter the Time API base URL, for example:
 
 ```text
 https://time-api.example.com
 ```
 
-也可以直接粘贴 `/v1/time`、`/v1/time/ntp` 或 `/v1/dut1` 端点，页面会归一化为
-基地址；支持反向代理路径前缀。同源部署时可点输入框右侧的 `⌂` 填入当前 origin。
-地址保存在当前浏览器的 `localStorage` 中。
+You can also paste a `/v1/time`, `/v1/time/ntp`, or `/v1/dut1` endpoint; the page
+normalizes it to a base URL. Reverse-proxy path prefixes are supported. For a
+same-origin deployment, the `⌂` button fills in the current origin. The address
+is stored in the current browser's `localStorage`.
 
-后端必须允许本页面的 origin 通过 CORS 访问。HTTPS 页面不能调用 HTTP 后端
-（localhost 除外）。生产环境建议页面和 API 都使用 HTTPS。
+The backend must allow the page origin through CORS. An HTTPS page cannot call an
+HTTP backend (localhost excepted). Production deployments should use HTTPS for
+both the page and the API.
 
-配置完成后，可在同步审计面板（📋）右上角的 🔌 修改，或直接访问
-`?setup=backend`。
+To change the address later, use the 🔌 button in the sync audit panel or open
+`?setup=backend`.
 
-### 2.3 浏览器与音频启动
+### 2.3 Browser and audio startup
 
-- 需要支持 Web Audio 的现代浏览器；
-- 首次播放必须由用户手势触发：拖动主时钟下方的主控音量即可；
-- 页面会尝试在后台保持静音音频流，但浏览器仍可能降低定时器精度或限制音频处理；
-  需要高精度时请让页面保持前台；
-- 若音频没有启动，重新拖动主控音量或点击页面一次再试。
+- Use a modern browser with Web Audio support.
+- The first playback must be triggered by a user gesture: drag the master volume
+  below the clock.
+- The page tries to keep a silent audio stream alive while in the background, but
+  browsers may still reduce timer precision or throttle audio processing. Keep the
+  page in the foreground when timing accuracy matters.
+- If audio does not start, drag the master volume again or click the page once.
 
-## 3. 主界面
+## 3. Main interface
 
-### 3.1 主时钟
+### 3.1 Main clock
 
-- 默认显示 UTC；在“页面展示”中开启本地时间后，主时钟改显示本地时间，并在
-  秒位右侧显示时区偏移。音频始终按 UTC 调度，不随本地时间显示改变。
-- 毫秒位可在“页面展示”中开关，默认显示。
-- 点击主时钟的**小时/分钟区域**进入或退出禅模式。
-- 点击**秒位**、**毫秒位**或**时区偏移标记**打开“页面展示”设置；即使毫秒位
-  关闭，秒位仍是该设置的入口。
-- 开启 UT1 显示后，状态栏右侧出现 UT1 时间和望远镜图标。UT1 时间是连续显示，
-  不限于 BPM 的 UT1 发播窗口。
-- 状态栏左侧的 emoji 时钟固定使用 UTC，并向下取整到最近的半小时；点击它打开
-  时钟校准。
-- 状态栏中的全局 offset 标记（例如 `+2h`）来自 URL 参数 `?offset=`，点击可打开
-  时钟校准。黄色警告图标表示页面检测到时钟不确定或系统时钟跳变；点击可打开校准，
-  AUTO 开启时会尝试一次同步，AUTO 关闭时只关闭警告、等待手动同步。
+- The clock shows UTC by default. Enabling local time in **Display** switches the
+  main clock to local time and shows the zone offset next to the seconds. Audio
+  continues to be scheduled in UTC and does not follow the local-time display.
+- Milliseconds can be shown or hidden in **Display**; they are shown by default.
+- Click the **hour/minute area** of the main clock to enter or exit Zen mode.
+- Click the **seconds**, **milliseconds**, or **zone offset label** to open
+  **Display** settings. The seconds area remains a display-settings entry point
+  when milliseconds are hidden.
+- When UT1 display is enabled, the UT1 time and telescope icon appear on the right
+  side of the status bar. UT1 is displayed continuously, not only during BPM's UT1
+  transmission window.
+- The emoji clock on the left side of the status bar always uses UTC and rounds
+  down to the nearest half hour. Click it to open clock calibration.
+- The global offset marker (for example `+2h`) comes from the `?offset=` URL
+  parameter and opens clock calibration when clicked. The yellow warning icon
+  indicates that the page detected an uncertain clock or a system clock jump;
+  clicking it opens calibration. With `AUTO` enabled it attempts a sync; with
+  `AUTO` disabled it only dismisses the warning and waits for a manual sync.
 
-### 3.2 主控音量
+### 3.2 Master volume
 
-主控音量滑块位于主时钟下方，固定宽度、初始为 0：
+The master volume slider is below the main clock, has a fixed width, and starts at
+zero:
 
-- 拖动即启动音频，没有独立的播放/暂停按钮；
-- 图标按音量显示静音、低、中、高四档图形；
-- 音频初始化期间，图标位置显示加载旋转；
-- 切换设备档案或重建输出时，加载旋转会再次出现；
-- 主控音量不会在刷新后恢复为上一次的值；台站分音量和组件音量会恢复。
+- Drag it to start audio. There is no separate play/pause button.
+- The icon shows muted, low, medium, or high volume.
+- A loading spinner appears in the icon position while audio is initializing.
+- The spinner appears again when switching device profiles or rebuilding the
+  output.
+- The master volume is not restored after a page reload; station and component
+  volumes are restored.
 
-### 3.3 台站混音条
+### 3.3 Station mixer
 
-每行显示台站图标、呼号、当前状态和右侧百分比：
+Each row shows the station icon, call sign, current status, and percentage on the
+right:
 
 ```text
 📻 BPM   —               100%
@@ -93,396 +118,474 @@ https://time-api.example.com
 📻 RWM   ∅               0%
 ```
 
-- 只有右侧百分比文本是热区。点击任意百分比会一次展开全部四台滑块，再次点击
-  任意百分比全部收回。
-- 未展开时，音量为 0% 的台站行隐藏；展开后显示全部四台。页面始终保证至少
-  一个台站音量不低于 1%。
-- 展开时只增加滑块自身高度，不改变其他行间距；窄屏下滑块位于台站行下方。
-- 台站状态行和底部状态栏保持单行，超长时尾部省略。
-- 台站总音量独立保存；改变总音量不改变该台内部的信号分量比例。
+- Only the percentage text on the right is a hit area. Click any percentage to
+  expand all four station sliders; click any percentage again to collapse them.
+- When collapsed, stations at 0% are hidden. Expanding shows all four. The page
+  always keeps at least one station at 1% or higher.
+- Expanding adds only the slider height; it does not change the row spacing. On
+  narrow screens the slider appears below the station row.
+- Station status rows and the bottom status bar stay on one line and truncate at
+  the end when necessary.
+- Station volume is saved independently. Changing a station volume does not change
+  that station's internal signal-component ratios.
 
-### 3.4 禅模式
+### 3.4 Zen mode
 
-- 点击主时钟的小时/分钟区域进入或退出禅模式；
-- 进入后会尝试请求全屏，并隐藏主控、设置面板和台站滑块；
-- 播放中且主控音量大于 0 时，只显示音量非 0 的台站状态和百分比，滑块不可操作；
-- 主控音量为 0 时按暂停态处理，只显示主时钟；
-- 禅模式会随时间缓慢上下移动内容，以减少长时间固定显示造成的烧屏；
-- 如果浏览器已进入全屏，按 Esc 退出全屏也会退出禅模式；否则点击小时/分钟区域
-  退出；
-- 点击秒位、毫秒位或偏移标记会退出禅模式并打开“页面展示”设置。
+- Click the hour/minute area of the main clock to enter or leave Zen mode.
+- Entering attempts to request fullscreen and hides the master control, settings
+  panel, and station sliders.
+- While playing with master volume above zero, only stations with non-zero volume
+  and their percentages are shown; slider controls are not operable.
+- With master volume at zero, the page looks paused and only the main clock is
+  shown.
+- Zen mode slowly shifts the content vertically to reduce burn-in on long static
+  displays.
+- If the browser entered fullscreen, pressing Esc to leave fullscreen also exits
+  Zen mode; otherwise click the hour/minute area again.
+- Clicking the seconds, milliseconds, or offset label exits Zen mode and opens
+  **Display** settings.
 
-## 4. 状态符号
+## 4. Status symbols
 
-状态文字以英文和符号为主，含义如下。
+Status text is mainly English and symbols.
 
 ### 4.1 BPM
 
-| 显示 | 含义 |
+| Display | Meaning |
 | --- | --- |
-| `—` | UTC/时码时段，BCD 时码为 0%，只有秒脉冲 |
-| `+BCD₅₀%` | UTC/时码时段，叠加 125 Hz BCD 时码，下标为当前比例 |
-| `∅` | 载波时段：BPM 没有调制信号，听感取决于底噪设置 |
-| `UT1` | UT1 发播时段，秒脉冲按 DUT1 偏移 |
-| `MCid₅₀% -··· ·--· --` | Morse 呼号段，状态里的比例是摩斯呼号音量 |
-| `🗣 标准时间标准频率发播台` | 语音呼号段；比例非 100% 时显示下标 |
-| `UTC` / `UTC+BCD…` | 打开 UTC 锁后强制 UTC + 时码模式 |
+| `—` | UTC/time-code period with BCD at 0%; only second pulses |
+| `+BCD₅₀%` | UTC/time-code period with the 125 Hz BCD subcarrier; subscript is the current ratio |
+| `∅` | Carrier period: BPM has no modulation; what you hear depends on noise settings |
+| `UT1` | UT1 transmission period; second pulses are shifted by DUT1 |
+| `MCid₅₀% -··· ·--· --` | Morse call period; the subscript is the Morse-call volume |
+| `🗣 标准时间标准频率发播台` | Voice call period; a subscript appears when the ratio is not 100% |
+| `UTC` / `UTC+BCD…` | UTC lock forces UTC + time-code mode |
 
-- 锁图标固定在 BPM 状态最前面，UTC 锁定时显示 `🔒UTC…`；
-- BPM 在 UT1 时段且 UT1 时钟未开启时，会附带当日 DUT1 数值；开启 UT1 时钟后，
-  只有 BPM 与 UT1 显示使用不同 DUT1 值时才会额外显示；
-- 比例 0% 的 BPM 呼号/语音会加删除线；BPM 时码为 0% 时状态显示 `—`，不会显示
-  删除线。WWV/WWVH 的 BCD、音调或语音为 0% 时对应片段加删除线；
-- 100% 和 0% 的摩斯比例不显示下标；
-- BPM 的 `+BCD` 是叠加在原授时信号上的 125 Hz 副载波时码，区别于 WWV/WWVH
-  的 100 Hz BCD 时码。
+- The lock icon is always first in the BPM status; with UTC lock it shows as
+  `🔒UTC…`.
+- When BPM is in a UT1 period and the UT1 clock is hidden, the current DUT1 value
+  is appended. When the UT1 clock is visible, the value is shown only if BPM and
+  the UT1 display use different DUT1 values.
+- BPM call/voice components at 0% are struck through. BPM time code at 0% shows
+  `—` rather than a struck-through component. WWV/WWVH BCD, tone, or voice
+  components at 0% are struck through.
+- Morse percentages of 100% and 0% do not show a subscript.
+- BPM's `+BCD` is the optional 125 Hz subcarrier time code added to the normal
+  signal; it is different from WWV/WWVH's 100 Hz BCD code.
 
 ### 4.2 WWV / WWVH
 
-状态始终以 `BCD` 为底，再按当前时段追加音调、语音或 DUT1 双脉冲：
+The status always starts with `BCD` and appends the current tone, voice, or DUT1
+double ticks:
 
-| 显示 | 含义 |
+| Display | Meaning |
 | --- | --- |
-| `BCD` | 基础时码；BCD 为 0% 时整段加删除线 |
-| `BCD₅₀%+♪₅₀%500` | 当前分钟有标准音调；音调比例非 100% 时显示下标 |
-| `BCD+🗣 12:02 UTC` | 语音报时；显示即将播报的 UTC 时间 |
-| `BCD+🗣 StationIntroduction` | 呼号/介绍语音 |
-| `+DUT1+0.n` | 前 16 秒的 DUT1 双 tick，`+DUT1` 为紫色发播状态，绿色为实际累计值 |
+| `BCD` | Basic time code; struck through when BCD is 0% |
+| `BCD₅₀%+♪₅₀%500` | The current minute has a standard tone; a subscript appears when tone is not 100% |
+| `BCD+🗣 12:02 UTC` | Voice announcement; shows the upcoming UTC time |
+| `BCD+🗣 StationIntroduction` | Station identification/introduction |
+| `+DUT1+0.n` | DUT1 double tick during the first 16 seconds; `+DUT1` is the purple transmission state and the green value is the cumulative value |
 
-- 秒脉冲频率：WWV 1000 Hz，WWVH 1200 Hz；
-- 音调为 500 / 600 / 440 Hz，按分钟表轮换；
-- 语音开始时间约为 WWV 的 53.5 秒、WWVH 的 46.5 秒；
-- 呼号：WWV 在 0/30 分，WWVH 在 29/59 分；介绍语音从整分第 1 秒开始；
-- 前 16 秒的 DUT1 双 tick：1–8 秒表示正值，9–16 秒表示负值，每个 0.1 秒；
-- UT1 时钟已开启且其值与台站 DUT1 一致时，不再重复显示绿色 DUT1 数值，只保留
-  紫色发播状态。
+- Second-pulse frequency: WWV 1000 Hz, WWVH 1200 Hz.
+- Tones are 500, 600, or 440 Hz and rotate on a minute schedule.
+- Voice announcements start at about 53.5 seconds for WWV and 46.5 seconds for
+  WWVH.
+- Station identification: WWV at minutes 0 and 30, WWVH at minutes 29 and 59. The
+  introduction voice starts at the first second of the minute.
+- DUT1 double ticks during the first 16 seconds: seconds 1–8 are positive, 9–16
+  are negative, and each is 0.1 s.
+- When the UT1 clock is enabled and its value matches the station DUT1, the green
+  DUT1 value is not repeated; only the purple transmission state remains.
 
-音调、BCD 和语音分别有独立比例滑块；0% 的分量在状态中加删除线。
+Tone, BCD, and voice have independent ratio sliders; components at 0% are struck
+through in the status.
 
 ### 4.3 RWM
 
-| 显示 | 含义 |
+| Display | Meaning |
 | --- | --- |
-| `∅` | 未调制载波或模式尾部 |
-| `×` | 发射机关闭 |
-| `MCid ·-· ·-- --` | Morse 呼号；比例非 100% 时显示下标，0% 时加删除线 |
-| `—` | 1 Hz 普通秒脉冲 |
-| `D+ +0.1` / `D− −0.1` | DUT1 双脉冲累计值；`D±` 为紫色状态，绿色为实际值 |
-| `d+ −0.18` / `d− +0.18` | dUT1 附加双脉冲累计值 |
-| `10Hz` | 10 Hz 脉冲模式 |
-| `10Hz₅₀%·ds` | 10 Hz 模式下非整数秒脉冲的比例 |
-| `1_Hz` | 10 Hz 比例为 0% 时的退化状态 |
+| `∅` | Unmodulated carrier or mode tail |
+| `×` | Transmitter off |
+| `MCid ·-· ·-- --` | Morse call; subscript when not 100%, struck through at 0% |
+| `—` | 1 Hz normal second pulse |
+| `D+ +0.1` / `D− −0.1` | DUT1 double-pulse cumulative value; `D±` is the purple state and green is the actual value |
+| `d+ −0.18` / `d− +0.18` | dUT1 extra double-pulse cumulative value |
+| `10Hz` | 10 Hz pulse mode |
+| `10Hz₅₀%·ds` | Non-integer-second pulse ratio in 10 Hz mode |
+| `1_Hz` | Degraded state when 10 Hz ratio is 0% |
 
-- 锁定模式为 `NORMAL`、`1Hz🔒`、`10Hz🔒`；锁图标固定在状态最前面；
-- `1Hz🔒` / `10Hz🔒` 强制连续输出对应脉冲，越过 carrier、off、Morse 和尾部空档；
-- `1Hz🔒` 仍发送 DUT1 双脉冲，`10Hz🔒` 不发送 DUT1；
-- UT1 时钟开启且其数值与 RWM 使用的 DUT1 一致时，绿色累计值隐藏，只保留
-  `D±` / `d±` 紫色状态；
-- 锁定只改变 RWM 发播，不触发时钟同步；
-- 10 Hz 比例为 0% 时，非整数秒的 ds 脉冲为 0，整秒脉冲仍保留，因此显示 `1_Hz`。
+- Lock modes are `NORMAL`, `1Hz🔒`, and `10Hz🔒`; the lock icon is always first in
+  the status.
+- `1Hz🔒` / `10Hz🔒` force continuous output of the corresponding pulses across
+  carrier, off, Morse, and tail gaps.
+- `1Hz🔒` still sends DUT1 double pulses; `10Hz🔒` does not send DUT1.
+- When the UT1 clock is enabled and its value matches the DUT1 used by RWM, the
+  green cumulative value is hidden and only the `D±` / `d±` purple state remains.
+- Locking changes only RWM transmission and does not trigger clock sync.
+- At 0% 10 Hz ratio, the non-integer-second ds pulses are zero and the whole-second
+  pulses remain, so the status displays `1_Hz`.
 
-## 5. 设置面板
+## 5. Settings
 
-设置面板没有常驻入口。可以通过以下方式打开：
+The settings panel has no permanent entry point. Open it by:
 
-- 点击状态栏 emoji 时钟 → `时钟校准`；
-- 点击状态栏 UT1 时间或望远镜 → `页面展示`；
-- 点击任意台站状态文本 → `电台控制`；
-- 点击时钟警告或全局 offset 标记 → `时钟校准`；
-- URL 参数 `?settings=clock|display|stations|noise`；
-- `?setup=backend` 直接打开后端地址设置。
+- clicking the status-bar emoji clock → **Clock calibration**;
+- clicking the UT1 time or telescope → **Display**;
+- clicking any station's status text → **Station controls**;
+- clicking the clock warning or global offset marker → **Clock calibration**;
+- URL parameter `?settings=clock|display|stations|noise`;
+- `?setup=backend` to open backend address settings directly.
 
-面板顶部四个图标依次为：
+The four icons at the top are:
 
 ```text
-🕒 时钟校准
-🖥️ 页面展示
-📻 电台控制
-⚡ 噪声
+🕒 Clock calibration
+🖥️ Display
+📻 Station controls
+⚡ Noise
 ```
 
-右上角 ✕ 收起面板。设置会自动保存；具体持久化内容见第 8 节。
+The ✕ in the top-right corner closes the panel. Settings are saved automatically;
+see section 8 for persistence.
 
-### 5.1 时钟校准
+### 5.1 Clock calibration
 
-#### 5.1.1 本地偏移与 SYNC
+#### 5.1.1 Local offset and SYNC
 
-- `local_offset_val` 显示当前本地校正量，单位为秒，保留三位小数；
-- 三个正按钮和三个负按钮分别调整 `+0.1 / +0.01 / +0.001` 秒，旁边的 ↺ 将本地
-  偏移清零；
-- `SYNC` 需要 Time API 地址。一次同步会取 7 个样本，剔除较慢样本后对保留样本
-  的 offset 取中位数，并把页面的本地偏移更新到 0.1 ms 精度；
-- 同步后页面会重新锚定音频时间轴；
-- 时钟校准行会显示最近一次同步的误差范围、样本保留数、RTT 和样本间差异；
-- 网络同步可能存在随机误差，单次结果不保证足够准确；可以重复同步，直到误差和
-  样本间差异稳定；
-- 本地偏移只影响本页面，不影响系统时钟；它同时作用于显示时钟和音频时间轴。
+- `local_offset_val` shows the current local correction in seconds with three
+  decimal places.
+- Three positive and three negative buttons adjust by `+0.1 / +0.01 / +0.001`
+  seconds. The ↺ button resets the local offset to zero.
+- `SYNC` requires the Time API address. A sync takes 7 samples, drops the slower
+  samples, and uses the median offset of the kept samples. The page's local offset
+  is updated to 0.1 ms precision.
+- After a sync, the page re-anchors the audio timeline.
+- The clock calibration row shows the last sync's uncertainty, kept samples, RTT,
+  and sample spread.
+- Network sync is random; one sync may not be accurate enough. Repeat until the
+  uncertainty and sample spread are stable.
+- The local offset affects this page only, not the system clock. It applies to
+  both the display clock and the audio timeline.
 
-同步状态行里的 NTP 信息只在后端 correction 实际参与该次服务时间时外显；否则
-NTP 源信息保留在同步审计和 NTP 详情中。
+NTP information in the sync status is shown only when backend correction actually
+participated in that served time; otherwise NTP source data remains in the sync
+audit and NTP details.
 
 #### 5.1.2 AUTO
 
-- `AUTO` 开启时会立即同步一次，然后在每个 BPM 载波时段（UTC 分钟 10–15 和
-  40–45）内随机选择一个时刻再同步；
-- `AUTO` 开启时，手动偏移按钮和 `SYNC` 按钮隐藏；基础音频补偿、设备补偿和
-  DUT1 控件仍可使用；
-- `AUTO` 关闭后恢复手动控制；
-- 打开 BPM 的 UTC 锁会取消已排程的自动同步，锁定时不会按载波时段自动同步；
-- 页面从长时间后台/锁屏恢复时，如果检测到系统时钟跳变，会自动尝试重新同步；
-  `AUTO` 关闭时只显示警告，不会自行请求后端。
+- Enabling `AUTO` performs one immediate sync, then another at a random moment in
+  each BPM carrier window (UTC minutes 10–15 and 40–45).
+- With `AUTO` enabled, manual offset buttons and `SYNC` are hidden. Base audio
+  compensation, device compensation, and DUT1 controls remain available.
+- Disabling `AUTO` restores manual control.
+- Enabling BPM's UTC lock cancels any scheduled automatic sync; no carrier-window
+  auto sync occurs while locked.
+- After a long time in the background or after screen lock, if a system clock jump
+  is detected, the page tries to resync automatically. With `AUTO` disabled it only
+  shows a warning and does not contact the backend on its own.
 
-#### 5.1.3 音频补偿与设备档案
+#### 5.1.3 Audio compensation and device profiles
 
-时钟偏移下面有一行音频延迟补偿：
+The clock-offset row contains an audio delay compensation display:
 
 ```text
 (+0ms)
 ```
 
-括号中显示当前基础补偿与当前设备额外补偿之和。它调整的是**音频调度时间轴**，
-不是网络延迟，也不会移动显示时钟。
+The parentheses show the sum of the current base compensation and the current
+device extra compensation. It adjusts the **audio scheduling timeline**, not
+network latency, and does not move the display clock.
 
-- 点击 `(+…ms)` 展开基础补偿按钮：`±10ms`、`±1ms` 和 ↺；基础补偿为整数毫秒，
-  不能为负；
-- 基础补偿对当前浏览器/系统音频链路通用，切换设备档案时保留；
-- 点击耳机图标旁当前设备名称，打开设备档案菜单；菜单显示各档案的额外补偿值，
-  按补偿值排序；
-- 选择档案会切换当前设备额外补偿，并重建音频输出；切换期间主控位置显示加载圈；
-  选中档案后，名称行下方出现 `+10ms`、`+1ms`、↺、`-1ms`、`-10ms` 五个按钮，
-  它们只修改当前档案的额外补偿；
-- 菜单底部的 `+` 可新建档案。输入名称后按 Enter 或失去焦点确认，Esc 取消；
-  名称最长 24 个字符；
-- 设备行右侧 ↺ 切回 `default` 档案；它不会自动把当前档案的补偿值清零；
-- 选中档案后会出现删除按钮 ✕，删除前会弹出确认；删除最后一个档案时会自动
-  新建 `default`，否则切换到 `default` 或剩余档案中的第一个；
-- 设备额外补偿可为正或负，范围约为 ±9999 ms；当前设备额外值在补偿显示中以
-  fuchsia 突出显示。
+- Click `(+…ms)` to reveal the base compensation buttons: `±10ms`, `±1ms`, and ↺.
+  Base compensation is an integer number of milliseconds and cannot be negative.
+- Base compensation is shared by the current browser/system audio path and is
+  retained when switching device profiles.
+- Click the device name next to the headphone icon to open the device profile
+  menu. The menu shows each profile's extra compensation, sorted by value.
+- Selecting a profile applies its device extra compensation and rebuilds the audio
+  output; a loading spinner appears at the master control during the switch. When
+  a profile is selected, five buttons appear below the name: `+10ms`, `+1ms`, ↺,
+  `-1ms`, and `-10ms`; they change only the current profile's extra compensation.
+- The `+` at the bottom of the menu creates a profile. Type a name and press Enter
+  or blur to confirm; press Esc to cancel. Names are limited to 24 characters.
+- The ↺ to the right of the device row returns to the `default` profile. It does
+  not automatically zero the current profile's compensation.
+- A delete button ✕ appears when a profile is selected; deletion asks for
+  confirmation. Deleting the last profile recreates `default`; otherwise the page
+  switches to `default` or the first remaining profile.
+- Device extra compensation can be positive or negative, roughly ±9999 ms. The
+  current device extra value is highlighted in fuchsia in the compensation
+  display.
 
-设备档案用于吸收不同耳机、声卡或音频输出链路的固定延迟。更换耳机或系统音频
-设置后，应重新试听并调整；浏览器触发 `devicechange` 时，页面会自动重建音频
-输出并记录一次系统输出事件。
+Device profiles absorb fixed delays in different headphones, sound cards, or
+audio output paths. Re-listen and adjust after changing headphones or system audio
+settings. When the browser emits `devicechange`, the page automatically rebuilds
+the audio output and records a system output event.
 
-连续点击补偿按钮后停止 2.5 秒，trace 会把这组操作合并为一条 `CALIBRATION`
-记录，而不是逐次记录。
+After adjusting compensation repeatedly, waiting 2.5 seconds produces one
+`CALIBRATION` trace record for the whole burst instead of one record per click.
 
 #### 5.1.4 DUT1
 
-DUT1 是 UT1−UTC 的当前值，以秒显示；它会影响 BPM 时码和 UT1 发播、WWV/WWVH
-的 BCD 与双 tick、RWM 的 DUT1/dUT1 双脉冲。
+DUT1 is the current UT1−UTC value, shown in seconds. It affects BPM time code and
+UT1 transmission, WWV/WWVH BCD and double ticks, and RWM DUT1/dUT1 double pulses.
 
-**手动模式（AUTO 关闭）**
+**Manual mode (AUTO off)**
 
-- 六个按钮分别调整 `±0.1 / ±0.01 / ±0.001` 秒；↺ 把公共 DUT1 归零；
-- `NTSC_EOP_yyyyMMdd.txt` 和 `IERS/BULLETIN-A` 链接可下载对应的 EOP 文件；
-  通过文件选择器上传后，页面会解析 NTSC EOP 或 IERS Bulletin A 格式，并取当日
-  的 UT1−UTC 值；
-- 手动值/上传值作为所有台站共用的公共 DUT1；
-- 上传文件只在当前页面内存中使用，不会上传到服务器。
+- Six buttons adjust by `±0.1 / ±0.01 / ±0.001` seconds; ↺ resets the common DUT1
+  to zero.
+- The `NTSC_EOP_yyyyMMdd.txt` and `IERS/BULLETIN-A` links download EOP files. After
+  uploading a file, the page parses NTSC EOP or IERS Bulletin A format and takes
+  the current day's UT1−UTC value.
+- Manual values and uploaded values are the common DUT1 used by all stations.
+- Uploaded files are used only in the current page's memory and are not uploaded
+  to a server.
 
-**自动模式（AUTO 开启）**
+**Automatic mode (AUTO on)**
 
-- AUTO 开启时，手动 DUT1 按钮、文件选择器和来源链接隐藏；
-- 页面从 Time API 获取 DUT1：开启时立即拉取一次，之后在 UTC 日期切换时更新到
-  新日期的值；请求失败时保留已应用的值、显示错误状态并重试；
-- 当后端同时取得 NTSC 和 IERS 数据时：
-  - BPM 使用 NTSC；
-  - WWV、WWVH、RWM 使用 IERS；
-  - UT1 时钟使用当前选中的来源；点击 DUT1 行右侧的紧凑来源状态，可在 NTSC
-    与 IERS 之间切换 UT1 显示值；
-  - 台站实际发播的 BPM/其他台来源分配不因这次切换而改变；
-- 只有一个来源可用时，所有台站回退到该来源。
+- With AUTO enabled, the manual DUT1 buttons, file picker, and source links are
+  hidden.
+- The page fetches DUT1 from the Time API: once immediately when enabled, then for
+  the new UTC date after a date change. On failure it keeps the applied value,
+  shows an error state, and retries.
+- When the backend has both NTSC and IERS data:
+  - BPM uses NTSC;
+  - WWV, WWVH, and RWM use IERS;
+  - the UT1 clock uses the currently selected source; click the compact source
+    status on the right side of the DUT1 row to switch the UT1 display between
+    NTSC and IERS;
+  - the station broadcast source assignment does not change when you switch the
+    UT1 display.
+- When only one source is available, all stations fall back to that source.
 
-UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止参与时码和信号。
+UTC lock changes only BPM transmission. It does not hide DUT1 controls and does not
+stop DUT1 from participating in the time code or station signals.
 
-#### 5.1.5 同步审计、NTP 详情与导出
+#### 5.1.5 Sync audit, NTP details, and export
 
-时钟校准行末尾的 📋 按钮打开同步审计面板：
+The 📋 button at the end of the clock calibration row opens the sync audit panel:
 
-- `📑` 同步记录：每次同步的状态、时间、前后 offset、误差、样本、RTT 和后端
-  NTP 状态；
-- `📈` trace：最近一段时间的 offset、音频时间轴 Δ 和 raw wall − monotonic
-  残差图；
-- 审计和 trace 在本地保留 48 小时；普通导出取最近 24 小时；
-- NTP 单元格可点击打开 NTP 详情和最近 24 小时趋势；
-- 面板中的 🤖 可打开分析提示词，支持中文/英文，并可导出精简的 6 小时 CSV；
-- 同步审计和 trace 的 CSV 只包含本地记录，不会自动上传。
+- `📑` sync records: state, time, offset before/after, uncertainty, samples, RTT,
+  and backend NTP state for each sync;
+- `📈` trace: offset, audio-timeline Δ, and raw wall − monotonic residual charts;
+- audit and trace records are kept locally for 48 hours; normal exports cover the
+  last 24 hours;
+- NTP cells open NTP details and a 24-hour trend;
+- the 🤖 button opens analysis prompts in Chinese/English and can export a
+  simplified 6-hour CSV;
+- sync and trace CSV files contain only local records and are never uploaded
+  automatically.
 
-trace 图顺序为：
+Trace chart order:
 
-1. offset（ms）：页面本地校正量；
-2. audio timeline Δ（ms）：音频调度时间轴相对显示 UTC + 设备补偿的偏差；
-3. raw wall − monotonic（ms）：原始墙钟漂移。
+1. offset (ms): the page's local correction;
+2. audio timeline Δ (ms): audio scheduling timeline relative to display UTC plus
+   device compensation;
+3. raw wall − monotonic (ms): raw wall-clock drift.
 
-音频输出事件只画在第二张音频时间轴图上：`CALIBRATION` 为暗琥珀色，手动输出/
-设备切换为亮 fuchsia，系统 `devicechange` 为亮青色并最后绘制、位于最上层。
-offset 和 raw residual 图不画音频事件。
+Audio output events are drawn only on the second audio-timeline chart:
+`CALIBRATION` is dim amber, manual output/device switching is bright fuchsia, and
+system `devicechange` is bright cyan and drawn last, on top. The offset and raw
+residual charts do not draw audio events.
 
-trace/CSV 中的 `networkCompMs` 是历史字段名，表示基础音频补偿，不是网络延迟；
-`deviceExtraMs` 是当前设备档案额外补偿，`audioSkewPpm`/`audioTimeScale` 是当前
-音频时钟偏差估计和调度倍率，`audioTimelineDeltaMs` 的含义见上图说明。
+In trace/CSV fields, `networkCompMs` is a historical field name for base audio
+compensation and is not network latency; `deviceExtraMs` is the active device
+profile's extra compensation, `audioSkewPpm`/`audioTimeScale` are the current
+audio-clock skew estimate and scheduling multiplier, and `audioTimelineDeltaMs` is
+explained above.
 
-### 5.2 页面展示
+### 5.2 Display
 
-- **毫秒位**：显示或隐藏主时钟毫秒；不影响音频；
-- **本地时间**：主时钟改为本地时间，并显示时区偏移；音频仍按 UTC 调度；
-- **UT1 时钟**：在状态栏右侧持续显示 UT1 时间；UT1 只用于显示，不改变台站发播。
+- **Milliseconds:** show or hide main-clock milliseconds; does not affect audio.
+- **Local time:** show local time in the main clock with a zone offset; audio is
+  still scheduled in UTC.
+- **UT1 clock:** continuously show UT1 time on the right side of the status bar;
+  UT1 affects display only.
 
-### 5.3 电台控制
+### 5.3 Station controls
 
 #### BPM
 
-- `BCD(0%)`：125 Hz BCD 时码强度，0–200%；100% 时峰值为秒脉冲的一半，200% 时
-  与秒脉冲等响；
-- `MCid(100%)`：Morse 呼号音量，0–100%；
-- `🗣(100%)`：语音呼号音量，0–100%；
-- 小标题右侧的 ↺ 将 BPM 时码恢复 0%、Morse/语音恢复 100%、UTC 锁关闭；
-- 台站总音量在混音条中单独控制，不会被该 ↺ 重置。
+- `BCD(0%)`: 125 Hz BCD time-code level, 0–200%. At 100% its peak is half the
+  second pulse; at 200% it equals the second pulse.
+- `MCid(100%)`: Morse call level, 0–100%.
+- `🗣(100%)`: voice call level, 0–100%.
+- The ↺ to the right of the station title resets BPM time code to 0%, Morse/voice
+  to 100%, and turns UTC lock off.
+- Station master volume is controlled separately in the mixer; the ↺ does not reset
+  it.
 
-BPM 的 UTC 锁控件位于“电台控制”的 BPM 子区顶部，标签为 `UTC🔒`。打开后
-BPM 只发 UTC + 时码，忽略 carrier、UT1 和呼号时段；锁图标显示在 BPM 状态最前面。
-UTC 锁不会移动显示时钟，也不会改变其他台站。
+BPM's UTC lock control is at the top of the BPM subarea in **Station controls**,
+labelled `UTC🔒`. When enabled, BPM transmits only UTC + time code and ignores
+carrier, UT1, and call periods; the lock icon appears first in the BPM status. UTC
+lock does not move the display clock and does not change other stations.
 
 #### WWV / WWVH
 
-每台各有三个独立滑块：
+Each station has three independent sliders:
 
 ```text
-BCD(100%)   100 Hz BCD 时码，0–200%
-♪(100%)     标准音调，0–100%
-🗣(100%)     语音报时/介绍，0–100%
+BCD(100%)   100 Hz BCD time code, 0–200%
+♪(100%)     standard tones, 0–100%
+🗣(100%)     voice announcements/identification, 0–100%
 ```
 
-默认比例按 NIST SP 432 的 100/50/50/75 关系与秒脉冲对齐。小标题右侧 ↺ 会把
-该台的 BCD、音调、语音恢复 100%。
+The default ratios follow the NIST SP 432 100/50/50/75 relationship relative to
+the second pulse. The ↺ to the right of the station title restores BCD, tone, and
+voice to 100%.
 
 #### RWM
 
-- 最左侧三态锁定：`NORMAL` / `1Hz🔒` / `10Hz🔒`；
-- `BF(4000Hz)`：CW 拍频，100–4000 Hz，对数滑块，10 Hz 步进。松开后只重建
-  RWM 音频缓冲；新的拍频要等当前 10 秒 look-ahead 窗口播完后生效，期间拍频旁
-  显示加载圈；点击加载圈可立即重载全部音频；
-- `10Hz_ds(100%)`：只控制 10 Hz 段中 9 个非整数秒脉冲，范围 0–100%；不影响整秒
-  40 ms 和整分 500 ms 脉冲；
-- `MCid(100%)`：Morse 呼号音量，范围 0–100%；
-- 小标题右侧 ↺ 恢复 NORMAL、10Hz_ds 100%、MCid 100%、BF 4000 Hz。
+- Three-state lock on the left: `NORMAL` / `1Hz🔒` / `10Hz🔒`.
+- `BF(4000Hz)`: CW beat frequency, 100–4000 Hz, logarithmic slider, 10 Hz steps.
+  Releasing the slider rebuilds only the RWM audio buffer. The new BF takes effect
+  after the current 10-second look-ahead window; a loading indicator appears next
+  to the label. Click the indicator to reload all audio immediately.
+- `10Hz_ds(100%)`: controls only the nine non-integer-second pulses in 10 Hz mode,
+  0–100%; it does not affect the whole-second 40 ms or minute 500 ms pulses.
+- `MCid(100%)`: Morse call level, 0–100%.
+- The ↺ to the right of the station title restores NORMAL, 10Hz_ds 100%, MCId
+  100%, and BF 4000 Hz.
 
-### 5.4 噪声
+### 5.4 Noise
 
-- 底噪在“噪声”分区控制，滑块下方显示百分比；
-- 底噪经过约 1.5 kHz 低通，听感为柔和的带限噪声；
-- 实际噪声电平取主控音量与底噪中的较小者，并经过三次方映射；主控为 0 时噪声
-  也为 0；
-- 底噪与台站音量独立保存，主要用于掩蔽 BPM 载波/静音段和改善安静环境下的听感。
+- The noise slider is in the **Noise** tab; its percentage is shown below it.
+- The noise is low-pass filtered at about 1.5 kHz for a soft band-limited hiss.
+- The effective noise level is the smaller of the master volume and the noise
+  volume, mapped through a cubic curve; at master volume zero the noise is also
+  zero.
+- Noise is saved independently of station volumes. It is mainly useful for
+  masking BPM carrier/silence periods and for quiet listening environments.
 
-## 6. 发播时序参考
+## 6. Transmission schedules
 
 ### 6.1 BPM
 
-BPM 每个半小时循环一次。页面实现按以下时序生成信号：
+BPM repeats every half hour. The implementation uses this schedule:
 
-| UTC 分钟/时段 | 信号 |
+| UTC minute/time | Signal |
 | --- | --- |
-| 00–10、30–40 | UTC 秒脉冲 + 125 Hz 时码 |
-| 10–15、40–45 | 未调制载波，BPM 自身无音频 |
-| 15–25、45–55 | UTC 秒脉冲 + 125 Hz 时码 |
-| 24:59–29:00、54:59–59:00 | UT1 秒脉冲：普通 100 ms、整分 300 ms；无时码；按 DUT1 偏移 |
-| 29–30、59–60 | 台站呼号：约前 40 秒 Morse，后 20 秒语音 |
+| 00–10, 30–40 | UTC second pulses + 125 Hz time code |
+| 10–15, 40–45 | Unmodulated carrier; BPM itself has no audio |
+| 15–25, 45–55 | UTC second pulses + 125 Hz time code |
+| 24:59–29:00, 54:59–59:00 | UT1 second pulses: 100 ms normally, 300 ms on the minute; no time code; shifted by DUT1 |
+| 29–30, 59–60 | Station call: about 40 seconds Morse, then 20 seconds voice |
 
-UT1 窗口从 `24:59` / `54:59` 开始，因此 24 分和 54 分的最后一秒已经进入 UT1
-模式；29:00 / 59:00 起切换为呼号。
+The UT1 window starts at `24:59` / `54:59`; the final second of minutes 24 and 54
+is already in UT1 mode. At 29:00 / 59:00 the call period begins.
 
-BPM 时码为 60 bit/min 的 125 Hz 副载波 BCD，1 bit/s：
+The BPM time code is a 60-bit/minute 125 Hz subcarrier BCD code at 1 bit/s:
 
-- 200 ms 脉冲表示 0；
-- 480 ms 脉冲表示 1；
-- 800 ms 定位标记：P1=9、P2=19、P3=29、P4=39、P5=49、P0=59；
-- UT1 改正值位于 50–54 秒字段。
+- 200 ms pulse = 0;
+- 480 ms pulse = 1;
+- 800 ms position markers: P1=9, P2=19, P3=29, P4=39, P5=49, P0=59;
+- the UT1 correction value is in the 50–54 second field.
 
-默认 BCD 音量为 0%。参考频率（页面不调谐频率）为 2.5 / 5 / 10 / 15 MHz。
+Default BCD volume is 0%. Reference frequencies (the page does not tune RF):
+2.5 / 5 / 10 / 15 MHz.
 
 ### 6.2 WWV / WWVH
 
-- 秒脉冲：WWV 1000 Hz，WWVH 1200 Hz，5 ms；前 10 ms 与后 25 ms 静音；
-- 整分标记：1000 / 1200 Hz，800 ms；整点标记 1500 Hz，800 ms；
-- 每分钟 29 秒、59 秒无秒脉冲；
-- 时码：100 Hz BCD 子载波，每秒 1 bit；
-- 音调：500 / 600 / 440 Hz，按分钟表轮换；
-- WWV 呼号在 0/30 分，WWVH 在 29/59 分；
-- 语音约在 WWV 53.5 秒、WWVH 46.5 秒开始；
-- DUT1 双 tick 在前 16 秒：1–8 秒为正、9–16 秒为负；BCD 也编码 DUT1；
-- 参考频率：WWV 2.5/5/10/15/20 MHz（25 MHz 实验）；WWVH 2.5/5/10/15 MHz。
+- Second pulses: WWV 1000 Hz, WWVH 1200 Hz, 5 ms; 10 ms silence before and 25 ms
+  after;
+- minute marker: 1000 / 1200 Hz, 800 ms; hour marker: 1500 Hz, 800 ms;
+- no second pulse at seconds 29 and 59;
+- time code: 100 Hz BCD subcarrier, 1 bit/s;
+- tones: 500 / 600 / 440 Hz on a minute schedule;
+- calls: WWV at 0/30 minutes, WWVH at 29/59 minutes;
+- voice announcements start at about 53.5 s (WWV) and 46.5 s (WWVH);
+- DUT1 double ticks during the first 16 seconds: seconds 1–8 positive, 9–16
+  negative; BCD also encodes DUT1;
+- reference frequencies: WWV 2.5/5/10/15/20 MHz (25 MHz experimental); WWVH
+  2.5/5/10/15 MHz.
 
 ### 6.3 RWM
 
-RWM 每 30 分钟循环一次：
+RWM repeats every 30 minutes:
 
-| UTC 分钟 | 信号 |
+| UTC minute | Signal |
 | --- | --- |
-| 00–08、30–38 | 未调制载波 |
-| 08–09、38–39 | 发射机关闭 |
-| 09–10、39–40 | Morse 呼号 “RWM RWM RWM…”，55 秒处硬截断 |
-| 10–20、40–50 | 1 Hz 脉冲 |
-| 20–30、50–60 | 10 Hz 脉冲 |
+| 00–08, 30–38 | Unmodulated carrier |
+| 08–09, 38–39 | Transmitter off |
+| 09–10, 39–40 | Morse call “RWM RWM RWM…”, hard cutoff at 55 s |
+| 10–20, 40–50 | 1 Hz pulses |
+| 20–30, 50–60 | 10 Hz pulses |
 
-- 1 Hz：整分 500 ms，其余 100 ms；DUT1/dUT1 双脉冲在 1 Hz 段发送；
-- DUT1 双脉冲：1–8 秒表示正值，9–16 秒表示负值，第二个脉冲在秒后 200 ms；
-- dUT1：正值在 21–24 秒，负值在 31–34 秒，步进 0.02 秒；
-- 10 Hz：普通 20 ms，整秒 40 ms，整分 500 ms；整分首个 500 ms 与 +500 ms
-  的 20 ms 脉冲组成 520 ms 连续脉冲；
-- 每个脉冲模式最后一分钟的 55–59 秒停发；
-- 参考频率：4.996 / 9.996 / 14.996 MHz。
+- 1 Hz: 500 ms on the minute, 100 ms otherwise; DUT1/dUT1 double pulses are sent
+  during 1 Hz mode.
+- DUT1 double pulses: seconds 1–8 are positive, 9–16 negative; the second pulse
+  starts 200 ms after the second.
+- dUT1: positive at seconds 21–24, negative at 31–34, in 0.02 s steps.
+- 10 Hz: 20 ms normal pulses, 40 ms on whole seconds, 500 ms on the minute; the
+  first 500 ms minute pulse plus a 20 ms pulse at +500 ms forms a 520 ms
+  continuous pulse.
+- Each pulse mode's last minute has no pulses at seconds 55–59.
+- Reference frequencies: 4.996 / 9.996 / 14.996 MHz.
 
-RWM 不发送一天中的时刻，只发送标准时间间隔和 DUT1/dUT1。CW 载波本身没有音频，
-需要通过 `BF` 拍频试听。
+RWM does not send the time of day; it sends standard intervals and DUT1/dUT1. The
+CW carrier itself has no audio, so use the BF beat-frequency control to listen.
 
-## 7. 建议的校准流程
+## 7. Suggested calibration workflow
 
-1. 先配置并同步 Time API，让主时钟的本地偏移稳定；
-2. 打开音频，选择常用的耳机/声卡设备档案；
-3. 用 BPM 秒脉冲作为参考，调整基础音频补偿，使听到的秒脉冲与显示秒位对齐；
-4. 切换不同耳机/声卡时使用不同设备档案，不要用本地时钟偏移去补音频延迟；
-5. 如果之后发现音频又整体偏移，先重新同步本地时钟，再检查是否切换了音频输出；
-6. 需要检查趋势时打开 trace，确认 `audioTimelineDeltaMs` 在设备档案和
-   AudioContext session 不变的情况下没有持续漂移。
+1. Configure and sync the Time API so the page's local offset is stable.
+2. Start audio and select the usual headphone/sound-card device profile.
+3. Use BPM second pulses as a reference and adjust base audio compensation until
+   the pulses you hear align with the displayed second.
+4. Use separate device profiles for different headphones/sound cards; do not use
+   the local clock offset to compensate for audio delay.
+5. If audio shifts later, resync the local clock first, then check whether the
+   audio output changed.
+6. Use trace when needed and confirm that `audioTimelineDeltaMs` does not drift
+   continuously while the device profile and AudioContext session remain the same.
 
-本地偏移用于校准“页面时钟 vs 参考时间”；音频补偿用于校准“音频链路延迟 vs
-页面时钟”。两者不要混用。
+Use the local offset for "page clock vs reference time"; use audio compensation
+for "audio path delay vs page clock". Do not mix them.
 
-## 8. 数据、持久化与隐私
+## 8. Data, persistence, and privacy
 
-- 台站音量、各台分量比例、底噪、RWM BF/锁定、DUT1、本地偏移、音频补偿、
-  显示开关、AUTO 状态和设备档案保存于浏览器；
-- 主控音量每次打开页面都从 0 开始；
-- Time API 地址单独保存在浏览器 `localStorage`；
-- 同步审计和 trace 在本地保留 48 小时，导出时默认取最近 24 小时；
-- 页面不包含分析统计或第三方 CDN；除你配置的 Time API 外不会主动发起网络请求；
-- “6 小时”精简导出和“24 小时”完整导出都由你手动下载，不会自动上传。
+- Station volumes, component ratios, noise, RWM BF/lock, DUT1, local offset, audio
+  compensation, display switches, AUTO states, and device profiles are stored in
+  the browser.
+- The master volume always starts at zero on page load.
+- The Time API address is stored separately in browser `localStorage`.
+- Sync audit and trace records are kept locally for 48 hours; exports default to
+  the last 24 hours.
+- The page contains no analytics or third-party CDNs, and makes no network requests
+  other than to the configured Time API.
+- The 6-hour simplified and 24-hour full CSV exports are downloaded manually and
+  are never uploaded automatically.
 
-## 9. 高级 URL 参数
+## 9. Advanced URL parameters
 
-| 参数 | 作用 |
+| Parameter | Effect |
 | --- | --- |
-| `?settings=clock\|display\|stations\|noise` | 打开设置面板并跳到对应分区 |
-| `?setup=backend` | 直接打开 Time API 地址设置 |
-| `?offset=±整数分钟` | 给显示 UTC 和音频增加全局偏移；不改变网络同步使用的设备时钟 |
+| `?settings=clock\|display\|stations\|noise` | Open the settings panel on a specific tab |
+| `?setup=backend` | Open the Time API address setup directly |
+| `?offset=±integer minutes` | Add a global offset to displayed UTC and audio; does not change the device clock used for network sync |
 
-`?offset` 只用于演示或临时偏移，不会保存；状态栏会显示偏移标记。
+`?offset` is intended for demonstrations or temporary shifts and is not saved. The
+status bar shows the offset marker.
 
-## 10. 精度与范围
+## 10. Accuracy and scope
 
-- 本页面是授时信号模拟器，不是计量级 UTC 标准，也不是短波接收机；
-- 绝对时间取决于设备时钟、Time API 后端、网络路径和人工校准；
-- 音频最终到达耳朵的时间还取决于浏览器、操作系统和输出设备；
-- 不模拟电离层、衰落、同频干扰、接收机调谐或 RF 发射；
-- 只实现 BPM / WWV / WWVH / RWM 四台；
-- 不模拟闰秒插入或闰秒预告；时码中的相关固定字段保持默认值；
-- 界面标签以英文为主，本手册提供中文说明。
+- This is a time-signal simulator, not a metrology-grade UTC reference or a
+  shortwave receiver.
+- Absolute time depends on the device clock, the Time API backend, the network
+  path, and manual calibration.
+- The time at which audio reaches the ear also depends on the browser, operating
+  system, and output device.
+- The page does not simulate ionospheric propagation, fading, co-channel
+  interference, receiver tuning, or RF transmission.
+- Only BPM, WWV, WWVH, and RWM are implemented.
+- Leap-second insertion and leap-second announcements are not simulated; related
+  fixed time-code fields remain at their default values.
+- Interface labels are mainly English; this manual is the English reference.
 
-## 11. 部署与第三方
+## 11. Deployment and third-party material
 
-静态部署、运行时文件清单、缓存和 CORS 注意事项见 [DEPLOY.md](DEPLOY.md)。
-WWV/WWVH 音频素材来自 `kalafut/wwv`（MIT），DSEG7 字体使用 SIL Open Font
-License 1.1；完整许可见 [THIRD_PARTY.md](THIRD_PARTY.md) 及项目内的许可证文件。
+See [DEPLOY.md](DEPLOY.md) for the runtime file list, caching, and CORS notes.
+WWV/WWVH audio assets are derived from `kalafut/wwv` (MIT); DSEG7 fonts use the SIL
+Open Font License 1.1. See [THIRD_PARTY.md](THIRD_PARTY.md) and the license files
+included with the project.
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)

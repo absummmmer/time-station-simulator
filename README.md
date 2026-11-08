@@ -1,119 +1,131 @@
 # Time Station Simulator
 
-BPM、WWV、WWVH、RWM 四台短波授时信号的浏览器端多路模拟器。音频由 Web Audio
-实时调度，时间基准与 DUT1 数据来自可自托管的 `time-api`
-（也可接入任何兼容该接口的服务）。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-页面不包含任何内置后端地址。首次使用 `AUTO`、`SYNC` 或 `DUT1 AUTO` 时，需要填写
-Time API 的基地址；地址只保存在当前浏览器中。
+A browser-based simulator of four shortwave time-signal stations: **BPM**,
+**WWV**, **WWVH**, and **RWM**. Audio is scheduled with the Web Audio API; the
+time base and DUT1 data come from a self-hosted Time API (any compatible service
+can be used).
 
-## 功能
+The page does not contain a built-in backend address. The first time you use
+`AUTO`, `SYNC`, or DUT1 `AUTO`, it asks for the Time API base URL and stores it in
+the current browser.
 
-- 四台同时运行，音量独立：
-  - **BPM**：1 kHz 秒脉冲、UTC/UT1/呼号时段、可选 125 Hz 副载波 BCD 时码；
-  - **WWV**：1000 Hz 秒脉冲、100 Hz BCD、分钟音调表、语音报时、呼号；
-  - **WWVH**：1200 Hz 秒脉冲、100 Hz BCD、分钟音调表、语音报时、呼号；
-  - **RWM**：1 Hz / 10 Hz 脉冲、DUT1 与 dUT1 双脉冲、Morse 呼号；
-    BF 拍频可在 100–4000 Hz 之间调整。
-- 四台共享同一 UTC/DUT1 时间基准，音频调度使用统一的 look-ahead 时钟。
-- 支持网络同步、自动同步、同步审计日志和 clock trace；审计与 trace 在本地保留
-  48 小时，可导出为 CSV。
-- 设备延迟档案：为耳机、声卡等不同输出设备保存独立补偿值；同一设备内还会慢速
-  估计音频时钟偏差，并只校正音频调度倍率。
-- NTP 观测信息来自后端，浏览器不直接访问 NTP。
-- 单页静态应用；除配置的 Time API 外没有运行时外部依赖，不加载 CDN。
-- 支持桌面和移动端布局，提供隐藏设置面板与禅模式。
+## Features
 
-## 快速开始
+- Four stations running together with independent station volumes:
+  - **BPM:** 1 kHz second pulses, UTC/UT1/call periods, optional 125 Hz
+    subcarrier BCD time code;
+  - **WWV:** 1000 Hz second pulses, 100 Hz BCD, minute tones, voice
+    announcements, station identification;
+  - **WWVH:** 1200 Hz second pulses, 100 Hz BCD, minute tones, voice
+    announcements, station identification;
+  - **RWM:** 1 Hz / 10 Hz pulses, DUT1/dUT1 timing, Morse identification, and a
+    variable beat-frequency (BF) oscillator for listening to the CW carrier.
+- A shared UTC/DUT1 time base with a common look-ahead audio clock.
+- Network sync, automatic sync, a sync audit log, and clock traces.
+- Per-device audio compensation profiles for headphones, speakers, and other
+  output paths.
+- NTP health is observed by the backend; the browser never queries NTP directly.
+- Single-page static app with no runtime CDN or third-party services other than
+  the configured Time API.
+- Responsive layout, hidden settings panel, and Zen mode.
 
-### 1. 启动 Time API
+## Quick start
 
-可使用配套的 `time-api`，默认监听 `http://localhost:8080`。在 `time-api`
-目录中运行：
+### 1. Start the Time API
+
+Use the companion `time-api` project (default `http://localhost:8080`). In its
+directory, run:
 
 ```bash
 docker compose up -d --build
 ```
 
-详细配置见 `time-api/README.md`。
+See `time-api/README.md` for configuration.
 
-### 2. 托管本目录
+### 2. Serve this directory
 
-页面必须通过 HTTP(S) 访问，不能直接双击 `index.html`：
+The page must be served over HTTP(S); opening `index.html` via `file://` will not
+work:
 
 ```bash
 python3 -m http.server 8000
-# 打开 http://localhost:8000/
+# open http://localhost:8000/
 ```
 
-也可以部署到任意静态站点或反向代理。
+### 3. Configure the backend
 
-### 3. 配置后端地址
-
-首次启用 `AUTO`、点击 `SYNC` 或开启 DUT1 自动更新时，页面会弹出后端设置框。
-填写 Time API 基地址，例如：
+The first `AUTO`, `SYNC`, or DUT1 `AUTO` action opens a backend setup dialog.
+Enter the Time API base URL, for example:
 
 ```text
 http://localhost:8080
 ```
 
-也可以直接粘贴 `/v1/time`、`/v1/time/ntp` 或 `/v1/dut1` 端点，页面会自动归一化为
-基地址。需要反向代理路径前缀时，可直接填写带路径的基地址。
+You can also paste a `/v1/time`, `/v1/time/ntp`, or `/v1/dut1` endpoint; it is
+normalized to the base URL. Path prefixes are supported. For a same-origin
+deployment, the `⌂` button fills in the current origin.
 
-后端必须允许页面 origin 访问（CORS）。HTTPS 页面不能调用 HTTP 后端（localhost
-除外）；生产环境建议让页面和 API 都走 HTTPS。
+The backend must allow the page origin through CORS. An HTTPS page cannot call
+an HTTP backend (localhost excepted). Production deployments should use HTTPS
+for both the page and the API.
 
-地址保存在当前浏览器的 `localStorage`。之后可从同步审计面板右上角的 🔌 修改，
-或访问 `?setup=backend`。
+The address is stored in the browser's `localStorage`. Change it later from the
+sync audit panel's 🔌 button or with `?setup=backend`.
 
-## 浏览器要求
+## Browser requirements
 
-- 支持 Web Audio API 和 `AudioContext` 的现代浏览器；
-- 首次播放需要用户手势（拖动主控音量即可）；
-- 建议使用桌面版 Chrome、Edge、Firefox 或 Safari 的近期版本。
+- A modern browser with Web Audio support;
+- an initial user gesture is required to start audio (drag the master volume);
+- a recent desktop or mobile version of Chrome, Edge, Firefox, or Safari is
+  recommended.
 
-## 操作简介
+## Basic operation
 
-- 拖动主时钟下方的主控音量开始播放；初始音量为 0。
-- 点击任意台站右侧的百分比，一次展开或收起全部台站滑块。
-- 点击状态行的 emoji 时钟打开时钟校准；点击 UT1 时间打开页面展示；点击台站
-  状态打开电台控制。
-- 点击主时钟的小时/分钟区域进入或退出禅模式。
-- 详细界面与状态说明见 [MANUAL.md](MANUAL.md)。
+- Drag the master volume below the clock to start playback (it starts at zero).
+- Click any station's percentage to expand or collapse all station sliders.
+- Click the status-bar clock emoji to open clock calibration; click the UT1 time
+  to open display settings; click a station status to open station controls.
+- Click the hour/minute area of the main clock to enter or exit Zen mode.
+- See [MANUAL.md](MANUAL.md) for the full UI and status reference. The Chinese
+  version is [MANUAL.zh-CN.md](MANUAL.zh-CN.md).
 
-## 目录结构
+## Layout
 
 ```text
-index.html                 页面外壳
-core.js                    配置、时间格式化、设置与状态
-audio-engine.js            Web Audio 调度、台站总线和音效
-time-sync.js               时间采样、同步审计、DUT1 与 trace 数据
-observability.js           trace 图、NTP 详情、审计表和导出面板
-app.js                     台站行、设置面板、音频控件和启动接线
-styles.css                 自定义样式和组件样式
-tailwind.css               预编译的 Tailwind CSS
-tailwind.input.css         Tailwind 输入
-tailwind.config.cjs        Tailwind 配置
-audio/                     台站音频素材
-dseg7-*.woff/.woff2        七段显示字体
-tests/                     jsdom 测试套件
-DEPLOY.md                  部署说明
-MANUAL.md                  用户手册
-STATIONS.md                台站信号参考
-THIRD_PARTY.md             第三方素材与许可
+index.html                 page shell
+core.js                    configuration, time formatting, settings and state
+audio-engine.js            Web Audio scheduler, station buses and effects
+time-sync.js               time samples, sync audit, DUT1 and trace data
+observability.js           trace charts, NTP details, audit and prompt panels
+app.js                     station rows, settings panel, audio controls and startup
+styles.css                 custom styles and components
+tailwind.css               precompiled Tailwind CSS
+tailwind.input.css         Tailwind input
+tailwind.config.cjs        Tailwind configuration
+audio/                     station audio assets
+dseg7-*.woff/.woff2        seven-segment display fonts
+tests/                     jsdom test suite
+DEPLOY.md                  deployment notes
+MANUAL.md                  English user manual
+MANUAL.zh-CN.md            Chinese user manual
+STATIONS.md                English signal reference
+STATIONS.zh-CN.md          Chinese signal reference
+THIRD_PARTY.md             third-party material and licenses
 ```
 
-## 开发与构建
+## Development and build
 
-页面使用原生 JavaScript classic scripts，不需要打包器。修改 Tailwind utility
-class 后重新生成 CSS：
+The page uses classic JavaScript scripts and needs no bundler. After changing
+Tailwind utility classes, regenerate the CSS:
 
 ```bash
 npm install
 npm run build:css
 ```
 
-测试：
+Tests:
 
 ```bash
 cd tests
@@ -121,32 +133,40 @@ npm install
 npm test
 ```
 
-测试直接用 jsdom 加载部署文件，不维护应用副本。详细列表见
-[tests/README.md](tests/README.md)。
+The tests load the deployable files directly through jsdom. See
+[tests/README.md](tests/README.md) for details.
 
-## 时间与精度说明
+## Time and accuracy
 
-本项目的目标是生成与授时广播结构一致的背景音频，并提供一个便于日常计时的
-页面时钟；它不是计量级 UTC 标准，也不是短波接收机的替代品。
+This project is intended to produce broadcast-like background audio and a
+convenient page clock for everyday timing. It is not a metrology-grade UTC
+reference and is not a substitute for a shortwave receiver.
 
-- 页面显示与音频都依赖后端时间；后端上游、网络路径、音频输出链路和人工校准
-  都会影响最终听到的相位。
-- 设备延迟档案用于吸收本机音频链路差异，需要在更换耳机/声卡后重新校准。
-- 音频调度使用单调时钟和慢速速率估计，避免系统墙钟跳变直接影响已排程音频。
+- The display and audio both depend on the backend time. Upstream time sources,
+  network paths, audio output paths, and manual calibration all affect the final
+  phase you hear.
+- Device profiles absorb differences in the local audio chain. Recalibrate after
+  changing headphones, speakers, or system audio settings.
+- Audio scheduling uses a monotonic clock and slow audio-rate estimation, so a
+  wall-clock step does not directly disturb scheduled audio.
 
-## 范围
+## Scope
 
-- 模拟四台授时信号的发播结构和听感，不模拟电离层、衰落、同频干扰或接收机调谐。
-- 不包含其他授时台。
-- 不提供可追溯的 UTC 校准服务；对精度有严格要求的场景应使用专门的授时设备。
+- Simulates the signal structure and listening experience of four stations; it
+  does not model ionospheric propagation, fading, co-channel interference, or
+  receiver tuning.
+- No stations other than BPM, WWV, WWVH, and RWM.
+- No traceable UTC calibration service. Use dedicated timing equipment when
+  strict traceability or metrology-grade accuracy is required.
 
-## 第三方与许可
+## Third-party material and license
 
-WWV/WWVH 音频素材来自 [kalafut/wwv](https://github.com/kalafut/wwv)，MIT
-License。DSEG7 字体使用 SIL Open Font License 1.1。完整说明和许可文本见
-[THIRD_PARTY.md](THIRD_PARTY.md)、`THIRD_PARTY_WWV_LICENSE.txt`、
-`DSEG7-LICENSE.txt` 与 `DSEG7-MINI-LICENSE.txt`。
+WWV/WWVH audio assets are derived from
+[kalafut/wwv](https://github.com/kalafut/wwv) under the MIT License. DSEG7 fonts
+use the SIL Open Font License 1.1. See [THIRD_PARTY.md](THIRD_PARTY.md),
+`THIRD_PARTY_WWV_LICENSE.txt`, `DSEG7-LICENSE.txt`, and
+`DSEG7-MINI-LICENSE.txt`.
 
-本项目代码使用 MIT License，见 [LICENSE](LICENSE)。
+The project code is MIT licensed; see [LICENSE](LICENSE).
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
