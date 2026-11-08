@@ -42,7 +42,7 @@ directory, run:
 docker compose up -d --build
 ```
 
-See `time-api/README.md` for configuration.
+See the companion `time-api` project for configuration.
 
 ### 2. Serve this directory
 

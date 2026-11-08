@@ -37,7 +37,7 @@ Time API 的基地址；地址只保存在当前浏览器中。
 docker compose up -d --build
 ```
 
-详细配置见 `time-api/README.md`。
+详细配置见配套的 `time-api` 项目。
 
 ### 2. 托管本目录
 
