@@ -382,11 +382,11 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
 
 Trace chart order:
 
-1. offset (ms): the page's local correction. Successful syncs add thin, faint
-   cap-less vertical whiskers at the matching trace sample: uncertainty is the
-   inner bar (±uncertaintyMs), sample spread (jitter) is the outer bar (ΔspreadMs);
-   hover a sample for the exact values. The bars reuse the sample series color and
-   stay translucent so they do not compete with the state colors;
+1. offset (ms): the page's local correction. Each successful sync also tints the
+   interval up to the next sync as a faint band around the offset: the outer band
+   is the sample spread (jitter, ΔspreadMs) and the inner band is ±uncertaintyMs;
+   hover a sample for the exact values. The band reuses the sample series color
+   and stays translucent so it does not compete with the state colors;
 2. audio timeline Δ (ms): audio scheduling timeline relative to display UTC plus
    device compensation;
 3. raw wall − monotonic (ms): raw wall-clock drift.
