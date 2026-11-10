@@ -318,7 +318,7 @@ trace 图顺序为：
 1. offset（ms）：页面本地校正量。每次成功同步还会把到下一次同步的区间画成围绕
    offset 的淡色带：外层为样本抖动范围（ΔspreadMs），内层为 ±uncertaintyMs；
    悬停采样点可查看具体数值。色带沿用该采样点所在曲线的颜色并保持半透明，
-   避免与状态指示颜色冲突；
+   避免与状态指示颜色冲突；色带在 session/分段边界处截止，不会跨到下一段 trace 曲线；
 2. audio timeline Δ（ms）：音频调度时间轴相对显示 UTC + 设备补偿的偏差；
 3. raw wall − monotonic（ms）：原始墙钟漂移。
 

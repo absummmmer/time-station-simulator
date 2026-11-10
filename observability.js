@@ -293,13 +293,21 @@
       labels.push(`<text class="trace-label" x="${left}" y="${height - 2}" text-anchor="start" style="fill:#64748b">shaded = background · faint bands = sync ±unc / Δjitter</text>`);
       const colors = ['#22d3ee', '#a78bfa', '#f472b6', '#4ade80', '#facc15', '#fb923c'];
       const colorBySampleIndex = new Map();
+      const seriesIndexBySampleIndex = new Map();
+      const seriesBounds = [];
       series.forEach((points, seriesIndex) => {
         const seriesColor = colors[seriesIndex % colors.length];
+        let firstIndex = Infinity;
+        let lastIndex = -Infinity;
         points.forEach((point) => {
           if (Number.isFinite(Number(point.entry && point.entry.offsetMs))) {
             colorBySampleIndex.set(point.sampleIndex, seriesColor);
+            seriesIndexBySampleIndex.set(point.sampleIndex, seriesIndex);
+            if (point.sampleIndex < firstIndex) firstIndex = point.sampleIndex;
+            if (point.sampleIndex > lastIndex) lastIndex = point.sampleIndex;
           }
         });
+        seriesBounds.push({ first: firstIndex, last: lastIndex });
       });
       const stride = Math.max(1, Math.ceil(allPoints.length / 1800));
       const lines = series.map((points, seriesIndex) => {
@@ -383,8 +391,15 @@
       const syncBands = [...syncWhiskerByIndex.values()].sort((a, b) => a.sampleIndex - b.sampleIndex);
       const syncBandShapes = syncBands.map((band, index) => {
         const next = syncBands[index + 1];
+        const seriesIndex = seriesIndexBySampleIndex.get(band.sampleIndex);
+        const bounds = Number.isInteger(seriesIndex) ? seriesBounds[seriesIndex] : null;
+        const seriesEndIndex = bounds && Number.isFinite(bounds.last) ? bounds.last : band.sampleIndex;
         const xStart = xOf(band.sampleIndex);
-        const xEnd = next ? xOf(next.sampleIndex) : width - right;
+        // Never bridge a session/visibility/gap segment boundary: the offset line
+        // is split there, so the band must stop at the last sample of its own
+        // series instead of reaching the next sync in a later session.
+        const nextX = next ? xOf(next.sampleIndex) : width - right;
+        const xEnd = Math.min(nextX, xOf(seriesEndIndex));
         const bandWidth = Math.max(1, xEnd - xStart);
         const rects = [];
         const addBand = (className, dataAttribute, halfSpan, opacity) => {
@@ -398,8 +413,8 @@
         };
         // Jitter is the full sample spread (max-min); its band spans half the
         // spread above and below the plotted offset, with uncertainty nested.
-        addBand('trace-sync-jitter-band', 'data-sync-jitter-ms', band.jitterMs === null ? null : band.jitterMs / 2, 0.07);
-        addBand('trace-sync-uncertainty-band', 'data-sync-uncertainty-ms', band.uncertaintyMs, 0.14);
+        addBand('trace-sync-jitter-band', 'data-sync-jitter-ms', band.jitterMs === null ? null : band.jitterMs / 2, 0.12);
+        addBand('trace-sync-uncertainty-band', 'data-sync-uncertainty-ms', band.uncertaintyMs, 0.26);
         return rects.length
           ? `<g class="trace-sync-band" data-sync-sample-index="${band.sampleIndex}">${rects.join('')}</g>`
           : '';

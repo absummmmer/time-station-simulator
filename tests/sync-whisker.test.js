@@ -32,7 +32,7 @@ const { boot } = require('./dom-harness');
   const filled = allRects.every(rect => rect.getAttribute('fill')
     && Number(rect.getAttribute('width')) > 0
     && Number(rect.getAttribute('height')) > 0);
-  const faint = allRects.every(rect => Number(rect.getAttribute('fill-opacity')) <= 0.2);
+  const faint = allRects.every(rect => Number(rect.getAttribute('fill-opacity')) <= 0.3);
   const noOldLines = chart.querySelectorAll('.trace-sync-whisker').length === 0;
   const syncPoint = syncInfo && (data.points || []).find(point => point.sampleIndex === syncInfo.sampleIndex);
   const tooltip = syncPoint ? data.tooltip(syncPoint) : '';
@@ -45,13 +45,64 @@ const { boot } = require('./dom-harness');
   assert.ok(uncertaintyBands.length >= 1, 'expected an uncertainty band');
   assert.ok(jitterBands.length >= 1, 'expected a jitter band');
   assert.ok(filled, 'sync bands must be filled rectangles with width and height');
-  assert.ok(faint, 'sync bands must stay faint (fill-opacity <= 0.2)');
+  assert.ok(faint, 'sync bands must stay faint (fill-opacity <= 0.3)');
   assert.ok(noOldLines, 'old vertical whisker lines must be replaced by bands');
   assert.ok(anchored, 'sync band must start at the matching trace sample x');
   assert.ok(syncInfo && syncInfo.uncertaintyMs === 2.5 && syncInfo.jitterMs === 3,
     `unexpected sync band data: ${JSON.stringify(syncInfo)}`);
   assert.ok(tooltip.includes('sync') && tooltip.includes('±2.5ms') && tooltip.includes('Δ3.0ms'),
     `tooltip must describe sync quality: ${tooltip}`);
+
+  // A sync band must not bridge into another trace series/session: it stops at
+  // the last sample of its own segment instead of extending to a later sync.
+  const second = await boot();
+  const sw = second.window;
+  const sd = sw.document;
+  const t = Date.now();
+  const addTrace = (rawMs, offsetMs, session, reason) => {
+    const extra = {
+      at: new Date(rawMs).toISOString(),
+      rawAt: new Date(rawMs).toISOString(),
+      monoMs: rawMs % 100000,
+      offsetMs,
+      session,
+      signal: 'PLAYING',
+      visibility: 'VISIBLE',
+      wakeLock: 'OFF',
+    };
+    sw.eval(`recordClockTrace(${JSON.stringify(reason)}, ${JSON.stringify(extra)})`);
+  };
+  const addSync = (rawMs, offsetMs) => {
+    sw.eval(`recordSyncAudit(${JSON.stringify({
+      at: new Date(rawMs).toISOString(),
+      reason: 'manual',
+      ok: true,
+      offsetBeforeMs: 0,
+      offsetMs,
+      uncertaintyMs: 2,
+      spreadMs: 2,
+      samples: 8,
+      kept: 5,
+      durationMs: 300,
+    })})`);
+  };
+  addTrace(t - 6000, 1, 'S1', 'HEARTBEAT');
+  addTrace(t - 5000, 1, 'S1', 'SYNC_OK');
+  addTrace(t - 2000, 5, 'S2', 'HEARTBEAT');
+  addTrace(t - 1000, 5, 'S2', 'SYNC_OK');
+  addTrace(t - 500, 5, 'S2', 'HEARTBEAT');
+  addSync(t - 5000, 1);
+  addSync(t - 1000, 5);
+  sw.eval('renderClockTraceView()');
+
+  const boundaryChart = sd.getElementById('clock_trace_offset_chart');
+  const boundaryBands = [...boundaryChart.querySelectorAll('.trace-sync-band')];
+  const bandWidths = boundaryBands.map(band => Number(band.querySelector('rect').getAttribute('width')));
+  assert.deepStrictEqual(second.errors, []);
+  assert.strictEqual(boundaryBands.length, 2, `expected two boundary bands, got ${boundaryBands.length}`);
+  assert.ok(bandWidths[0] < 10, `first band must stop at the session boundary: ${bandWidths[0]}`);
+  assert.ok(bandWidths[1] > 100, `second band should extend within its session: ${bandWidths[1]}`);
+
   console.log(JSON.stringify({
     bands: bands.length,
     jitterBands: jitterBands.length,
@@ -61,6 +112,8 @@ const { boot } = require('./dom-harness');
     anchored,
     syncInfo,
     tooltipHasQuality: true,
+    boundaryBands: boundaryBands.length,
+    bandWidths,
     errors,
   }, null, 2));
   process.exit(0);

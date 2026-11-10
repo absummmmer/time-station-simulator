@@ -386,7 +386,7 @@ Trace chart order:
    interval up to the next sync as a faint band around the offset: the outer band
    is the sample spread (jitter, ΔspreadMs) and the inner band is ±uncertaintyMs;
    hover a sample for the exact values. The band reuses the sample series color
-   and stays translucent so it does not compete with the state colors;
+   and stays translucent so it does not compete with the state colors; bands stop at session/segment boundaries instead of bridging another trace series;
 2. audio timeline Δ (ms): audio scheduling timeline relative to display UTC plus
    device compensation;
 3. raw wall − monotonic (ms): raw wall-clock drift.
