@@ -290,8 +290,17 @@
       labels.push(`<text class="trace-label" x="${left}" y="${top - 3}" text-anchor="start">offset (ms) · sample order</text>`);
       const lastOffset = Number(allSorted[allSorted.length - 1].entry.offsetMs);
       labels.push(`<text class="trace-label" x="${width - right}" y="${top - 3}" text-anchor="end" style="fill:#fbbf24">Δ≥5ms · bright≥50ms · last ${lastOffset.toFixed(0)}ms</text>`);
-      labels.push(`<text class="trace-label" x="${left}" y="${height - 2}" text-anchor="start" style="fill:#64748b">shaded = background</text>`);
+      labels.push(`<text class="trace-label" x="${left}" y="${height - 2}" text-anchor="start" style="fill:#64748b">shaded = background · faint bars = sync ±unc / Δjitter</text>`);
       const colors = ['#22d3ee', '#a78bfa', '#f472b6', '#4ade80', '#facc15', '#fb923c'];
+      const colorBySampleIndex = new Map();
+      series.forEach((points, seriesIndex) => {
+        const seriesColor = colors[seriesIndex % colors.length];
+        points.forEach((point) => {
+          if (Number.isFinite(Number(point.entry && point.entry.offsetMs))) {
+            colorBySampleIndex.set(point.sampleIndex, seriesColor);
+          }
+        });
+      });
       const stride = Math.max(1, Math.ceil(allPoints.length / 1800));
       const lines = series.map((points, seriesIndex) => {
         const valid = points.filter(point => Number.isFinite(Number(point.entry.offsetMs)));
@@ -302,6 +311,88 @@
           ? `<polyline class="trace-line" points="${coordinates}" style="stroke:${colors[seriesIndex % colors.length]}"/>`
           : '';
         return line;
+      }).join('');
+      // Sync quality whiskers. Uncertainty and jitter are recorded per sync, not
+      // per trace sample, so mark them at the nearest trace sample as thin,
+      // cap-less, faint vertical bars in that sample's series color.
+      const SYNC_WHISKER_MATCH_MS = 10 * 1000;
+      const numericOrNull = (value) => {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+      };
+      const nearestTraceIndex = (targetRaw) => {
+        if (!allSorted.length) return -1;
+        let low = 0;
+        let high = allSorted.length - 1;
+        while (low < high) {
+          const mid = Math.floor((low + high) / 2);
+          if (allSorted[mid].raw < targetRaw) low = mid + 1;
+          else high = mid;
+        }
+        const candidates = [low, low - 1].filter(index => index >= 0 && index < allSorted.length);
+        candidates.sort((a, b) => Math.abs(allSorted[a].raw - targetRaw) - Math.abs(allSorted[b].raw - targetRaw));
+        return candidates.length ? candidates[0] : -1;
+      };
+      const syncWhiskerByIndex = new Map();
+      const syncEntries = (typeof syncAuditLog !== 'undefined' && Array.isArray(syncAuditLog)) ? syncAuditLog : [];
+      for (const entry of syncEntries) {
+        if (!entry || entry.ok !== true) continue;
+        const uncertaintyMs = numericOrNull(entry.uncertaintyMs);
+        const jitterMs = numericOrNull(entry.spreadMs);
+        const offsetMs = numericOrNull(entry.offsetMs);
+        if (offsetMs === null || (uncertaintyMs === null && jitterMs === null)) continue;
+        const anchorRaw = Date.parse(entry.at) - (numericOrNull(entry.offsetBeforeMs) || 0);
+        if (!Number.isFinite(anchorRaw)) continue;
+        let anchorIndex = nearestTraceIndex(anchorRaw);
+        if (anchorIndex < 0) continue;
+        // Prefer the SYNC_OK sample (post-sync offset) near the recorded sync start.
+        for (let distance = 0; distance <= 40; distance += 1) {
+          const beforeIndex = anchorIndex - distance;
+          const afterIndex = anchorIndex + distance;
+          const before = beforeIndex >= 0 ? allSorted[beforeIndex] : null;
+          const after = afterIndex < allSorted.length ? allSorted[afterIndex] : null;
+          if (before && before.entry.reason === 'SYNC_OK'
+            && Math.abs(before.raw - anchorRaw) <= SYNC_WHISKER_MATCH_MS) {
+            anchorIndex = beforeIndex;
+            break;
+          }
+          if (after && after.entry.reason === 'SYNC_OK'
+            && Math.abs(after.raw - anchorRaw) <= SYNC_WHISKER_MATCH_MS) {
+            anchorIndex = afterIndex;
+            break;
+          }
+        }
+        const anchorPoint = allSorted[anchorIndex];
+        if (!anchorPoint || Math.abs(anchorPoint.raw - anchorRaw) > SYNC_WHISKER_MATCH_MS) continue;
+        const plottedOffset = numericOrNull(anchorPoint.entry.offsetMs);
+        const center = plottedOffset === null ? offsetMs : plottedOffset;
+        const reasonMeta = (typeof SYNC_REASON_META !== 'undefined' && SYNC_REASON_META[entry.reason]) || {};
+        syncWhiskerByIndex.set(anchorPoint.sampleIndex, {
+          sampleIndex: anchorPoint.sampleIndex,
+          center,
+          uncertaintyMs,
+          jitterMs,
+          reason: reasonMeta.label || String(entry.reason || 'sync').toUpperCase(),
+          at: entry.at,
+          color: colorBySampleIndex.get(anchorPoint.sampleIndex) || colors[0],
+        });
+      }
+      const clampPlotY = value => Math.max(top, Math.min(height - bottom, value));
+      const syncWhiskerLines = [...syncWhiskerByIndex.values()].map((whisker) => {
+        const x = xOf(whisker.sampleIndex).toFixed(2);
+        const parts = [];
+        const addBar = (className, dataAttribute, halfSpan, opacity) => {
+          if (halfSpan === null || halfSpan <= 0) return;
+          const yTop = clampPlotY(yOf(whisker.center + halfSpan)).toFixed(2);
+          const yBottom = clampPlotY(yOf(whisker.center - halfSpan)).toFixed(2);
+          parts.push(`<line class="trace-sync-whisker ${className}" x1="${x}" y1="${yTop}" x2="${x}" y2="${yBottom}"
+            stroke="${whisker.color}" stroke-width="1" stroke-opacity="${opacity}" ${dataAttribute}="${halfSpan}"/>`);
+        };
+        // Jitter is a full spread (max-min); draw its half-span faintly so the
+        // bar height matches the recorded spread, with uncertainty nested inside.
+        addBar('trace-sync-jitter', 'data-sync-jitter-ms', whisker.jitterMs === null ? null : whisker.jitterMs / 2, 0.2);
+        addBar('trace-sync-uncertainty', 'data-sync-uncertainty-ms', whisker.uncertaintyMs, 0.4);
+        return parts.join('');
       }).join('');
       const changes = [];
       for (let i = 1; i < allSorted.length; i += 1) {
@@ -327,10 +418,18 @@
         const previous = index > 0 ? allSorted[index - 1] : null;
         const sameWindow = previous && (point.raw - previous.raw <= 10 * 60 * 1000);
         const delta = sameWindow ? Number(entry.offsetMs) - Number(previous.entry.offsetMs) : null;
+        const sync = syncWhiskerByIndex.get(point.sampleIndex);
+        const syncQuality = sync
+          ? [
+            sync.uncertaintyMs === null ? '' : `±${sync.uncertaintyMs.toFixed(1)}ms`,
+            sync.jitterMs === null ? '' : `Δ${sync.jitterMs.toFixed(1)}ms`,
+          ].filter(Boolean).join(' · ')
+          : '';
         return [
           traceTooltipRow('offset', `${formatTraceSigned(entry.offsetMs, 1)} ms`, '#67e8f9'),
           traceTooltipRow('time', formatAuditTimestamp(entry.rawAt || entry.at)),
           traceTooltipRow('state', `${entry.visibility || '—'} / ${entry.signal || '—'}`),
+          sync ? traceTooltipRow('sync', `${sync.reason} · ${syncQuality}`, sync.color) : '',
           traceTooltipRow('delta', Number.isFinite(delta) ? `${formatTraceSigned(delta, 1)} ms` : '—', '#9ca3af'),
         ].join('');
       };
@@ -340,6 +439,7 @@
         <line class="trace-axis" x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}"/>
         <line class="trace-axis" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"/>
         ${lines}
+        ${syncWhiskerLines}
         ${changeLines}
         <line class="trace-guide hidden" x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}"/>
         ${labels.join('')}
@@ -353,6 +453,7 @@
         tooltip: offsetTooltip,
         xOf,
         yOf: point => yOf(Number(point.entry.offsetMs)),
+        syncWhiskers: [...syncWhiskerByIndex.values()],
       };
       bindTraceChartInteraction(chartEl);
     }

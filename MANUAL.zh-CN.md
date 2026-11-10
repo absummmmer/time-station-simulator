@@ -315,7 +315,10 @@ UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止�
 
 trace 图顺序为：
 
-1. offset（ms）：页面本地校正量；
+1. offset（ms）：页面本地校正量。成功的同步会在对应 trace 采样点上画细而淡、
+   无端帽的竖线误差棒：内层为不确定度（±uncertaintyMs），外层为样本抖动范围
+   （ΔspreadMs）；悬停采样点可查看具体数值。竖线沿用该采样点所在曲线的颜色并
+   保持半透明，避免与状态指示颜色冲突；
 2. audio timeline Δ（ms）：音频调度时间轴相对显示 UTC + 设备补偿的偏差；
 3. raw wall − monotonic（ms）：原始墙钟漂移。
 
