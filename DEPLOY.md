@@ -46,6 +46,10 @@ There is no build step for the committed runtime files.
 
 ## Backend
 
+The backend is the companion
+[`time-api`](https://github.com/absummmmer/time-api) project; its README
+documents API configuration, NTP health, and self-hosting.
+
 No backend URL is embedded in the page. The first `AUTO`, `SYNC` or `DUT1 AUTO`
 opens a setup dialog for the Time API base URL. The value is stored in the
 browser's `localStorage`; changing the host or clearing site data requires

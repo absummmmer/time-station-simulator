@@ -26,6 +26,9 @@ Time Station Simulator 同时模拟四个短波授时信号：
 
 ### 2.2 配置 Time API
 
+后端使用配套的 [`time-api`](https://github.com/absummmmer/time-api) 项目，配置、
+NTP 健康观测与部署说明见其 README。
+
 页面不内置后端地址。第一次执行以下任一操作时，会弹出后端设置框：
 
 - 勾选 `AUTO`；

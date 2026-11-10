@@ -67,6 +67,11 @@ function syncFetch() {
   check('first AUTO opens backend setup', !q('backend_config_panel').classList.contains('hidden'));
   check('AUTO remains off until configured', !auto.checked);
   check('AUTO prompt mentions AUTO', q('backend_config_note').textContent.includes('AUTO'));
+  const docsLink = q('backend_config_docs') && q('backend_config_docs').querySelector('a');
+  check('backend setup links to deployment docs', !!(docsLink
+    && docsLink.getAttribute('href') === 'https://github.com/absummmmer/time-station-simulator/blob/main/DEPLOY.md'
+    && docsLink.getAttribute('target') === '_blank'
+    && docsLink.getAttribute('rel').includes('noopener')));
 
   q('backend_config_url').value = 'not a url';
   q('backend_config_form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));

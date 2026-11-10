@@ -3,8 +3,8 @@
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 BPM、WWV、WWVH、RWM 四台短波授时信号的浏览器端多路模拟器。音频由 Web Audio
-实时调度，时间基准与 DUT1 数据来自可自托管的 `time-api`
-（也可接入任何兼容该接口的服务）。
+实时调度，时间基准与 DUT1 数据来自可自托管的
+[`time-api`](https://github.com/absummmmer/time-api)（也可接入任何兼容该接口的服务）。
 
 页面不包含任何内置后端地址。首次使用 `AUTO`、`SYNC` 或 `DUT1 AUTO` 时，需要填写
 Time API 的基地址；地址只保存在当前浏览器中。
@@ -30,14 +30,14 @@ Time API 的基地址；地址只保存在当前浏览器中。
 
 ### 1. 启动 Time API
 
-可使用配套的 `time-api`，默认监听 `http://localhost:8080`。在 `time-api`
-目录中运行：
+可使用配套的 [`time-api`](https://github.com/absummmmer/time-api)，默认监听
+`http://localhost:8080`。在 `time-api` 目录中运行：
 
 ```bash
 docker compose up -d --build
 ```
 
-详细配置见配套的 `time-api` 项目。
+详细配置见配套的 [`time-api`](https://github.com/absummmmer/time-api) 项目。
 
 ### 2. 托管本目录
 

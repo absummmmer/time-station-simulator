@@ -35,14 +35,15 @@ the current browser.
 
 ### 1. Start the Time API
 
-Use the companion `time-api` project (default `http://localhost:8080`). In its
-directory, run:
+Use the companion [`time-api`](https://github.com/absummmmer/time-api) project
+(default `http://localhost:8080`). In its directory, run:
 
 ```bash
 docker compose up -d --build
 ```
 
-See the companion `time-api` project for configuration.
+See the companion [`time-api`](https://github.com/absummmmer/time-api) project
+for configuration and deployment.
 
 ### 2. Serve this directory
 

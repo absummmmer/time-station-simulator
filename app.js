@@ -163,6 +163,7 @@
       const labelEl = getUi('backend_config_label');
       const noteEl = getUi('backend_config_note');
       const hintEl = getUi('backend_config_hint');
+      const docsEl = getUi('backend_config_docs');
       const cancelBtn = getUi('backend_config_cancel');
       const saveBtn = getUi('backend_config_save');
       if (titleEl) titleEl.textContent = '\u{1F50C} ' + (zh ? '后端' : 'BACKEND');
@@ -172,6 +173,14 @@
         hintEl.textContent = zh
           ? '用于时钟同步和 DUT1；仅保存在本浏览器。自动追加 /v1/*，后端需允许 CORS。'
           : 'Used for clock sync and DUT1; stored in this browser. /v1/* is appended; backend must allow CORS.';
+      }
+      if (docsEl) {
+        // The deployment guide covers serving the static bundle and the backend
+        // (time-api) setup, so keep this link in the setup dialog itself.
+        const deployDocsUrl = 'https://github.com/absummmmer/time-station-simulator/blob/main/DEPLOY.md';
+        const docsLabel = zh ? '部署与自托管指南（GitHub）' : 'Deployment & self-hosting guide (GitHub)';
+        docsEl.innerHTML = (zh ? '文档：' : 'Docs: ')
+          + `<a class="text-cyan-400 hover:underline" href="${deployDocsUrl}" target="_blank" rel="noopener noreferrer">${docsLabel}</a>`;
       }
       if (cancelBtn) cancelBtn.textContent = zh ? '稍后' : 'LATER';
       if (saveBtn) saveBtn.textContent = zh ? '保存' : 'SAVE';

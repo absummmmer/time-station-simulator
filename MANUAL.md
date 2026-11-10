@@ -35,6 +35,10 @@ Serve the project directory as a static site. The runtime file list is in
 
 ### 2.2 Configure the Time API
 
+The backend is the companion
+[`time-api`](https://github.com/absummmmer/time-api) project; its README covers
+configuration, NTP health, and self-hosting.
+
 No backend address is embedded in the page. The backend setup dialog appears the
 first time you do any of the following:
 
