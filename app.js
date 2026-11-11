@@ -440,6 +440,14 @@
         const backendCorrection = backendCorrectionAuditFields(sorted[0]);
         const firstServerTime = new Date(samples[0].serverMs).toISOString();
         markTrustedServerTime(samples[0].serverMs);
+        // Feed this sync into the frequency servo before recording the audit row,
+        // so the status line shows the trim that will drive the next interval.
+        const servoAppliedMs = takeClockServoAppliedMs();
+        updateClockServo(Date.now(), {
+          at: Date.parse(auditStartedAtIso),
+          offsetMs: localOffset,
+        });
+        const servoFields = clockServoAuditFields(servoAppliedMs);
         recordSyncAudit({
           at: auditStartedAtIso,
           reason: auditReason,
@@ -455,6 +463,7 @@
           serverTime: firstServerTime,
           ...backendHealth,
           ...backendCorrection,
+          ...servoFields,
         });
         recordClockTrace('SYNC_OK');
         syncBtn.textContent = 'DONE!';
@@ -1570,6 +1579,9 @@
     function finishAppStartup() {
       loadPersistedSyncAudit();
       loadPersistedClockTrace();
+      // Resume the slow frequency trim if the persisted sync history is still
+      // recent and consistent; otherwise updateClockServo() leaves it idle.
+      updateClockServo();
       startClockTrace();
       bindSyncAuditUI();
       bindBackendSetupUI();

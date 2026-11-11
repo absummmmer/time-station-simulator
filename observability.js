@@ -1122,13 +1122,49 @@
       return !!(entry && entry.backendNtpCorrectionApplied === true);
     }
 
-    function formatLastSyncStatus(entry) {
+    function formatServoStatus(entry) {
+      if (!entry) return '';
+      const ppm = Number(entry.clockServoPpm);
+      if (entry.clockServoState === 'stable' && Number.isFinite(ppm) && ppm !== 0) {
+        return `TRIM ${ppm > 0 ? '+' : ''}${ppm.toFixed(2)}ppm`;
+      }
+      if (entry.clockServoState === 'unstable') return 'TRIM HOLD';
+      return '';
+    }
+
+    function formatServoTitle(entry) {
+      if (!entry) return '';
+      if (entry.clockServoState === 'stable' && Number.isFinite(Number(entry.clockServoPpm))) {
+        const applied = Number(entry.clockServoAppliedMs);
+        const appliedText = Number.isFinite(applied) ? ` · applied ${applied.toFixed(2)}ms` : '';
+        const points = Number(entry.clockServoPoints);
+        const pointsText = Number.isFinite(points) ? ` · ${points} syncs` : '';
+        return ` · TRIM ${Number(entry.clockServoPpm).toFixed(2)}ppm${appliedText}${pointsText}`;
+      }
+      if (entry.clockServoState === 'unstable') return ' · TRIM paused (unstable sync history)';
+      return '';
+    }
+
+    function currentClockServoInfo() {
+      if (typeof getClockServoState !== 'function') return null;
+      const state = getClockServoState();
+      if (!state || state.quality === 'idle') return null;
+      return {
+        clockServoState: state.quality,
+        clockServoPpm: state.ppm,
+        clockServoAppliedMs: state.appliedMs,
+        clockServoPoints: state.points,
+      };
+    }
+
+    function formatLastSyncStatus(entry, servoInfo) {
       if (!entry) return '';
       const stamp = formatCompactTimestamp(entry.at);
       if (!entry.ok) return `SYNC FAILED @${stamp}`;
       const metrics = `±${formatMetricMs(entry.uncertaintyMs)} Δ${formatMetricMs(entry.spreadMs)} ${entry.kept}/${entry.samples} RTT=${formatMetricMs(entry.rttMs, 0)}`;
       const ntp = ntpCorrectionParticipated(entry) ? formatNtpInline(entry) : '';
-      return `${metrics}${ntp ? ` ${ntp}` : ''} @${stamp}`;
+      const servo = formatServoStatus(servoInfo || entry);
+      return `${metrics}${ntp ? ` ${ntp}` : ''}${servo ? ` ${servo}` : ''} @${stamp}`;
     }
 
     function renderLastSyncStatus() {
@@ -1136,13 +1172,15 @@
       if (!el) return;
       const last = syncAuditLog[syncAuditLog.length - 1];
       const view = ntpEntryView(last);
-      el.textContent = formatLastSyncStatus(last);
+      const servoInfo = currentClockServoInfo();
+      el.textContent = formatLastSyncStatus(last, servoInfo);
       el.classList.toggle('text-red-400', !!(last && !last.ok));
       const ntpTitle = last && ntpCorrectionParticipated(last) && view
         ? ` · ${formatNtpDetails(view)}`
         : '';
+      const servoTitle = formatServoTitle(servoInfo);
       el.title = last
-        ? `${last.ok ? 'Last successful sync' : 'Last sync failed'}${ntpTitle}`
+        ? `${last.ok ? 'Last successful sync' : 'Last sync failed'}${ntpTitle}${servoTitle}`
         : '';
       const panel = getUi('ntp_detail_panel');
       if (panel && !panel.classList.contains('hidden') && ntpDetailEntryAt === null) {

@@ -609,6 +609,218 @@
       // A forward wall-clock jump must not be able to age out the whole log.
       return Math.min(Date.now(), trusted);
     }
+    // --- Clock frequency servo ------------------------------------------------
+    // A sync resets localOffset, but between syncs the page wall clock keeps its
+    // last correction while the oscillator error continues to accumulate. For a
+    // stable oscillator this shows up as an almost linear offset slope (the 24 h
+    // traces are typically -1 to -2 ppm). Estimate that slope from recent sync
+    // history and apply it as a slow localOffset trim; only use histories that
+    // are recent, dense enough, and consistent. Any reference jump, NTP source
+    // change, burst of manual syncs, or inconsistent fit disables the trim.
+    const CLOCK_SERVO_WINDOW_MS = 4 * 60 * 60 * 1000;
+    const CLOCK_SERVO_LATEST_AGE_MS = 2 * 60 * 60 * 1000;
+    const CLOCK_SERVO_MIN_GAP_MS = 5 * 60 * 1000;
+    const CLOCK_SERVO_PAIR_MIN_MS = 10 * 60 * 1000;
+    const CLOCK_SERVO_PAIR_MAX_MS = 90 * 60 * 1000;
+    const CLOCK_SERVO_MIN_POINTS = 4;
+    const CLOCK_SERVO_MIN_SPAN_MS = 60 * 60 * 1000;
+    const CLOCK_SERVO_MAX_ABS_PPM = 25;
+    const CLOCK_SERVO_MAX_MAD_PPM = 3.5;
+    const CLOCK_SERVO_MAX_INTERVAL_MAD_PPM = 2.5;
+    const CLOCK_SERVO_MAX_INTERVAL_DEV_PPM = 5.0;
+    const CLOCK_SERVO_SMOOTHING = 0.5;
+    const CLOCK_SERVO_MAX_FRAME_MS = 2000;
+    let clockServoPpm = 0;
+    let clockServoQuality = 'idle';
+    let clockServoUpdatedAtMs = 0;
+    let clockServoPoints = 0;
+    let clockServoMadPpm = 0;
+    let clockServoIntervalMadPpm = 0;
+    let clockServoLastSyncAtMs = 0;
+    let clockServoLastApplyMonoMs = 0;
+    let clockServoAppliedMs = 0;
+    let clockServoDisplayedMsKey = null;
+
+    function medianNumber(values) {
+      if (!values.length) return 0;
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    function clockServoHistory(nowMs, extraPoint) {
+      const minAt = nowMs - CLOCK_SERVO_WINDOW_MS;
+      const candidates = [];
+      for (const entry of syncAuditLog) {
+        if (!entry || entry.ok !== true) continue;
+        const at = Date.parse(entry.at);
+        const offsetMs = Number(entry.offsetMs);
+        if (!Number.isFinite(at) || !Number.isFinite(offsetMs) || at < minAt) continue;
+        candidates.push({ at, offsetMs });
+      }
+      if (extraPoint && Number.isFinite(extraPoint.at) && Number.isFinite(extraPoint.offsetMs)) {
+        candidates.push({ at: extraPoint.at, offsetMs: extraPoint.offsetMs });
+      }
+      // Keep the newest sample of any burst of rapid syncs; the gaps between
+      // the remaining points are what make the slope estimate meaningful.
+      candidates.sort((a, b) => b.at - a.at);
+      const points = [];
+      for (const point of candidates) {
+        const previous = points[points.length - 1];
+        if (previous && previous.at - point.at < CLOCK_SERVO_MIN_GAP_MS) continue;
+        points.push(point);
+      }
+      points.reverse();
+      return points;
+    }
+
+    function clockServoEstimate(points, nowMs) {
+      if (points.length < CLOCK_SERVO_MIN_POINTS) {
+        return { quality: 'idle', ppm: 0, madPpm: 0, points: points.length, slopes: 0 };
+      }
+      const first = points[0];
+      const last = points[points.length - 1];
+      if (nowMs - last.at > CLOCK_SERVO_LATEST_AGE_MS || last.at - first.at < CLOCK_SERVO_MIN_SPAN_MS) {
+        return { quality: 'idle', ppm: 0, madPpm: 0, points: points.length, slopes: 0 };
+      }
+      const slopesPpm = [];
+      for (let i = 0; i < points.length; i += 1) {
+        for (let j = i + 1; j < points.length; j += 1) {
+          const dt = points[j].at - points[i].at;
+          if (dt < CLOCK_SERVO_PAIR_MIN_MS || dt > CLOCK_SERVO_PAIR_MAX_MS) continue;
+          slopesPpm.push(((points[j].offsetMs - points[i].offsetMs) / dt) * 1e6);
+        }
+      }
+      if (slopesPpm.length < 6) {
+        return { quality: 'idle', ppm: 0, madPpm: 0, points: points.length, slopes: slopesPpm.length };
+      }
+      // Adjacent-interval consistency is the step protector: a single reference
+      // jump or manual resync is a large slope for one interval even when most
+      // pairwise slopes still look smooth.
+      const intervalPpm = [];
+      for (let i = 1; i < points.length; i += 1) {
+        const dt = points[i].at - points[i - 1].at;
+        if (dt <= 0) continue;
+        intervalPpm.push(((points[i].offsetMs - points[i - 1].offsetMs) / dt) * 1e6);
+      }
+      const intervalMedianPpm = medianNumber(intervalPpm);
+      const intervalDeviations = intervalPpm.map((value) => Math.abs(value - intervalMedianPpm));
+      const intervalMadPpm = medianNumber(intervalDeviations);
+      const intervalMaxDevPpm = intervalDeviations.length ? Math.max(...intervalDeviations) : Infinity;
+      const intervalConsistent = intervalPpm.length >= 3
+        && intervalMadPpm <= CLOCK_SERVO_MAX_INTERVAL_MAD_PPM
+        && intervalMaxDevPpm <= CLOCK_SERVO_MAX_INTERVAL_DEV_PPM;
+      // Median pairwise slope (Theil-Sen style) tolerates a few measurement
+      // outliers and reference steps much better than a least-squares fit.
+      const ppm = medianNumber(slopesPpm);
+      const madPpm = medianNumber(slopesPpm.map((value) => Math.abs(value - ppm)));
+      const plausible = Number.isFinite(ppm) && Math.abs(ppm) <= CLOCK_SERVO_MAX_ABS_PPM;
+      const stable = plausible && madPpm <= CLOCK_SERVO_MAX_MAD_PPM && intervalConsistent;
+      return {
+        quality: stable ? 'stable' : 'unstable',
+        ppm,
+        madPpm,
+        intervalMadPpm,
+        intervalMaxDevPpm,
+        points: points.length,
+        slopes: slopesPpm.length,
+      };
+    }
+
+    function updateClockServo(nowMs = Date.now(), extraPoint = null) {
+      const points = clockServoHistory(nowMs, extraPoint);
+      const estimate = clockServoEstimate(points, nowMs);
+      clockServoUpdatedAtMs = nowMs;
+      clockServoLastSyncAtMs = points.length ? points[points.length - 1].at : 0;
+      clockServoPoints = estimate.points;
+      clockServoMadPpm = estimate.madPpm;
+      clockServoIntervalMadPpm = Number.isFinite(estimate.intervalMadPpm) ? estimate.intervalMadPpm : 0;
+      if (estimate.quality === 'stable') {
+        const target = estimate.ppm;
+        clockServoPpm = clockServoQuality === 'stable'
+          ? clockServoPpm * (1 - CLOCK_SERVO_SMOOTHING) + target * CLOCK_SERVO_SMOOTHING
+          : target;
+        clockServoPpm = Math.max(-CLOCK_SERVO_MAX_ABS_PPM, Math.min(CLOCK_SERVO_MAX_ABS_PPM, clockServoPpm));
+        clockServoQuality = 'stable';
+      } else {
+        clockServoPpm = 0;
+        clockServoQuality = estimate.quality;
+      }
+      clockServoLastApplyMonoMs = typeof performance !== 'undefined' ? performance.now() : 0;
+      return {
+        ...estimate,
+        state: clockServoQuality,
+        appliedPpm: clockServoPpm,
+        points: clockServoPoints,
+        madPpm: clockServoMadPpm,
+      };
+    }
+
+    function clockServoAuditFields(appliedMs) {
+      return {
+        clockServoPpm: clockServoQuality === 'stable' ? Number(clockServoPpm.toFixed(3)) : '',
+        clockServoState: clockServoQuality,
+        clockServoAppliedMs: Number(Number(appliedMs || 0).toFixed(3)),
+        clockServoPoints: clockServoPoints,
+        clockServoMadPpm: Number(clockServoMadPpm.toFixed(2)),
+        clockServoUpdatedAtMs: clockServoUpdatedAtMs,
+      };
+    }
+
+    function takeClockServoAppliedMs() {
+      const applied = clockServoAppliedMs;
+      clockServoAppliedMs = 0;
+      return applied;
+    }
+
+    function getClockServoState() {
+      return {
+        quality: clockServoQuality,
+        ppm: clockServoPpm,
+        points: clockServoPoints,
+        madPpm: clockServoMadPpm,
+        intervalMadPpm: clockServoIntervalMadPpm,
+        appliedMs: clockServoAppliedMs,
+        updatedAtMs: clockServoUpdatedAtMs,
+      };
+    }
+
+    function applyClockServoTrim() {
+      const now = typeof performance !== 'undefined' ? performance.now() : 0;
+      // The estimate is only trusted while a recent sync keeps refreshing the
+      // history. Without a sync for two hours, let the normal offset stand.
+      if (clockServoQuality === 'stable'
+        && clockServoLastSyncAtMs
+        && Date.now() - clockServoLastSyncAtMs > CLOCK_SERVO_LATEST_AGE_MS) {
+        clockServoQuality = 'idle';
+        clockServoPpm = 0;
+      }
+      if (clockServoQuality !== 'stable' || !Number.isFinite(clockServoPpm) || clockServoPpm === 0) {
+        clockServoLastApplyMonoMs = now;
+        return;
+      }
+      if (!clockServoLastApplyMonoMs) {
+        clockServoLastApplyMonoMs = now;
+        return;
+      }
+      const deltaMs = now - clockServoLastApplyMonoMs;
+      clockServoLastApplyMonoMs = now;
+      // Never apply a catch-up jump after a hidden/minimized interval; the next
+      // sync or the normal frame cadence will re-establish the baseline.
+      if (!(deltaMs > 0) || deltaMs > CLOCK_SERVO_MAX_FRAME_MS) return;
+      const trimMs = clockServoPpm * 1e-6 * deltaMs;
+      if (!Number.isFinite(trimMs) || Math.abs(trimMs) > 0.5) return;
+      localOffset += trimMs;
+      clockServoAppliedMs += trimMs;
+      if (typeof updateOffsetDisplay === 'function') {
+        const displayedKey = Math.round(localOffset);
+        if (displayedKey !== clockServoDisplayedMsKey) {
+          clockServoDisplayedMsKey = displayedKey;
+          updateOffsetDisplay();
+        }
+      }
+    }
+
     let clockTraceTimer = null;
     let lastClockTraceVisibilityMonoMs = 0;
     let activeAuditTab = 'sync';

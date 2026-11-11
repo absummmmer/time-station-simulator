@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "node smoke.test.js && node startup.test.js && node backend-config.test.js && node regression.test.js && node sync-reanchor.test.js && node audio-marker.test.js && node sync-whisker.test.js && node calibration.test.js && node rwm-lock.test.js && node prompts.test.js && node idle-render.test.js && node simple-export.test.js"
+    "test": "node smoke.test.js && node startup.test.js && node backend-config.test.js && node regression.test.js && node sync-reanchor.test.js && node audio-marker.test.js && node sync-whisker.test.js && node calibration.test.js && node rwm-lock.test.js && node prompts.test.js && node idle-render.test.js && node clock-servo.test.js && node simple-export.test.js"
   },
   "devDependencies": {
     "jsdom": "^30.1.3"

@@ -271,6 +271,10 @@ see section 8 for persistence.
 - After a sync, the page re-anchors the audio timeline.
 - The clock calibration row shows the last sync's uncertainty, kept samples, RTT,
   and sample spread.
+- When the last few hours of sync offsets form a consistent trend, the page applies
+  a slow frequency trim between syncs and appends `TRIM ±x.xxppm` to the last-sync
+  status. Inconsistent or stale history shows `TRIM HOLD` and leaves the offset
+  unchanged; every sync still performs a full correction.
 - Network sync is random; one sync may not be accurate enough. Repeat until the
   uncertainty and sample spread are stable.
 - The local offset affects this page only, not the system clock. It applies to
