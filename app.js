@@ -858,7 +858,7 @@
       document.addEventListener('webkitfullscreenchange', onFullscreenChange);
       document.addEventListener('mozfullscreenchange', onFullscreenChange);
       document.getElementById('show_ms').addEventListener('change', function () {
-        restartClockFaceTicks();
+        updateTimeDisplay();
         saveSettings();
       });
       document.getElementById('ut1_detail_mode').addEventListener('change', function () {
@@ -1618,49 +1618,65 @@
       }
     }
 
-    // Idle-aware clock refresh. The wall clock only needs frame-rate updates
-    // while someone is actively using the page; after five quiet minutes (or
-    // when the tab is hidden / window unfocused) it falls back to 4 Hz / 1 Hz.
-    const CLOCK_FACE_ACTIVE_MS = 16;
-    const CLOCK_FACE_SLOW_MS = 250;
-    const CLOCK_FACE_IDLE_MS = 1000;
-    const CLOCK_FACE_IDLE_AFTER_MS = 5 * 60 * 1000;
-    let clockFaceTimer = null;
-    let lastClockActivityMs = Date.now();
+    // The main clock runs on requestAnimationFrame while the page is visible:
+    // one display frame per tick, never downgraded by focus or idle state. When
+    // the browser pauses rendering (hidden/minimized/occluded), a watchdog hides
+    // the stale digits in place (layout preserved) until a frame proves the
+    // clock is live again.
+    const CLOCK_STALE_AFTER_MS = 1500;
+    const CLOCK_WATCHDOG_MS = 1000;
+    const requestFrame = typeof requestAnimationFrame === 'function'
+      ? callback => requestAnimationFrame(callback)
+      : callback => setTimeout(callback, 16);
+    const cancelFrame = typeof cancelAnimationFrame === 'function'
+      ? handle => cancelAnimationFrame(handle)
+      : handle => clearTimeout(handle);
+    let clockFrameHandle = null;
+    let lastClockFrameAt = 0;
+    let clockStaleHidden = false;
+    let clockWatchdogTimer = null;
 
-    function clockFaceDelayMs() {
-      if (document.hidden) return null;
-      const msShown = !!(getUi('show_ms') && getUi('show_ms').checked);
-      const idle = Date.now() - lastClockActivityMs >= CLOCK_FACE_IDLE_AFTER_MS;
-      if (!document.hasFocus() || idle) return msShown ? CLOCK_FACE_SLOW_MS : CLOCK_FACE_IDLE_MS;
-      return msShown ? CLOCK_FACE_ACTIVE_MS : CLOCK_FACE_SLOW_MS;
+    function setClockStaleHidden(hidden) {
+      if (clockStaleHidden === hidden) return;
+      clockStaleHidden = hidden;
+      const timeEl = getUi('time_display');
+      if (timeEl) timeEl.classList.toggle('clock-stale', hidden);
     }
 
-    function scheduleClockFaceTick() {
-      if (clockFaceTimer !== null) return;
-      const delay = clockFaceDelayMs();
-      if (delay === null) return;
-      clockFaceTimer = setTimeout(() => {
-        clockFaceTimer = null;
-        updateTimeDisplay();
-        scheduleClockFaceTick();
-      }, delay);
-    }
-
-    function restartClockFaceTicks() {
-      if (clockFaceTimer !== null) {
-        clearTimeout(clockFaceTimer);
-        clockFaceTimer = null;
-      }
-      if (document.hidden) return;
+    function clockFrame() {
+      clockFrameHandle = requestFrame(clockFrame);
+      lastClockFrameAt = performance.now();
+      setClockStaleHidden(false);
       updateTimeDisplay();
-      scheduleClockFaceTick();
     }
 
-    function noteClockActivity() {
-      const wasIdle = Date.now() - lastClockActivityMs >= CLOCK_FACE_IDLE_AFTER_MS;
-      lastClockActivityMs = Date.now();
-      if (wasIdle && !document.hidden) restartClockFaceTicks();
+    function startClockLoop() {
+      if (clockFrameHandle !== null) return;
+      lastClockFrameAt = performance.now();
+      updateTimeDisplay();
+      setClockStaleHidden(false);
+      clockFrameHandle = requestFrame(clockFrame);
+    }
+
+    function stopClockLoop() {
+      if (clockFrameHandle !== null) {
+        cancelFrame(clockFrameHandle);
+        clockFrameHandle = null;
+      }
+    }
+
+    function clockWatchdog() {
+      const stale = document.hidden
+        || (lastClockFrameAt > 0 && performance.now() - lastClockFrameAt > CLOCK_STALE_AFTER_MS);
+      setClockStaleHidden(stale);
+      clockWatchdogTimer = setTimeout(clockWatchdog, CLOCK_WATCHDOG_MS);
+    }
+
+    function startClockLoopAndWatchdog() {
+      startClockLoop();
+      if (clockWatchdogTimer === null) {
+        clockWatchdogTimer = setTimeout(clockWatchdog, CLOCK_WATCHDOG_MS);
+      }
     }
 
     // DOMContentLoaded
@@ -1674,12 +1690,7 @@
       backendMigrationPending = detectLegacyBackendInstall() && !isTimeApiConfigured();
       initMediaSession();
       setupSettingsSections();
-      restartClockFaceTicks();
-      ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach((type) => {
-        window.addEventListener(type, noteClockActivity, { passive: true, capture: true });
-      });
-      window.addEventListener('focus', restartClockFaceTicks);
-      window.addEventListener('blur', restartClockFaceTicks);
+      startClockLoopAndWatchdog();
 
       bindCoreControls();
       bindPanelControls();
@@ -1725,5 +1736,10 @@
       } else {
         stopBackgroundKeepAlive();
       }
-      restartClockFaceTicks();
+      if (document.hidden) {
+        stopClockLoop();
+        setClockStaleHidden(true);
+      } else {
+        startClockLoop();
+      }
     });

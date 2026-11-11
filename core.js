@@ -225,7 +225,8 @@
         opticalMetricsKey = key;
       }
       const drift = opticalDriftEm([[mainText, 1], [secText, opticalSecRatio]]);
-      el.style.transform = `translateX(${(-drift).toFixed(4)}em)`;
+      const transform = `translateX(${(-drift).toFixed(4)}em)`;
+      if (el.style.transform !== transform) el.style.transform = transform;
     }
 
     function getLocalTimeInfo(utcNow) {
@@ -909,31 +910,37 @@
       ms.append(dot, digits);
       const tz = document.createElement('span');
       tz.id = 'timezone_offset';
-      tz.className = 'hidden';
+      tz.style.display = 'none';
       core.append(hm, sec, ms, tz);
       timeEl.replaceChildren(core);
       return { timeEl, hm, sec, ms, digits, tz };
     }
 
     // Update the clock text in place. Rebuilding the span tree on every tick was
-    // the largest source of DOM churn during long unattended sessions.
+    // the largest source of DOM churn during long unattended sessions. Explicit
+    // display values are used instead of a CSS class: #ms_display has an ID rule
+    // that would otherwise override .hidden and leave the millisecond dot visible.
     function renderClockFace({ showMs, zoneLabelHtml, hours, mins, secs, msStr }) {
       const timeEl = getUi('time_display');
       if (!clockFaceNodes || clockFaceNodes.timeEl !== timeEl) {
         clockFaceNodes = buildClockFaceNodes(timeEl);
       }
       const nodes = clockFaceNodes;
-      nodes.hm.textContent = `${hours}:${mins}`;
-      nodes.sec.textContent = `:${secs}`;
-      nodes.ms.classList.toggle('hidden', !showMs);
-      if (showMs) nodes.digits.textContent = msStr;
-      nodes.tz.classList.toggle('hidden', !zoneLabelHtml);
+      const hmText = `${hours}:${mins}`;
+      const secText = `:${secs}`;
+      if (nodes.hm.textContent !== hmText) nodes.hm.textContent = hmText;
+      if (nodes.sec.textContent !== secText) nodes.sec.textContent = secText;
+      const msDisplay = showMs ? 'inline-block' : 'none';
+      if (nodes.ms.style.display !== msDisplay) nodes.ms.style.display = msDisplay;
+      if (showMs && nodes.digits.textContent !== msStr) nodes.digits.textContent = msStr;
+      const tzDisplay = zoneLabelHtml ? 'inline-block' : 'none';
+      if (nodes.tz.style.display !== tzDisplay) nodes.tz.style.display = tzDisplay;
       if (zoneLabelHtml) {
         if (nodes.tz.innerHTML !== zoneLabelHtml) nodes.tz.innerHTML = zoneLabelHtml;
       } else if (nodes.tz.innerHTML) {
         nodes.tz.innerHTML = '';
       }
-      applyOpticalCentering(timeEl, `${hours}:${mins}`, `:${secs}`);
+      applyOpticalCentering(timeEl, hmText, secText);
     }
 
     function customPercent(value) {
