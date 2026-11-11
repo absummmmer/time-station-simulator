@@ -1288,7 +1288,7 @@
       // A hidden tab renders nothing; the visibility handler restarts this loop
       // with a fresh frame when the page becomes visible again.
       if (document.hidden) return;
-      applyClockServoTrim();
+      if (typeof applyClockServoTrim === 'function') applyClockServoTrim();
       monitorSystemClock();
       const hintSecond = Math.floor(Date.now() / 1000);
       if (hintSecond !== lastLocalHintStamp) {

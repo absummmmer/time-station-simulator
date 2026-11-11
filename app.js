@@ -442,12 +442,19 @@
         markTrustedServerTime(samples[0].serverMs);
         // Feed this sync into the frequency servo before recording the audit row,
         // so the status line shows the trim that will drive the next interval.
-        const servoAppliedMs = takeClockServoAppliedMs();
-        updateClockServo(Date.now(), {
-          at: Date.parse(auditStartedAtIso),
-          offsetMs: localOffset,
-        });
-        const servoFields = clockServoAuditFields(servoAppliedMs);
+        // The typeof guards keep an old/stale time-sync.js from breaking the page
+        // while a deployment is only partially updated.
+        const servoAppliedMs = typeof takeClockServoAppliedMs === 'function'
+          ? takeClockServoAppliedMs()
+          : 0;
+        const servoFields = {};
+        if (typeof updateClockServo === 'function' && typeof clockServoAuditFields === 'function') {
+          updateClockServo(Date.now(), {
+            at: Date.parse(auditStartedAtIso),
+            offsetMs: localOffset,
+          });
+          Object.assign(servoFields, clockServoAuditFields(servoAppliedMs));
+        }
         recordSyncAudit({
           at: auditStartedAtIso,
           reason: auditReason,
@@ -1581,7 +1588,11 @@
       loadPersistedClockTrace();
       // Resume the slow frequency trim if the persisted sync history is still
       // recent and consistent; otherwise updateClockServo() leaves it idle.
-      updateClockServo();
+      if (typeof updateClockServo === 'function') {
+        updateClockServo();
+      } else {
+        console.warn('Stale deployment: time-sync.js is older than core.js/app.js; replace every runtime file from the same deploy package and hard-refresh.');
+      }
       startClockTrace();
       bindSyncAuditUI();
       bindBackendSetupUI();
