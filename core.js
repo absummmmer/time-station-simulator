@@ -889,9 +889,50 @@
       return html;
     }
 
-    function renderClockFace({ showMs, timezoneOffsetHtml, hours, mins, secs, msStr }) {
+    let clockFaceNodes = null;
+
+    function buildClockFaceNodes(timeEl) {
+      const core = document.createElement('span');
+      core.id = 'time_core';
+      const hm = document.createElement('span');
+      hm.className = 'main-hm';
+      const sec = document.createElement('span');
+      sec.className = 'main-sec text-4xl sm:text-5xl';
+      const ms = document.createElement('span');
+      ms.id = 'ms_display';
+      ms.className = 'text-gray-400';
+      const dot = document.createElement('span');
+      dot.className = 'seg-dot';
+      dot.textContent = '.';
+      const digits = document.createElement('span');
+      digits.className = 'ms-digits';
+      ms.append(dot, digits);
+      const tz = document.createElement('span');
+      tz.id = 'timezone_offset';
+      tz.className = 'hidden';
+      core.append(hm, sec, ms, tz);
+      timeEl.replaceChildren(core);
+      return { timeEl, hm, sec, ms, digits, tz };
+    }
+
+    // Update the clock text in place. Rebuilding the span tree on every tick was
+    // the largest source of DOM churn during long unattended sessions.
+    function renderClockFace({ showMs, zoneLabelHtml, hours, mins, secs, msStr }) {
       const timeEl = getUi('time_display');
-      timeEl.innerHTML = '<span id="time_core">' + `<span class="main-hm">${hours}:${mins}</span>` + `<span class="main-sec text-4xl sm:text-5xl">:${secs}</span>` + (showMs ? `<span id="ms_display" class="text-gray-400"><span class="seg-dot">.</span>${msStr}</span>` : '') + timezoneOffsetHtml + '</span>';
+      if (!clockFaceNodes || clockFaceNodes.timeEl !== timeEl) {
+        clockFaceNodes = buildClockFaceNodes(timeEl);
+      }
+      const nodes = clockFaceNodes;
+      nodes.hm.textContent = `${hours}:${mins}`;
+      nodes.sec.textContent = `:${secs}`;
+      nodes.ms.classList.toggle('hidden', !showMs);
+      if (showMs) nodes.digits.textContent = msStr;
+      nodes.tz.classList.toggle('hidden', !zoneLabelHtml);
+      if (zoneLabelHtml) {
+        if (nodes.tz.innerHTML !== zoneLabelHtml) nodes.tz.innerHTML = zoneLabelHtml;
+      } else if (nodes.tz.innerHTML) {
+        nodes.tz.innerHTML = '';
+      }
       applyOpticalCentering(timeEl, `${hours}:${mins}`, `:${secs}`);
     }
 
@@ -1232,7 +1273,14 @@
       if (el.textContent !== emoji) el.textContent = emoji;
     }
 
+    let lastTimeStatusRenderKey = null;
+
+    // Split the clock into a cheap per-tick face update and status blocks that
+    // only need to change once per second (or when their state actually changes).
     function updateTimeDisplay() {
+      // A hidden tab renders nothing; the visibility handler restarts this loop
+      // with a fresh frame when the page becomes visible again.
+      if (document.hidden) return;
       monitorSystemClock();
       const hintSecond = Math.floor(Date.now() / 1000);
       if (hintSecond !== lastLocalHintStamp) {
@@ -1248,29 +1296,17 @@
       const mins = String(clockNow.getUTCMinutes()).padStart(2, '0');
       const secs = String(clockNow.getUTCSeconds()).padStart(2, '0');
       const msStr = String(clockNow.getUTCMilliseconds()).padStart(3, '0');
-      const timezoneOffsetHtml = localInfo
-        ? `<span id="timezone_offset">${formatZoneLabel(localInfo)}</span>`
-        : '';
+      const zoneLabelHtml = localInfo ? formatZoneLabel(localInfo) : '';
       const showMs = getUi('show_ms').checked;
       const second = utcNow.getUTCSeconds();
-      const ms = utcNow.getUTCMilliseconds();
       const minute = utcNow.getUTCMinutes();
-      const period = forceUtcOnly ? 'utc' : getPeriodType(minute, second, ms);
-      const ut1TimeKey = (() => {
-        if (!ut1DetailMode) return '';
-        // Key on UT1's own wall time, not UTC's. With a non-zero DUT1, UT1
-        // changes second at a different instant than UTC.
-        const ut1Now = new Date(utcNow.getTime() + window.ut1DUT1);
-        return `${ut1Now.getUTCHours()}:${ut1Now.getUTCMinutes()}:${ut1Now.getUTCSeconds()}${showMs ? `.${ut1Now.getUTCMilliseconds()}` : ''}`;
-      })();
-      // Skip DOM work when none of the visible fields changed. With ms off this
-      // turns 200 Hz innerHTML rewrites into one update per second.
-      const renderKey = [
+      const period = forceUtcOnly ? 'utc' : getPeriodType(minute, second, utcNow.getUTCMilliseconds());
+      const statusKey = [
         forceUtcOnly ? 'force' : 'broadcast',
-        showMs ? 'ms' : 'noms',
         localInfo ? localInfo.zoneText : '',
-        hours, mins, secs, showMs ? msStr : '',
-        period, second, Math.round(lowFreqVolume * 100),
+        hours, mins, secs,
+        period, second,
+        Math.round(lowFreqVolume * 100),
         Math.round(bpmMorseAdjust * 100), Math.round(bpmVoiceAdjust * 100),
         JSON.stringify(wwvAdjustments),
         JSON.stringify(rwmAdjustments),
@@ -1279,34 +1315,19 @@
         window.bpmDUT1, window.otherDUT1, window.ut1DUT1,
         dut1SplitActive ? 'dut1-split' : 'dut1-common',
       ].join('|');
-      const ut1StatusChanged = ut1TimeKey !== lastUt1StatusRenderKey;
-      const stationStatusDue = utcNow.getTime() - lastStationStatusRefreshAt >= 50;
-
-      if (renderKey === lastTimeRenderKey) {
-        if (ut1StatusChanged) {
-          renderUt1Status({ utcNow, period, showMs });
-          lastUt1StatusRenderKey = ut1TimeKey;
-        }
-        if (stationStatusDue) {
-          lastStationStatusRefreshAt = utcNow.getTime();
-          renderWWVStationStatuses(utcNow);
-          renderRWMStatus(utcNow);
-        }
+      renderClockFace({ showMs, zoneLabelHtml, hours, mins, secs, msStr });
+      if (statusKey !== lastTimeStatusRenderKey) {
+        lastTimeStatusRenderKey = statusKey;
+        updateClockEmoji(utcNow);
+        renderPeriodStatus({ period, second });
+        renderWWVStationStatuses(utcNow);
+        renderRWMStatus(utcNow);
+        renderUt1Status({ utcNow, period, showMs });
+        lastStationStatusRefreshAt = utcNow.getTime();
         syncAutoDut1ForDate(utcNow);
-        applyAntiBurnIfNeeded(minute);
-        return;
+      } else if (ut1DetailMode) {
+        renderUt1Status({ utcNow, period, showMs });
       }
-      lastTimeRenderKey = renderKey;
-
-      renderClockFace({ showMs, timezoneOffsetHtml, hours, mins, secs, msStr });
-      updateClockEmoji(utcNow);
-      renderPeriodStatus({ period, second });
-      renderWWVStationStatuses(utcNow);
-      renderRWMStatus(utcNow);
-      lastStationStatusRefreshAt = utcNow.getTime();
-      renderUt1Status({ utcNow, period, showMs });
-      lastUt1StatusRenderKey = ut1TimeKey;
-      syncAutoDut1ForDate(utcNow);
       applyAntiBurnIfNeeded(minute);
     }
 

@@ -72,6 +72,11 @@ To change the address later, use the 🔌 button in the sync audit panel or open
 - The page tries to keep a silent audio stream alive while in the background, but
   browsers may still reduce timer precision or throttle audio processing. Keep the
   page in the foreground when timing accuracy matters.
+- A hidden tab stops the clock render loop entirely, and a visible window that has
+  been idle for five minutes falls back to a slow refresh (milliseconds update a
+  few times per second). Moving the pointer, typing, or returning to the tab
+  restores full speed. This keeps overnight/unattended sessions light on CPU and
+  memory.
 - If audio does not start, drag the master volume again or click the page once.
 
 ## 3. Main interface

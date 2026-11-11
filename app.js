@@ -858,7 +858,7 @@
       document.addEventListener('webkitfullscreenchange', onFullscreenChange);
       document.addEventListener('mozfullscreenchange', onFullscreenChange);
       document.getElementById('show_ms').addEventListener('change', function () {
-        updateTimeDisplay();
+        restartClockFaceTicks();
         saveSettings();
       });
       document.getElementById('ut1_detail_mode').addEventListener('change', function () {
@@ -1618,6 +1618,51 @@
       }
     }
 
+    // Idle-aware clock refresh. The wall clock only needs frame-rate updates
+    // while someone is actively using the page; after five quiet minutes (or
+    // when the tab is hidden / window unfocused) it falls back to 4 Hz / 1 Hz.
+    const CLOCK_FACE_ACTIVE_MS = 16;
+    const CLOCK_FACE_SLOW_MS = 250;
+    const CLOCK_FACE_IDLE_MS = 1000;
+    const CLOCK_FACE_IDLE_AFTER_MS = 5 * 60 * 1000;
+    let clockFaceTimer = null;
+    let lastClockActivityMs = Date.now();
+
+    function clockFaceDelayMs() {
+      if (document.hidden) return null;
+      const msShown = !!(getUi('show_ms') && getUi('show_ms').checked);
+      const idle = Date.now() - lastClockActivityMs >= CLOCK_FACE_IDLE_AFTER_MS;
+      if (!document.hasFocus() || idle) return msShown ? CLOCK_FACE_SLOW_MS : CLOCK_FACE_IDLE_MS;
+      return msShown ? CLOCK_FACE_ACTIVE_MS : CLOCK_FACE_SLOW_MS;
+    }
+
+    function scheduleClockFaceTick() {
+      if (clockFaceTimer !== null) return;
+      const delay = clockFaceDelayMs();
+      if (delay === null) return;
+      clockFaceTimer = setTimeout(() => {
+        clockFaceTimer = null;
+        updateTimeDisplay();
+        scheduleClockFaceTick();
+      }, delay);
+    }
+
+    function restartClockFaceTicks() {
+      if (clockFaceTimer !== null) {
+        clearTimeout(clockFaceTimer);
+        clockFaceTimer = null;
+      }
+      if (document.hidden) return;
+      updateTimeDisplay();
+      scheduleClockFaceTick();
+    }
+
+    function noteClockActivity() {
+      const wasIdle = Date.now() - lastClockActivityMs >= CLOCK_FACE_IDLE_AFTER_MS;
+      lastClockActivityMs = Date.now();
+      if (wasIdle && !document.hidden) restartClockFaceTicks();
+    }
+
     // DOMContentLoaded
     let appInitialized = false;
     document.addEventListener('DOMContentLoaded', function () {
@@ -1629,7 +1674,12 @@
       backendMigrationPending = detectLegacyBackendInstall() && !isTimeApiConfigured();
       initMediaSession();
       setupSettingsSections();
-      setDriftlessInterval(updateTimeDisplay, 5);
+      restartClockFaceTicks();
+      ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach((type) => {
+        window.addEventListener(type, noteClockActivity, { passive: true, capture: true });
+      });
+      window.addEventListener('focus', restartClockFaceTicks);
+      window.addEventListener('blur', restartClockFaceTicks);
 
       bindCoreControls();
       bindPanelControls();
@@ -1675,4 +1725,5 @@
       } else {
         stopBackgroundKeepAlive();
       }
+      restartClockFaceTicks();
     });
