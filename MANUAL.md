@@ -385,7 +385,9 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
   last 24 hours;
 - NTP cells open NTP details and a 24-hour trend;
 - the 🤖 button opens analysis prompts in Chinese/English and can export a
-  simplified 6-hour CSV;
+  simplified 6-hour CSV; copy the prompt together with that 6-hour export. The
+  prompt asks the reader to sample long CSVs and returns a conclusion-first,
+  length-capped report;
 - sync and trace CSV files contain only local records and are never uploaded
   automatically.
 

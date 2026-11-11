@@ -841,112 +841,142 @@
 
     const CLOCK_ANALYSIS_PROMPTS = [
       {
-        title: 'Time-station clock audit analyst',
-        titleZh: '授时台时钟审计分析',
-        bodyZh: `你是授时/时钟趋势分析工程师。输入是由同一台 Time Station Simulator（BPM / WWV / WWVH / RWM）导出的一个或两个 CSV：sync audit、clock trace。先按表头识别文件，只分析实际提供的数据；文件可能很长，先给趋势，不要逐行复述或编造缺失行。
+        title: 'Time-station data summary',
+        titleZh: '授时数据简明总结',
+        bodyZh: `你是授时数据审阅助手。输入可能是一个或两个 CSV：sync audit、clock trace，或带 kind=sync|trace 的合并表。目标是给用户一段能直接判断的短结论：页面时间准不准、漂移/台阶多大、同步与音频是否正常、现在要不要处理。
 
-简化导出可能只含最近 6 小时和精简列；组合表可能用 kind=sync|trace 区分两类行，按 kind 拆分并套用对应语义。缺失列不是错误，不要推断未提供的数据。
+读取与上下文限制：
+- 先看表头、首行、末行；用一句话交代文件类型、行数、时间跨度、是否简化6小时导出。
+- 行数超过300时不要逐行读：按时间等间隔抽最多80行，加上首尾各5行和 |Δoffset| 大的行；不要复述CSV或列出所有行。
+- 忽略 backendNtpServers/Sources、长JSON、IP和完整源列表；只在解释重锁/失败时引用1个关键字段。缺列就写“无法判断”，不猜。
+- 输出总长不超过350中文字；除必要字段名外不堆术语。
 
-字段语义：
-- sync：offsetBeforeMs → offsetMs 是本次同步前后的页面校正量，不是原始晶振频偏；uncertaintyMs / rttMs / spreadMs / samples / kept 描述采样质量；serverTime / error / ok 是结果元数据。
-- trace：rawAt 是未校正墙钟；monoMs 是页面单调时钟（START 重置）；offsetMs 是当前校正量。只有同一连续 session 内 rawAt−monoMs 的变化才能估计原始漂移或候选 step；跨 session 断裂可能只是 mono 重置。
-- trace 音频：audioTimelineDeltaMs = 音频调度时间轴 −（显示 UTC + 设备补偿），不是扬声器物理延迟；audioSkewPpm / audioTimeScale 是调度器当前音频时钟偏差与倍率（样本不足可能为 0/1）；deviceProfile / audioContextSession 定义可比范围；audioClockSec、采样率、latency、state、sink 是环境信息。
-- reason=AUDIO_OUTPUT_MANUAL/SYSTEM 表示音频输出切换；CALIBRATION 是连续延迟调整停止 2.5s 后汇总的一行，带 calibrationSteps/Duration 和 before 值；networkCompMs 是历史命名的设备音频基准延迟，不是网络延迟，仅 CALIBRATION 行有；deviceExtraMs 是档案额外延迟；reanchorReason 是最近音频重锚原因。音频事件只画在 audioTimelineDelta 图：CALIBRATION 暗、manual 亮 fuchsia、system 亮青最上层；offset 和 raw residual 图不画。
-- backendNtp* 是后端上游观测，不是页面墙钟；backendNtpOffsetMs ≠ offsetMs；只有 backendNtpCorrectionApplied=true 才表示 NTP 实际参与服务时间/本地 offset；first 模式只允许第一源在 synchronized 且非 fallback 时纠正；未应用时只当观测。源列表、JSON、IP 只在解释具体重锁/失败时引用，不展开健康总表。
+字段：
+- sync：offsetBeforeMs→offsetMs 是本次同步前后的页面校正量，不是原始晶振频偏；uncertaintyMs/rttMs/spreadMs/kept 是同步质量；ok/error/reason 是结果。
+- trace：rawAt 是未校正墙钟，monoMs 是页面单调钟（START 重置），offsetMs 是当前校正量。只有同一连续 session 内 (rawAt−monoMs) 的变化能算原始漂移；跨 session 不能连起来算。
+- audioTimelineDeltaMs = 音频调度时间轴 −（显示UTC+设备补偿），不是扬声器延迟；audioSkewPpm/audioTimeScale 是音频时钟偏差/倍率；CALIBRATION、AUDIO_OUTPUT_MANUAL/SYSTEM 是事件；只在音频Δ图解读，不能当offset或raw漂移。
+- backendNtp* 是后端上游观测；只有 backendNtpCorrectionApplied=true 才表示参与页面时间；backendNtpOffsetMs ≠ offsetMs。
 
-可选图表对应：
-1. offset：X 为 trace sample order，Y 为 offsetMs；彩线按 session/visibility/long gap/slope 分段；背景=HIDDEN；相邻≤10min 且 Δoffset≥5/50ms 画细/亮竖线，表示校正变化；last=最后 offset。
-2. raw wall−mono：按 session/visibility/raw gap>5min/|Δraw−Δmono|>500ms/slope 分段；段内 residual=(raw−baseRaw)−(mono−baseMono)；段内斜率≈原始漂移，ppm 需跨度≥120s 且≥5点；跨段断裂可能只是 mono 重置。
-3. audioTimelineDelta：只取有效值；0 线是 sync/reanchor 目标；彩线按 device/session/long gap 分段；不要把它的漂移当作 offset 或 raw wall。
+计算（能给数就给数，不能就说明）：
+1. 同步质量：成功/失败数，中位 uncertainty、RTT、kept/samples；先判断同步是否可信。
+2. 校正趋势：只用间距≥5分钟的同步，对 offsetMs 与 at 做稳健斜率，ppm = ΔoffsetMs / Δt(s) × 1000；给出累计变化和稳定区段。
+3. 台阶：列出最大1–3个 |ΔoffsetMs| 及时间、原因；台阶不等于频偏。
+4. trace原始漂移：每个连续session内拟合 (rawAt−monoMs) 的ppm和跨度；session断裂单独说明。
+5. 音频：给出 audioTimelineDeltaMs 的中位/极值、audioSkewPpm 是否稳定、有无重锚/校准/输出切换；说明音频是否跟随显示，不承诺物理延迟。
+6. 只有sync没有trace时，明确“不能从sync推断raw漂移或音频Δ”。
 
-只有 sync 时没有 trace 图；不能从 sync offset 推断 raw residual、ppm 或 audio Δ。
+输出模板（严格按此，不扩写；结论必须带数字，禁止只写“有漂移/不稳定”）：
+【结论】1–2句：是否可信、主要误差来源、要不要处理。
+【关键数字】最多4行，每行“指标=数值”：同步±ms、24h校正ppm、最大台阶ms、音频Δ ms。
+【证据】最多3条，每条一行：区段/时间+数值+含义。
+【建议】最多2条，必须引用上面的数字；无问题写“无需操作”。
+【边界】1句：同步不确定度/参考跳变/数据缺口对结论的限制。
+不要全量健康表、逐行时间线、泛泛建议；不要编造缺失数据。`,
+        bodyEn: `You are a time-data review assistant. Input may be one or two CSVs: sync audit, clock trace, or a combined table with kind=sync|trace. Do not restate the data. Answer four questions briefly: is the page clock trustworthy; how large is the drift or step; are sync and audio healthy; does the user need to act?
 
-回答：
-- 3–5 句摘要，先结论；
-- 最多 5 条趋势：校正量重锁、原始漂移、session/visibility 断裂、候选 step；有音频则区分 reanchor、校准、输出切换和纯音频漂移；
-- 最多 3–5 个关键台阶：at、reason、修正量；
-- 2–3 句边界：校正量≠原始频偏，缺 trace 不能推断，量化/采样限制；
-- 可选最多 1 条继续看。
-约 500–800 中文字。不要全量健康表、逐行时间线、逐类触发或大段 backend NTP；不要编造未提供的数据。`,
-        bodyEn: `You are a clock-trend analyst. Input is one or both CSVs exported by the Time Station Simulator (BPM / WWV / WWVH / RWM): sync audit and/or clock trace. Identify files by header, analyze only supplied data, and summarize rather than restating rows. If data is truncated, say what was analyzed; never invent missing rows.
-
-A simplified export may contain only the last 6 hours and reduced columns. A combined table may identify rows with kind=sync|trace; split by kind and apply the matching semantics. Missing columns are not errors; do not infer absent data.
+Data handling and context limits:
+- Read the header, first row and last row; state in one line the file type, row count, time span, and whether it is the simplified 6h export.
+- If rows >300, do not read every row: take at most 80 evenly spaced rows, plus the first/last 5 and rows with large |Δoffset|. Never dump or restate the CSV.
+- Ignore backendNtpServers/Sources, long JSON, IPs and full source lists; cite one key field only when explaining a resync/failure. If a column is missing, say "cannot determine"; do not guess.
+- Total output ≤250 English words; plain language, no jargon pile-up.
 
 Semantics:
-- sync: offsetBeforeMs → offsetMs is the page correction before/after this sync, not raw oscillator error; uncertainty/rtt/spread/samples/kept describe quality; serverTime/error/ok are result metadata.
-- trace: rawAt is uncorrected wall time; monoMs is page monotonic time (resets on START); offsetMs is the current correction. Only within-session changes in rawAt−monoMs estimate drift or candidate steps; breaks may be mono resets.
-- audio: audioTimelineDeltaMs = audio scheduling timeline − (display UTC + device compensation), not speaker latency. audioSkewPpm/audioTimeScale are the scheduler's current audio-clock skew/rate (0/1 until learned). deviceProfile/audioContextSession define comparable scope; audioClockSec, sample rate, latencies, state, sink are environment info.
-- reason=AUDIO_OUTPUT_MANUAL/SYSTEM marks output switches; CALIBRATION is one delay-adjustment session after 2.5s idle with steps/duration/before values; networkCompMs is legacy device audio baseline delay, not network, only on CALIBRATION rows; deviceExtraMs is profile extra; reanchorReason is the last audio re-anchor. Audio events appear only on the audioTimelineDelta chart: CALIBRATION dim, manual bright fuchsia, system bright cyan on top; offset/residual charts have no audio markers.
-- backendNtp* are upstream observations, not the page wall clock; backendNtpOffsetMs ≠ offsetMs. Only backendNtpCorrectionApplied=true means NTP actually affected served time/local offset; first mode only allows the first source when synchronized and not fallback; otherwise it is observation. Cite source/IP/JSON only for a specific resync/failure; never dump a health table.
+- sync: offsetBeforeMs→offsetMs is the page correction before/after this sync, not raw oscillator error; uncertaintyMs/rttMs/spreadMs/kept are quality; ok/error/reason is outcome.
+- trace: rawAt is uncorrected wall time; monoMs is page monotonic time (resets on START); offsetMs is current correction. Only within one continuous session can changes in (rawAt−monoMs) estimate raw drift; never connect across sessions.
+- audioTimelineDeltaMs = audio scheduling timeline − (display UTC + device compensation), not speaker latency; audioSkewPpm/audioTimeScale are the audio-clock skew/rate; CALIBRATION and AUDIO_OUTPUT_MANUAL/SYSTEM are events; read them only on the audio-Δ chart, never as offset or raw drift.
+- backendNtp* are upstream observations; only backendNtpCorrectionApplied=true means they affected page time; backendNtpOffsetMs ≠ offsetMs.
 
-Optional chart mapping:
-1. offset: X = trace sample order, Y = offsetMs; colored lines split by session/visibility/long gap/slope; background = HIDDEN; adjacent samples ≤10min apart with |Δoffset|≥5/50ms get fine/bright lines marking correction changes; last = final offset.
-2. raw wall−mono: split by session/visibility/raw gap>5min/|Δraw−Δmono|>500ms/slope; residual=(raw−baseRaw)−(mono−baseMono) within a segment; slope≈raw drift, ppm needs span≥120s and ≥5 points; breaks may be mono resets.
-3. audioTimelineDelta: finite values only; zero = sync/reanchor target; colored lines split by device/session/long gap; do not read its drift as offset or raw wall.
+Calculations (give numbers when possible; otherwise say why not):
+1. Sync quality: success/failure counts, median uncertainty, RTT, kept/samples; first decide whether sync is trustworthy.
+2. Correction trend: use only syncs ≥5 minutes apart; fit offsetMs against at robustly, ppm = ΔoffsetMs / Δt(s) × 1000; report cumulative change and stable sections.
+3. Steps: list the largest 1–3 |ΔoffsetMs| with time and reason; a step is not a frequency error.
+4. Raw trace drift: per continuous session fit (rawAt−monoMs) and report ppm and span; describe session breaks separately.
+5. Audio: report audioTimelineDeltaMs median/extremes, whether audioSkewPpm is stable, and any re-anchor/calibration/output switch; say whether audio follows the display, without promising physical latency.
+6. With sync only and no trace, state clearly that raw drift and audio Δ cannot be inferred.
 
-With sync only there are no trace charts; do not infer residual/ppm/audio Δ from sync offsets.
-
-Output:
-- 3–5 sentence summary, conclusion first;
-- at most 5 trend bullets: correction resyncs, raw drift, session/visibility breaks, candidate steps, and audio resets/calibration/output events if present;
-- at most 3–5 key steps: at, reason, correction size;
-- 2–3 boundary sentences: correction ≠ raw frequency error, missing trace cannot be inferred, quantization/sampling limits;
-- optional at most one next check.
-About 350–500 English words. No full health table, row-by-row timeline, every trigger category, or backend NTP dump. Never invent missing data.`,
+Output template (follow exactly, do not expand; the conclusion must contain numbers, never a vague "there is drift"):
+[Conclusion] 1–2 sentences: trustworthy or not; main error source; action needed.
+[Key numbers] at most 4 lines, "metric=value": sync ±ms, 24h correction ppm, largest step ms, audio Δ ms.
+[Evidence] at most 3 one-line items: time/section + value + meaning.
+[Action] at most 2 items, each citing a number above; write "no action needed" if fine.
+[Limits] one sentence: sync uncertainty, reference steps, or data gaps that limit the conclusion.
+No full health table, row-by-row timeline, generic advice, or invented missing data; never invent missing data.`,
       },
     ];
 
     const SYNC_ONLY_PROMPTS = [
       {
-        title: 'Sync audit report',
-        titleZh: '同步审计报告',
-        bodyZh: `你是同步审计分析工程师。输入是单个 sync audit CSV；按表头识别，可能很长，只分析提供的数据并概括趋势，不逐行复述或编造缺失行。简化导出可能只含最近6小时和精简列；缺失列不是错误。
+        title: 'Sync audit summary',
+        titleZh: '同步审计总结',
+        bodyZh: `你是同步审计简报助手。输入是单个 sync audit CSV，可能是最近6小时简化导出；只分析提供的列，不逐行复述或编造。
 
-字段：at=同步发起；reason=触发；ok/error=结果；durationMs；offsetBeforeMs→offsetMs=本次同步前后页面校正量，不是原始晶振频偏；uncertaintyMs/rttMs/spreadMs/samples/kept=采样质量；serverTime=服务端时间。
-backendNtp*=后端上游NTP观测，不是页面 offset：backendNtpOffsetMs≠offsetMs；backendNtpCorrectionApplied=true 才表示 NTP 实际参与服务时间/本地校准；first 模式只允许第一源在 synchronized 且非 fallback 时纠正；reason 说明未应用原因。源列表/JSON/IP 只在解释具体重锁、失败或补同步时引用，不展开健康总表。
+上下文：先看表头与首尾；行数超过300时按时间等间隔抽最多60行，加上首尾各5行和 |Δoffset| 大的行；忽略长JSON、IP和完整源列表。缺列写“无法判断”。
 
-回答：3–5 句摘要先结论；最多5条趋势（平台、台阶、重锁、失败/补同步）；最多3–5个关键台阶（at/reason/修正量）；2–3句边界（校正量≠频偏；无 trace 不能推断 raw residual 或 ppm）；可选1条继续看。约400–600中文字。不要逐行、不列全量源、不写建议清单，不编造缺失数据。`,
-        bodyEn: `You are a sync-audit analyst. Input is one sync audit CSV; identify it by header, analyze only supplied data, and summarize rather than restating rows. If truncated, say what was analyzed; never invent rows. Simplified exports may contain only the last 6 hours and reduced columns; missing columns are not errors.
+字段：at=同步发起；reason=触发；ok/error=结果；offsetBeforeMs→offsetMs=本次同步前后页面校正量，不是原始晶振频偏；uncertaintyMs/rttMs/spreadMs/samples/kept=质量；backendNtp*=后端观测，仅 backendNtpCorrectionApplied=true 才表示参与页面时间；backendNtpOffsetMs≠offsetMs。
 
-Fields: at = sync start; reason = trigger; ok/error = result; durationMs; offsetBeforeMs → offsetMs = page correction before/after this sync, not raw oscillator error; uncertaintyMs/rttMs/spreadMs/samples/kept = quality; serverTime = server timestamp.
-backendNtp* are upstream observations, not page offset: backendNtpOffsetMs ≠ offsetMs; backendNtpCorrectionApplied=true is required before saying NTP actually affected served time/local calibration; first mode only allows the first source when synchronized and not fallback; reason explains why not applied. Cite source/IP/JSON only for a specific resync/failure/catch-up; never expand into a health table.
+计算：成功/失败数；中位 uncertainty、RTT、kept比例；只用间距≥5分钟的同步对 offsetMs 与 at 拟合 ppm（ΔoffsetMs/Δt(s)×1000），给累计变化；列出最大1–3个台阶（时间/原因/大小），说明台阶≠频偏；只有sync时明确不能推断raw漂移。
 
-Output: 3–5 sentence summary first; at most 5 trend bullets (plateaus, steps, resyncs, failures/catch-up); at most 3–5 key steps (at/reason/correction); 2–3 boundary sentences (correction ≠ frequency error; without trace, residual/ppm cannot be inferred); optional at most one next check. About 250–350 English words. No row-by-row dump, full source list, or recommendation checklist; never invent missing data.`,
+输出模板（≤260中文字；结论必须带数字）：
+【结论】1–2句：同步是否可信、主要问题。
+【关键数字】最多3行：±ms、kept比例、ppm或最大台阶ms。
+【证据】最多2条：时间+数值+含义。
+【建议】最多2条，引用数字；无问题写“无需操作”。
+【边界】1句：同步不确定度/参考跳变/缺trace的限制。
+不要逐行、不列全量源、不写泛泛建议；不要编造缺失数据。`,
+        bodyEn: `You are a sync-audit summary assistant. Input is one sync audit CSV, possibly a simplified 6h export; analyze only supplied columns, do not restate rows or invent data.
+
+Context: read the header and first/last rows; if rows >300, take at most 60 evenly spaced rows plus the first/last 5 and rows with large |Δoffset|; ignore long JSON, IPs and full source lists. If a column is missing, say "cannot determine".
+
+Fields: at = sync start; reason = trigger; ok/error = outcome; offsetBeforeMs→offsetMs = page correction before/after this sync, not raw oscillator error; uncertaintyMs/rttMs/spreadMs/samples/kept = quality; backendNtp* are upstream observations, only backendNtpCorrectionApplied=true means they affected page time; backendNtpOffsetMs≠offsetMs.
+
+Calculations: success/failure counts; median uncertainty, RTT, kept ratio; use only syncs ≥5 minutes apart, fit offsetMs against at for ppm (ΔoffsetMs/Δt(s)×1000), report cumulative change; list the largest 1–3 steps (time/reason/size) and note that a step is not frequency error; with sync only, state that raw drift cannot be inferred.
+
+Output template (≤200 English words; conclusion must contain numbers):
+[Conclusion] 1–2 sentences: is sync trustworthy; main issue.
+[Key numbers] at most 3 lines: ±ms, kept ratio, ppm or largest step ms.
+[Evidence] at most 2 one-line items: time + value + meaning.
+[Action] at most 2 items citing numbers; write "no action needed" if fine.
+[Limits] one sentence: sync uncertainty, reference steps, or missing trace limits.
+No row-by-row dump, full source list, generic advice, or invented data; never invent missing data.`,
       },
     ];
 
     const TRACE_ONLY_PROMPTS = [
       {
-        title: 'Clock trace report',
-        titleZh: '时钟轨迹分析报告',
-        bodyZh: `你是时钟 trace 分析工程师。输入是单个 clock trace CSV；按表头识别，只分析实际数据；可能很长，先概括趋势，不逐行复述或编造缺失行。简化导出可能只含最近6小时和精简列；缺失列不是错误。
+        title: 'Clock trace summary',
+        titleZh: '时钟轨迹总结',
+        bodyZh: `你是时钟轨迹简报助手。输入是单个 clock trace CSV，可能是最近6小时简化导出；只分析提供的列，不逐行复述或编造。
 
-字段：rawAt=未校正墙钟；monoMs=页面单调时钟（START 重置）；offsetMs=当前校正量。只有同一连续 session 内 rawAt−monoMs 的变化才能估计原始漂移或候选 step；跨 session 断裂可能只是 mono 重置。signal/visibility/wakeLock/session 是运行状态。
-音频：audioTimelineDeltaMs=音频调度时间轴−（显示 UTC+设备补偿），不是扬声器延迟；audioSkewPpm/audioTimeScale 是调度器当前音频时钟偏差/倍率（样本不足可 0/1）；deviceProfile/audioContextSession 定义可比范围；audioClockSec/采样率/latency/state/sink 是环境信息。
-reason=AUDIO_OUTPUT_MANUAL/SYSTEM=音频输出切换；CALIBRATION=连续延迟调整停止2.5s后的一行，含 steps/duration/before 值；networkCompMs 是历史命名的设备音频基准延迟，不是网络延迟，仅 CALIBRATION 行；deviceExtraMs 是档案额外延迟；reanchorReason 是最近音频重锚原因。音频事件只画在 audioTimelineDelta 图：CALIBRATION 暗、manual 亮 fuchsia、system 亮青最上层；offset/residual 不画。
+上下文：先看表头与首尾；行数超过300时按时间等间隔抽最多80行，加上首尾各5行和异常 |Δoffset|/Δaudio 行；忽略长JSON、IP和完整源列表。缺列写“无法判断”。
 
-可选图表对应：
-1. offset：X=sample order，Y=offsetMs；彩线按 session/visibility/long gap/slope 分段；背景=HIDDEN；相邻≤10min 且 Δoffset≥5/50ms 画细/亮竖线，表示校正变化；last=最后 offset。
-2. raw wall−mono：按 session/visibility/raw gap>5min/|Δraw−Δmono|>500ms/slope 分段；段内 residual=(raw−baseRaw)−(mono−baseMono)；段内斜率≈原始漂移，ppm 需跨度≥120s且≥5点；跨段断裂可能只是 mono 重置。
-3. audioTimelineDelta：只取有效值；0 线是 sync/reanchor 目标；彩线按 device/session/long gap 分段；不要把它的漂移当作 offset 或 raw wall。
+字段：rawAt=未校正墙钟；monoMs=页面单调钟（START重置）；offsetMs=当前校正量。只有同一连续session内 (rawAt−monoMs) 的变化能拟合原始漂移；跨session断裂可能只是mono重置，不能连算。
+音频：audioTimelineDeltaMs=音频调度时间轴−(显示UTC+设备补偿)，不是扬声器延迟；audioSkewPpm/audioTimeScale是音频时钟偏差/倍率；CALIBRATION=连续延迟调整停止2.5s后的一行，含calibrationSteps/Duration/Before值；AUDIO_OUTPUT_MANUAL/SYSTEM=输出切换；reanchorReason=最近重锚原因；音频事件只在音频Δ图解读，不能当offset或raw漂移。
 
-回答：3–5句摘要；最多5条趋势（漂移方向/量级、session/visibility 断裂、候选 step、音频 Δ 归零/校准/输出切换）；2–3句边界（mono 重置、量化、仅 trace 不能推断外源校正）；可选1条；约400–600中文字。不要逐行、不列全状态、不写建议清单，不编造缺失数据。
+计算：每个连续session内拟合(rawAt−monoMs)的ppm和跨度；offsetMs的最大台阶(时间/大小/原因)；音频Δ的中位/极值与是否归零、audioSkewPpm是否稳定、有无校准/输出切换/重锚；session/visibility断裂单独说明；只有trace时不能推断同步校正质量。
 
-CSV 字段：at,rawAt,monoMs,offsetMs,session,visibility,signal,wakeLock,reason,deviceProfile,audioClockSec,audioTimelineDeltaMs,audioContextSession,audioSampleRate,audioBaseLatencyMs,audioOutputLatencyMs,audioContextState,audioSinkId,audioSkewPpm,audioTimeScale,networkCompMs,deviceExtraMs,reanchorReason,calibrationSteps,calibrationDurationMs,networkCompBeforeMs,deviceExtraBeforeMs.`,
-        bodyEn: `You are a clock-trace analyst. Input is one clock trace CSV; identify it by header, analyze only supplied data, and summarize rather than restating rows. If truncated, say what was analyzed; never invent rows. Simplified exports may contain only the last 6 hours and reduced columns; missing columns are not errors.
+输出模板（≤300中文字；结论必须带数字）：
+【结论】1–2句：原始漂移量级、音频是否跟随、是否异常。
+【关键数字】最多4行：raw漂移ppm、offset台阶ms、音频Δ中位/极值ms、audioSkewPpm范围。
+【证据】最多3条：区段+数值+含义。
+【建议】最多2条，引用数字；无问题写“无需操作”。
+【边界】1句：mono重置/量化/缺列限制。
+不要逐行、不列全状态、不写泛泛建议；不要编造缺失数据。`,
+        bodyEn: `You are a clock-trace summary assistant. Input is one clock trace CSV, possibly a simplified 6h export; analyze only supplied columns, do not restate rows or invent data.
 
-Fields: rawAt = uncorrected wall time; monoMs = page monotonic time (resets on START); offsetMs = current correction. Only within-session changes in rawAt−monoMs estimate raw drift or candidate steps; breaks between sessions may be mono resets. signal/visibility/wakeLock/session describe runtime state.
-Audio: audioTimelineDeltaMs = audio scheduling timeline − (display UTC + device compensation), not speaker latency; audioSkewPpm/audioTimeScale are the scheduler's current audio-clock skew/rate (0/1 until learned); deviceProfile/audioContextSession define comparable scope; audioClockSec/sample rate/latencies/state/sink are environment info.
-reason=AUDIO_OUTPUT_MANUAL/SYSTEM = audio-output switch; CALIBRATION = one delay-adjustment session after 2.5s idle with steps/duration/before values; networkCompMs is legacy device audio baseline delay, not network, only on CALIBRATION rows; deviceExtraMs is profile extra; reanchorReason is the last audio re-anchor. Audio events appear only on the audioTimelineDelta chart: CALIBRATION dim, manual bright fuchsia, system bright cyan on top; offset/residual charts have none.
+Context: read the header and first/last rows; if rows >300, take at most 80 evenly spaced rows plus the first/last 5 and rows with abnormal |Δoffset|/Δaudio; ignore long JSON, IPs and full source lists. If a column is missing, say "cannot determine".
 
-Optional chart mapping:
-1. offset: X=sample order, Y=offsetMs; colored lines split by session/visibility/long gap/slope; background=HIDDEN; adjacent samples ≤10min apart with |Δoffset|≥5/50ms get fine/bright lines marking correction changes; last=final offset.
-2. raw wall−mono: split by session/visibility/raw gap>5min/|Δraw−Δmono|>500ms/slope; residual=(raw−baseRaw)−(mono−baseMono) within a segment; slope≈raw drift, ppm needs span≥120s and ≥5 points; breaks may be mono resets.
-3. audioTimelineDelta: finite values only; zero = sync/reanchor target; colored lines split by device/session/long gap; do not read its drift as offset or raw wall.
+Fields: rawAt = uncorrected wall time; monoMs = page monotonic time (resets on START); offsetMs = current correction. Only within one continuous session can changes in (rawAt−monoMs) estimate raw drift; never connect across sessions, where a break may just be a mono reset.
+Audio: audioTimelineDeltaMs = audio scheduling timeline − (display UTC + device compensation), not speaker latency; audioSkewPpm/audioTimeScale are audio-clock skew/rate; CALIBRATION = one row after a delay-adjustment session idle for 2.5 seconds, with calibrationSteps/Duration/Before values; AUDIO_OUTPUT_MANUAL/SYSTEM = output switch; reanchorReason = last re-anchor; read events only on the audio-Δ chart, never as offset or raw drift.
 
-Output: 3–5 sentence summary first; at most 5 trend bullets (drift direction/magnitude, session/visibility breaks, candidate steps, audio reset/calibration/output events); 2–3 boundary sentences (mono resets, quantization, trace alone cannot establish external correction); optional at most one next check. About 250–350 English words. No row-by-row dump, full state table, or recommendation checklist; never invent missing data.
+Calculations: per continuous session fit (rawAt−monoMs) for ppm and span; largest offsetMs steps (time/size/reason); audio Δ median/extremes and whether it returns to zero, whether audioSkewPpm is stable, and any calibration/output switch/re-anchor; describe session/visibility breaks separately; with trace only, sync-correction quality cannot be inferred.
 
-CSV fields: at,rawAt,monoMs,offsetMs,session,visibility,signal,wakeLock,reason,deviceProfile,audioClockSec,audioTimelineDeltaMs,audioContextSession,audioSampleRate,audioBaseLatencyMs,audioOutputLatencyMs,audioContextState,audioSinkId,audioSkewPpm,audioTimeScale,networkCompMs,deviceExtraMs,reanchorReason,calibrationSteps,calibrationDurationMs,networkCompBeforeMs,deviceExtraBeforeMs.`,
+Output template (≤240 English words; conclusion must contain numbers):
+[Conclusion] 1–2 sentences: raw drift magnitude, whether audio follows, any anomaly.
+[Key numbers] at most 4 lines: raw drift ppm, offset step ms, audio Δ median/extremes ms, audioSkewPpm range.
+[Evidence] at most 3 one-line items: section + value + meaning.
+[Action] at most 2 items citing numbers; write "no action needed" if fine.
+[Limits] one sentence: mono resets, quantization, or missing columns.
+No row-by-row dump, full state table, generic advice, or invented data; never invent missing data.`,
       },
     ];
 

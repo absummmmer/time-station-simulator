@@ -24,6 +24,8 @@ the current browser.
     variable beat-frequency (BF) oscillator for listening to the CW carrier.
 - A shared UTC/DUT1 time base with a common look-ahead audio clock.
 - Network sync, automatic sync, a sync audit log, and clock traces.
+- Stable frequency drift is trimmed between syncs from recent sync history; the
+  last-sync status shows `TRIM ±x.xxppm` or `TRIM HOLD`.
 - Per-device audio compensation profiles for headphones, speakers, and other
   output paths.
 - NTP health is observed by the backend; the browser never queries NTP directly.
@@ -150,6 +152,9 @@ reference and is not a substitute for a shortwave receiver.
   changing headphones, speakers, or system audio settings.
 - Audio scheduling uses a monotonic clock and slow audio-rate estimation, so a
   wall-clock step does not directly disturb scheduled audio.
+- The frequency trim reduces stable drift between syncs; it does not remove sync
+  measurement uncertainty (typically a few milliseconds) or reference-source
+  steps. A sync still performs the authoritative correction.
 
 ## Scope
 

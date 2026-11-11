@@ -33,6 +33,17 @@ for (const body of [combinedZh, combinedEn]) {
 for (const body of bodies) {
   assert.ok(body.text.includes('6 小时') || body.text.includes('6小时') || body.text.includes('6 hours') || body.text.includes('6h'), `${body.lang} prompt must mention simplified window`);
 }
+for (const body of bodies) {
+  const hasTemplate = body.text.includes('【结论】') || body.text.includes('[Conclusion]');
+  assert.ok(hasTemplate, `${body.lang} prompt must require a conclusion-first template`);
+  const hasContextBudget = body.text.includes('抽样')
+    || body.text.includes('抽最多')
+    || body.text.includes('等间隔抽')
+    || body.text.includes('evenly spaced');
+  assert.ok(hasContextBudget, `${body.lang} prompt must include a row-sampling rule for long CSVs`);
+  const hasLengthCap = body.text.includes('中文字') || body.text.includes('English words');
+  assert.ok(hasLengthCap, `${body.lang} prompt must cap output length`);
+}
 for (const body of [combinedZh, combinedEn, syncZh, syncEn]) {
   assert.ok(body.text.includes('backendNtpCorrectionApplied'), `${body.lang} prompt must gate NTP participation`);
   assert.ok(body.text.includes('backendNtpOffsetMs'), `${body.lang} prompt must separate backend NTP offset`);

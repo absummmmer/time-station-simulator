@@ -81,7 +81,11 @@ npm run build:css
 
 After updating a deployment, hard-refresh once or version the static asset URLs.
 The page loads several separate scripts, so an old cached `index.html` must not
-be mixed with a new `app.js` / `core.js` set.
+be mixed with a new `app.js` / `core.js` set. Replace the complete runtime set
+from one package (or at least `core.js`, `app.js`, `time-sync.js`,
+`observability.js` together): a newer script can call functions that do not
+exist in an older companion script. If the browser still serves stale files,
+verify them in the network panel or append a version query to the script URLs.
 
 ## Tests
 
