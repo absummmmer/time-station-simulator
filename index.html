@@ -421,8 +421,8 @@
             class="px-3 py-2 rounded bg-dark-700 text-gray-300 text-sm">&#128200;</button>
         </div>
         <div class="flex items-center gap-2">
-          <button id="combined_prompt_btn" type="button"
-            class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;+&#129302;</button>
+          <button id="combined_prompt_btn" type="button" aria-label="Combined sync and trace analysis prompt"
+            class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;</button>
           <button id="backend_config_btn" type="button" aria-label="Time API backend"
             class="px-3 py-2 bg-dark-700 text-gray-300 rounded hover:bg-dark-600 transition">&#128268;</button>
           <button id="sync_log_close" type="button"
@@ -433,8 +433,6 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div id="sync_audit_summary" class="text-xs text-gray-400 font-mono break-words leading-relaxed min-w-0"></div>
           <div class="flex w-full sm:w-auto items-center gap-2 sm:justify-end">
-            <button id="sync_prompt_btn" type="button"
-              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;</button>
             <button id="sync_log_export" type="button"
               class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#128424;</button>
             <button id="sync_log_clear" type="button"
@@ -448,8 +446,6 @@
           <div id="clock_trace_summary" class="text-xs text-gray-400 font-mono break-words leading-relaxed cursor-pointer select-none"
             role="button" tabindex="0" aria-label="Toggle trace diagnostics"></div>
           <div class="flex w-full sm:w-auto items-center gap-2 sm:justify-end">
-            <button id="trace_prompt_btn" type="button"
-              class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#129302;</button>
             <button id="clock_trace_export" type="button"
               class="flex-1 sm:flex-none px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#128424;</button>
             <button id="clock_trace_clear" type="button"
@@ -471,33 +467,10 @@
     </div>
   </div>
 
-  <div id="sync_prompt_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
-    <div class="w-full max-w-3xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-xl">&#129302;</span>
-        <button id="sync_prompt_close" type="button"
-          class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
-      </div>
-      <div class="flex items-center gap-2 mb-3">
-        <button id="sync_prompt_tab_zh" type="button" data-prompt-tab="zh"
-          class="px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">中文</button>
-        <button id="sync_prompt_tab_en" type="button" data-prompt-tab="en"
-          class="px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">EN</button>
-        <button id="sync_prompt_simple_export" type="button" aria-label="Export simplified 6-hour CSV"
-          class="ml-auto px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">&#128424; 6h</button>
-      </div>
-      <div class="text-[11px] text-gray-500 mb-2 leading-relaxed">
-        Copy the prompt with the 6h simplified export. For a full 24h CSV the prompt samples rows,
-        but context/token use is much higher.
-      </div>
-      <div id="sync_prompt_entries" class="flex-1 min-h-0 overflow-y-auto space-y-3"></div>
-    </div>
-  </div>
-
   <div id="combined_prompt_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
     <div class="w-full max-w-3xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
       <div class="flex items-center justify-between mb-3">
-        <span class="text-xl">&#129302;+&#129302;</span>
+        <span class="text-xl">&#129302;</span>
         <button id="combined_prompt_close" type="button"
           class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition">&#10005;</button>
       </div>
@@ -509,10 +482,7 @@
         <button id="combined_prompt_simple_export" type="button" aria-label="Export simplified 6-hour combined CSV"
           class="ml-auto px-3 py-1.5 rounded bg-dark-700 text-gray-300 hover:bg-dark-600 transition">&#128424; 6h+</button>
       </div>
-      <div class="text-[11px] text-gray-500 mb-2 leading-relaxed">
-        Copy the prompt with the 6h combined export. For a full 24h CSV the prompt samples rows,
-        but context/token use is much higher.
-      </div>
+      <div id="combined_prompt_hint" class="text-[11px] text-gray-500 mb-2 leading-relaxed"></div>
       <div id="combined_prompt_entries" class="flex-1 min-h-0 overflow-y-auto space-y-3"></div>
     </div>
   </div>

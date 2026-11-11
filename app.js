@@ -31,26 +31,6 @@
       }
       const clearBtn = getUi('sync_log_clear');
       if (clearBtn) clearBtn.addEventListener('click', clearSyncAuditLog);
-      const promptBtn = getUi('sync_prompt_btn');
-      if (promptBtn) promptBtn.addEventListener('click', () => openSyncPromptPanel('sync'));
-      const tracePromptBtn = getUi('trace_prompt_btn');
-      if (tracePromptBtn) tracePromptBtn.addEventListener('click', () => openSyncPromptPanel('trace'));
-      const promptCloseBtn = getUi('sync_prompt_close');
-      if (promptCloseBtn) promptCloseBtn.addEventListener('click', closeSyncPromptPanel);
-      const promptSimpleExport = getUi('sync_prompt_simple_export');
-      if (promptSimpleExport) promptSimpleExport.addEventListener('click', exportActivePromptCsv);
-      ['zh', 'en'].forEach(lang => {
-        const tab = getUi(`sync_prompt_tab_${lang}`);
-        if (tab) tab.addEventListener('click', () => setPromptLang(lang));
-      });
-      const promptEntries = getUi('sync_prompt_entries');
-      if (promptEntries) {
-        promptEntries.addEventListener('click', (e) => {
-          const button = e.target.closest('[data-prompt-copy]');
-          if (!button) return;
-          copyPrompt(Number(button.dataset.promptCopy), button);
-        });
-      }
       const combinedButton = getUi('combined_prompt_btn');
       if (combinedButton) combinedButton.addEventListener('click', openCombinedPromptPanel);
       const combinedClose = getUi('combined_prompt_close');
@@ -105,12 +85,6 @@
           if (e.target === panel) closeSyncAuditLog();
         });
       }
-      const promptPanel = getUi('sync_prompt_panel');
-      if (promptPanel) {
-        promptPanel.addEventListener('click', (e) => {
-          if (e.target === promptPanel) closeSyncPromptPanel();
-        });
-      }
       const backendPanel = getUi('backend_config_panel');
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
@@ -120,8 +94,6 @@
           closeNtpDetailPanel();
         } else if (combinedPanel && !combinedPanel.classList.contains('hidden')) {
           closeCombinedPromptPanel();
-        } else if (promptPanel && !promptPanel.classList.contains('hidden')) {
-          closeSyncPromptPanel();
         } else if (panel && !panel.classList.contains('hidden')) {
           closeSyncAuditLog();
         }

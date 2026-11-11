@@ -1443,62 +1443,6 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function exportActivePromptCsv() {
-      if (activePromptSet === 'trace') exportClockTraceCsv({ simple: true });
-      else exportSyncAuditCsv({ simple: true });
-    }
-
-    let activePromptLang = 'zh';
-    let activePromptSet = 'sync';
-
-    function activePromptList() {
-      return activePromptSet === 'trace' ? TRACE_ONLY_PROMPTS : SYNC_ONLY_PROMPTS;
-    }
-
-    function updatePromptTabs() {
-      ['zh', 'en'].forEach(lang => {
-        const button = getUi(`sync_prompt_tab_${lang}`);
-        if (!button) return;
-        const active = activePromptLang === lang;
-        button.classList.toggle('bg-blue-600', active);
-        button.classList.toggle('text-white', active);
-        button.classList.toggle('bg-dark-700', !active);
-        button.classList.toggle('text-gray-300', !active);
-      });
-    }
-
-    function renderSyncPrompts() {
-      const entriesEl = getUi('sync_prompt_entries');
-      if (!entriesEl) return;
-      const isZh = activePromptLang === 'zh';
-      const copyLabel = isZh ? '📋 复制' : '📋 COPY';
-      entriesEl.innerHTML = activePromptList().map((prompt, index) => `
-        <div class="border border-dark-700 rounded-lg p-2 sm:p-3">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <span class="text-sm text-gray-300">${escapeSyncText(isZh ? prompt.titleZh : prompt.title)}</span>
-            <button type="button" data-prompt-copy="${index}"
-              class="px-2 py-1 bg-dark-700 rounded hover:bg-dark-600 transition shrink-0">${copyLabel}</button>
-          </div>
-          <pre class="whitespace-pre-wrap break-words font-mono text-[10px] sm:text-xs leading-relaxed text-gray-400">${escapeSyncText(isZh ? prompt.bodyZh : prompt.bodyEn)}</pre>
-        </div>`).join('');
-      updatePromptTabs();
-    }
-
-    function setPromptLang(lang) {
-      activePromptLang = lang === 'en' ? 'en' : 'zh';
-      renderSyncPrompts();
-    }
-
-    function openSyncPromptPanel(promptSet = 'sync') {
-      activePromptSet = promptSet === 'trace' ? 'trace' : 'sync';
-      renderSyncPrompts();
-      getUi('sync_prompt_panel').classList.remove('hidden');
-    }
-
-    function closeSyncPromptPanel() {
-      getUi('sync_prompt_panel').classList.add('hidden');
-    }
-
     function copyTextFallback(text) {
       const textarea = document.createElement('textarea');
       textarea.value = text;
@@ -1511,28 +1455,6 @@
       textarea.remove();
       return ok;
     }
-
-    async function copyPrompt(index, button) {
-      const prompt = activePromptList()[index];
-      if (!prompt) return;
-      const text = activePromptLang === 'zh' ? prompt.bodyZh : prompt.bodyEn;
-      let ok = false;
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-          ok = true;
-        } else {
-          ok = copyTextFallback(text);
-        }
-      } catch (e) {
-        ok = copyTextFallback(text);
-      }
-      button.textContent = ok ? '✓' : '✕';
-      setTimeout(() => {
-        button.textContent = activePromptLang === 'zh' ? '📋 复制' : '📋 COPY';
-      }, 1200);
-    }
-
     let activeCombinedLang = 'zh';
 
     function updateCombinedPromptTabs() {
@@ -1551,6 +1473,12 @@
       const entriesEl = getUi('combined_prompt_entries');
       if (!entriesEl) return;
       const isZh = activeCombinedLang === 'zh';
+      const hintEl = getUi('combined_prompt_hint');
+      if (hintEl) {
+        hintEl.textContent = isZh
+          ? '复制提示词并与下方 6h 合并导出一起发送；24h 全量 CSV 会要求按时间抽样，上下文消耗更高。'
+          : 'Copy the prompt with the 6h combined export below; a full 24h CSV is sampled by the prompt but uses much more context.';
+      }
       const copyLabel = isZh ? '📋 复制' : '📋 COPY';
       entriesEl.innerHTML = CLOCK_ANALYSIS_PROMPTS.map((prompt, index) => `
         <div class="border border-dark-700 rounded-lg p-2 sm:p-3">

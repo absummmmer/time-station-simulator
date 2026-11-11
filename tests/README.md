@@ -24,7 +24,7 @@ npm test
 | `calibration.test.js` | repeated delay-button clicks collapse into one idle-ended CALIBRATION row |
 | `rwm-lock.test.js` | RWM OFF/1Hz/10Hz lock overrides the schedule and status lock comes first |
 | `sync-whisker.test.js` | offset-chart sync uncertainty/jitter bands and session-boundary limits |
-| `prompts.test.js` | six analysis prompts stay compact, context-budgeted, conclusion-first, and keep NTP/audio constraints |
+| `prompts.test.js` | the single combined sync+trace analysis prompt stays compact, context-budgeted, conclusion-first, and keeps NTP/audio constraints |
 | `idle-render.test.js` | in-place clock DOM updates, millisecond-dot hiding, hidden-page no-op, rAF/stale-frame loop |
 | `clock-servo.test.js` | stable-drift estimate, reference-step/variance gating, applied trim, TRIM/TRIM HOLD status |
 | `simple-export.test.js` | 6-hour reduced-column sync/trace exports and single-file combined export |

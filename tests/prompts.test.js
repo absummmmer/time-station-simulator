@@ -8,58 +8,39 @@ const bodies = [...source.matchAll(/body(Zh|En): `([\s\S]*?)`,/g)].map(match => 
   text: match[2],
 }));
 
-assert.strictEqual(bodies.length, 6, 'expected six prompt bodies');
-const [combinedZh, combinedEn, syncZh, syncEn, traceZh, traceEn] = bodies;
-const limits = [
-  ['combined zh', combinedZh, 2500],
-  ['combined en', combinedEn, 4500],
-  ['sync zh', syncZh, 1500],
-  ['sync en', syncEn, 2500],
-  ['trace zh', traceZh, 2500],
-  ['trace en', traceEn, 4000],
-];
-for (const [name, body, limit] of limits) {
-  assert.ok(body.text.length <= limit, `${name} prompt is ${body.text.length} chars, limit ${limit}`);
-  assert.ok(body.text.includes('never invent') || body.text.includes('不编造') || body.text.includes('不要编造'), `${name} must forbid invented data`);
+assert.strictEqual(bodies.length, 2, 'expected the combined analysis prompt only');
+const [combinedZh, combinedEn] = bodies;
+for (const [name, body] of [['combined zh', combinedZh], ['combined en', combinedEn]]) {
+  assert.ok(!source.includes('SYNC_ONLY_PROMPTS') && !source.includes('TRACE_ONLY_PROMPTS'),
+    'single-table prompt sets must be removed');
+  assert.ok(body.text.includes('kind=sync|trace'), `${name} must accept the combined kind column`);
+  assert.ok(body.text.includes('never invent') || body.text.includes('不编造') || body.text.includes('不要编造'),
+    `${name} must forbid invented data`);
+  assert.ok(body.text.includes('audioTimelineDelta'), `${name} must describe audio timeline`);
+  assert.ok(body.text.includes('CALIBRATION'), `${name} must describe calibration events`);
+  assert.ok(body.text.includes('backendNtpCorrectionApplied'), `${name} must gate NTP participation`);
+  assert.ok(body.text.includes('backendNtpOffsetMs'), `${name} must separate backend NTP offset`);
+  assert.ok(body.text.includes('6 小时') || body.text.includes('6小时') || body.text.includes('6 hours') || body.text.includes('6h'),
+    `${name} must mention the simplified 6h export`);
+  assert.ok(body.text.includes('【结论】') || body.text.includes('[Conclusion]'),
+    `${name} must require a conclusion-first template`);
+  assert.ok(body.text.includes('抽样') || body.text.includes('抽最多') || body.text.includes('等间隔抽') || body.text.includes('evenly spaced'),
+    `${name} must include a row-sampling rule for long CSVs`);
+  assert.ok(body.text.includes('中文字') || body.text.includes('English words'),
+    `${name} must cap output length`);
+  assert.ok(body.text.includes('必须带数字') || body.text.includes('must contain numbers'),
+    `${name} must require numeric conclusions`);
 }
 
-for (const body of [combinedZh, combinedEn, traceZh, traceEn]) {
-  assert.ok(body.text.includes('audioTimelineDelta'), `${body.lang} prompt must describe audio timeline`);
-  assert.ok(body.text.includes('CALIBRATION'), `${body.lang} prompt must describe calibration events`);
-}
-for (const body of [combinedZh, combinedEn]) {
-  assert.ok(body.text.includes('kind=sync') || body.text.includes('kind=sync|trace'), `${body.lang} combined prompt must accept kind column`);
-}
-for (const body of bodies) {
-  assert.ok(body.text.includes('6 小时') || body.text.includes('6小时') || body.text.includes('6 hours') || body.text.includes('6h'), `${body.lang} prompt must mention simplified window`);
-}
-for (const body of bodies) {
-  const hasTemplate = body.text.includes('【结论】') || body.text.includes('[Conclusion]');
-  assert.ok(hasTemplate, `${body.lang} prompt must require a conclusion-first template`);
-  const hasContextBudget = body.text.includes('抽样')
-    || body.text.includes('抽最多')
-    || body.text.includes('等间隔抽')
-    || body.text.includes('evenly spaced');
-  assert.ok(hasContextBudget, `${body.lang} prompt must include a row-sampling rule for long CSVs`);
-  const hasLengthCap = body.text.includes('中文字') || body.text.includes('English words');
-  assert.ok(hasLengthCap, `${body.lang} prompt must cap output length`);
-}
-for (const body of [combinedZh, combinedEn, syncZh, syncEn]) {
-  assert.ok(body.text.includes('backendNtpCorrectionApplied'), `${body.lang} prompt must gate NTP participation`);
-  assert.ok(body.text.includes('backendNtpOffsetMs'), `${body.lang} prompt must separate backend NTP offset`);
-}
-for (const body of [traceZh, traceEn]) {
-  assert.ok(body.text.includes('audioSkewPpm'), `${body.lang} trace prompt must describe audio skew`);
-  assert.ok(body.text.includes('calibrationSteps'), `${body.lang} trace prompt must list calibration fields`);
-}
-for (const body of [combinedZh, combinedEn, traceZh, traceEn]) {
-  assert.ok(body.text.includes('audioTimelineDelta'), `${body.lang} chart rules must include audio timeline`);
-}
-
+assert.ok(combinedZh.text.length <= 2500, `combined zh prompt is ${combinedZh.text.length} chars, limit 2500`);
+assert.ok(combinedEn.text.length <= 4500, `combined en prompt is ${combinedEn.text.length} chars, limit 4500`);
 assert.ok(!source.includes('trace: trace:'), 'duplicated trace header');
 assert.ok(!source.includes('图上分别画亮线') && !source.includes('bright/dim lines'), 'stale marker wording');
 
 console.log(JSON.stringify({
   bodies: bodies.map(body => ({ lang: body.lang, chars: body.text.length })),
-  limits: limits.map(([name, body, limit]) => ({ name, chars: body.text.length, limit })),
+  limits: [
+    { name: 'combined zh', chars: combinedZh.text.length, limit: 2500 },
+    { name: 'combined en', chars: combinedEn.text.length, limit: 4500 },
+  ],
 }, null, 2));
