@@ -125,12 +125,12 @@
           <div id="display_separator" class="h-6 w-px self-center bg-dark-600" aria-hidden="true"></div>
           <label class="flex items-center gap-1 cursor-pointer">
             <span class="text-gray-400 text-sm">&#13235;</span>
-            <select id="time_decimals" aria-label="Fractional second precision"
+            <select id="time_decimals" aria-label="Display step in milliseconds"
               class="bg-dark-700 text-sm rounded px-2 py-1">
-              <option value="0">0</option>
-              <option value="1">.0</option>
-              <option value="2" selected>.00</option>
-              <option value="3">.000</option>
+              <option value="0">×1000</option>
+              <option value="1">×100</option>
+              <option value="2" selected>×10</option>
+              <option value="3">×1</option>
             </select>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">

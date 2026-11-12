@@ -29,7 +29,9 @@ const { boot, wait } = require('./dom-harness');
 
   // Fractional-second precision must control both the dot and digit count.
   const precision = d.getElementById('time_decimals');
-  assert.strictEqual(precision.value, '2', 'new installs default to 0.01 s precision');
+  assert.deepStrictEqual([...precision.options].map(option => option.textContent.trim()),
+    ['×1000', '×100', '×10', '×1'], 'precision options must show the display step in milliseconds');
+  assert.strictEqual(precision.value, '2', 'new installs default to 10 ms precision');
   assert.strictEqual(timeEl.querySelector('.ms-digits').textContent.length, 2,
     'default precision must render two fractional digits');
   precision.value = '0';

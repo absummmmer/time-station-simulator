@@ -86,10 +86,11 @@ To change the address later, use the 🔌 button in the sync audit panel or open
 - The clock shows UTC by default. Enabling local time in **Display** switches the
   main clock to local time and shows the zone offset next to the seconds. Audio
   continues to be scheduled in UTC and does not follow the local-time display.
-- The main clock can show **0–3 decimal places** of a second in **Display**
-  (default: 2). Three digits require a display refresh high enough to sample
-  every millisecond. On 60–120 Hz screens 2 digits (10 ms) are the practical
-  choice and avoid a last digit that appears frozen.
+- The fractional-second selector is labeled by display step: `㎳ ×1000` = seconds
+  only, `×100` = 0.1 s, `×10` = 0.01 s (default), `×1` = 0.001 s. The `×1`
+  (1 ms) setting requires a display refresh high enough to sample every
+  millisecond. On 60–120 Hz screens `×10` (10 ms) is the practical choice and
+  avoids a last digit that appears frozen.
 - Click the **hour/minute area** of the main clock to enter or exit Zen mode.
 - Click the **seconds**, **fractional-seconds**, or **zone offset label** to open
   **Display** settings. The seconds area remains a display-settings entry point
@@ -421,8 +422,9 @@ explained above.
 
 - **Local time:** show local time in the main clock with a zone offset; audio is
   still scheduled in UTC.
-- **Fractional seconds:** choose 0–3 decimal places for the main clock and the
-  UT1 status time; does not affect audio.
+- **Fractional seconds:** choose the display step `㎳ ×1000` = 1 s,
+  `×100` = 100 ms, `×10` = 10 ms (default), or `×1` = 1 ms for the main clock and
+  the UT1 status time; does not affect audio.
 - **UT1 clock:** continuously show UT1 time on the right side of the status bar,
   using the same fractional-second precision as the main clock; UT1 affects
   display only.
