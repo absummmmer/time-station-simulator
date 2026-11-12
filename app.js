@@ -845,7 +845,7 @@
       }
       document.addEventListener('webkitfullscreenchange', onFullscreenChange);
       document.addEventListener('mozfullscreenchange', onFullscreenChange);
-      document.getElementById('show_ms').addEventListener('change', function () {
+      document.getElementById('time_decimals').addEventListener('change', function () {
         updateTimeDisplay();
         saveSettings();
       });

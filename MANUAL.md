@@ -86,11 +86,14 @@ To change the address later, use the 🔌 button in the sync audit panel or open
 - The clock shows UTC by default. Enabling local time in **Display** switches the
   main clock to local time and shows the zone offset next to the seconds. Audio
   continues to be scheduled in UTC and does not follow the local-time display.
-- Milliseconds can be shown or hidden in **Display**; they are shown by default.
+- The main clock can show **0–3 decimal places** of a second in **Display**
+  (default: 2). Three digits require a display refresh high enough to sample
+  every millisecond. On 60–120 Hz screens 2 digits (10 ms) are the practical
+  choice and avoid a last digit that appears frozen.
 - Click the **hour/minute area** of the main clock to enter or exit Zen mode.
-- Click the **seconds**, **milliseconds**, or **zone offset label** to open
+- Click the **seconds**, **fractional-seconds**, or **zone offset label** to open
   **Display** settings. The seconds area remains a display-settings entry point
-  when milliseconds are hidden.
+  when fractional seconds are hidden.
 - When UT1 display is enabled, the UT1 time and telescope icon appear on the right
   side of the status bar. UT1 is displayed continuously, not only during BPM's UT1
   transmission window.
@@ -151,7 +154,7 @@ right:
   displays.
 - If the browser entered fullscreen, pressing Esc to leave fullscreen also exits
   Zen mode; otherwise click the hour/minute area again.
-- Clicking the seconds, milliseconds, or offset label exits Zen mode and opens
+- Clicking the seconds, fractional-seconds, or offset label exits Zen mode and opens
   **Display** settings.
 
 ## 4. Status symbols
@@ -415,7 +418,8 @@ explained above.
 
 ### 5.2 Display
 
-- **Milliseconds:** show or hide main-clock milliseconds; does not affect audio.
+- **Fractional seconds:** choose 0–3 decimal places for the main clock; does not
+  affect audio.
 - **Local time:** show local time in the main clock with a zone offset; audio is
   still scheduled in UTC.
 - **UT1 clock:** continuously show UT1 time on the right side of the status bar;

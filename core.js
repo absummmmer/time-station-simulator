@@ -579,7 +579,7 @@
         const settings = {
           balanceVersion: 3,
           backendConfigVersion: TIME_API_CONFIG_VERSION,
-          show_ms: document.getElementById('show_ms').checked,
+          timeDecimals: getTimeDecimals(),
           low_freq_volume: lowFreqVolume,
           bpmMorseAdjust: bpmMorseAdjust,
           bpmVoiceAdjust: bpmVoiceAdjust,
@@ -620,8 +620,15 @@
         }
       },
       apply(settings) {
-        if (typeof settings.show_ms === 'boolean') {
-          document.getElementById('show_ms').checked = settings.show_ms;
+        const decimalsEl = document.getElementById('time_decimals');
+        if (typeof settings.timeDecimals === 'number'
+          && Number.isInteger(settings.timeDecimals)
+          && settings.timeDecimals >= 0 && settings.timeDecimals <= 3) {
+          if (decimalsEl) decimalsEl.value = String(settings.timeDecimals);
+        } else if (typeof settings.show_ms === 'boolean') {
+          // Backward compatibility: the old checkbox was either 0 or 3 digits.
+          // New installs default to 2 digits, which is honest on 60–100 Hz displays.
+          if (decimalsEl) decimalsEl.value = settings.show_ms ? '2' : '0';
         }
         if (typeof settings.ut1DetailMode === 'boolean') {
           ut1DetailMode = settings.ut1DetailMode;
@@ -914,6 +921,12 @@
       core.append(hm, sec, ms, tz);
       timeEl.replaceChildren(core);
       return { timeEl, hm, sec, ms, digits, tz };
+    }
+
+    function getTimeDecimals() {
+      const el = document.getElementById('time_decimals');
+      const value = el ? Number(el.value) : 2;
+      return Number.isInteger(value) && value >= 0 && value <= 3 ? value : 2;
     }
 
     // Update the clock text in place. Rebuilding the span tree on every tick was
@@ -1303,9 +1316,10 @@
       const hours = String(clockNow.getUTCHours()).padStart(2, '0');
       const mins = String(clockNow.getUTCMinutes()).padStart(2, '0');
       const secs = String(clockNow.getUTCSeconds()).padStart(2, '0');
-      const msStr = String(clockNow.getUTCMilliseconds()).padStart(3, '0');
+      const decimals = getTimeDecimals();
+      const msStr = String(clockNow.getUTCMilliseconds()).padStart(3, '0').slice(0, decimals);
       const zoneLabelHtml = localInfo ? formatZoneLabel(localInfo) : '';
-      const showMs = getUi('show_ms').checked;
+      const showMs = decimals > 0;
       const second = utcNow.getUTCSeconds();
       const minute = utcNow.getUTCMinutes();
       const period = forceUtcOnly ? 'utc' : getPeriodType(minute, second, utcNow.getUTCMilliseconds());

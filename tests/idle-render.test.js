@@ -17,16 +17,29 @@ const { boot, wait } = require('./dom-harness');
   assert.strictEqual(timeEl.querySelector('.main-hm'), initialHm,
     'clock digits must be updated in place');
 
-  // Milliseconds off must hide the dot entirely (not just the digits).
-  const showMs = d.getElementById('show_ms');
-  showMs.checked = false;
+  // Fractional-second precision must control both the dot and digit count.
+  const precision = d.getElementById('time_decimals');
+  assert.strictEqual(precision.value, '2', 'new installs default to 0.01 s precision');
+  assert.strictEqual(timeEl.querySelector('.ms-digits').textContent.length, 2,
+    'default precision must render two fractional digits');
+  precision.value = '0';
   window.eval('updateTimeDisplay()');
   assert.strictEqual(d.getElementById('ms_display').style.display, 'none',
-    'millisecond dot must be hidden when show_ms is off');
-  showMs.checked = true;
+    'the decimal dot must be hidden when precision is zero');
+  precision.value = '1';
   window.eval('updateTimeDisplay()');
   assert.notStrictEqual(d.getElementById('ms_display').style.display, 'none',
-    'millisecond dot must return when show_ms is on');
+    'the decimal dot must return when precision is non-zero');
+  assert.strictEqual(timeEl.querySelector('.ms-digits').textContent.length, 1,
+    'one decimal place must render one digit');
+  precision.value = '2';
+  window.eval('updateTimeDisplay()');
+  assert.strictEqual(timeEl.querySelector('.ms-digits').textContent.length, 2,
+    'two decimal places must render two digits');
+  precision.value = '3';
+  window.eval('updateTimeDisplay()');
+  assert.strictEqual(timeEl.querySelector('.ms-digits').textContent.length, 3,
+    'three decimal places must render three digits');
 
   // A hidden page must skip the render path entirely.
   const before = timeEl.textContent;
