@@ -117,6 +117,13 @@
       <div id="settings_section_display" class="settings-section hidden space-y-3">
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
           <label class="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" id="local_time_mode" class="w-4 h-4 rounded accent-sky-500"
+              aria-label="Show local time zone">
+            <span class="text-sm">&#128205;</span>
+            <span id="local_time_hint" class="-ml-1 text-sm font-mono text-yellow-300"></span>
+          </label>
+          <div id="display_separator" class="h-6 w-px self-center bg-dark-600" aria-hidden="true"></div>
+          <label class="flex items-center gap-1 cursor-pointer">
             <span class="text-gray-400 text-sm">&#13235;</span>
             <select id="time_decimals" aria-label="Fractional second precision"
               class="bg-dark-700 text-sm rounded px-2 py-1">
@@ -125,12 +132,6 @@
               <option value="2" selected>.00</option>
               <option value="3">.000</option>
             </select>
-          </label>
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="local_time_mode" class="w-4 h-4 rounded accent-sky-500"
-              aria-label="Show local time zone">
-            <span class="text-sm">&#128205;</span>
-            <span id="local_time_hint" class="-ml-1 text-sm font-mono text-yellow-300"></span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="ut1_detail_mode" class="w-4 h-4 rounded accent-green-500">

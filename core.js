@@ -883,16 +883,13 @@
       dut1SplitActive = false;
     }
 
-    function formatUt1TimeHtml(ut1Now, showMs) {
-      const ut1Text = showMs
-        ? ut1Now.toISOString().substr(11, 12)
-        : ut1Now.toISOString().substr(11, 8);
-      const dotAt = ut1Text.indexOf('.');
-      const baseText = dotAt >= 0 ? ut1Text.slice(0, dotAt) : ut1Text;
+    function formatUt1TimeHtml(ut1Now, decimals) {
+      const baseText = ut1Now.toISOString().substr(11, 8);
       const secStart = Math.max(0, baseText.length - 3);
       let html = `${baseText.slice(0, secStart)}<span class="ut1-sec">${baseText.slice(secStart)}</span>`;
-      if (dotAt >= 0) {
-        html += `<span class="ut1-ms"><span class="seg-dot">.</span>${ut1Text.slice(dotAt + 1)}</span>`;
+      if (decimals > 0) {
+        const fraction = String(ut1Now.getUTCMilliseconds()).padStart(3, '0').slice(0, decimals);
+        html += `<span class="ut1-ms"><span class="seg-dot">.</span>${fraction}</span>`;
       }
       return html;
     }
@@ -1227,7 +1224,7 @@
       if (statusEl.innerHTML !== html) statusEl.innerHTML = html;
     }
 
-    function renderUt1Status({ utcNow, period, showMs }) {
+    function renderUt1Status({ utcNow, period, decimals }) {
       const ut1TimeEl = getUi('ut1_time');
       const ut1IndicatorEl = getUi('ut1_indicator');
       const ut1CheckboxEl = getUi('ut1_detail_mode');
@@ -1241,7 +1238,7 @@
         // The switch means "show UT1 time" continuously, regardless of
         // whether the current UTC segment is an UT1 broadcast window.
         const ut1Now = new Date(utcNow.getTime() + window.ut1DUT1);
-        ut1TimeEl.innerHTML = formatUt1TimeHtml(ut1Now, showMs);
+        ut1TimeEl.innerHTML = formatUt1TimeHtml(ut1Now, decimals);
         ut1TimeEl.classList.add('seven-seg');
         if (ut1IndicatorEl) ut1IndicatorEl.classList.remove('hidden');
       } else {
@@ -1344,11 +1341,11 @@
         renderPeriodStatus({ period, second });
         renderWWVStationStatuses(utcNow);
         renderRWMStatus(utcNow);
-        renderUt1Status({ utcNow, period, showMs });
+        renderUt1Status({ utcNow, period, decimals });
         lastStationStatusRefreshAt = utcNow.getTime();
         syncAutoDut1ForDate(utcNow);
       } else if (ut1DetailMode) {
-        renderUt1Status({ utcNow, period, showMs });
+        renderUt1Status({ utcNow, period, decimals });
       }
       applyAntiBurnIfNeeded(minute);
     }

@@ -96,7 +96,8 @@ To change the address later, use the 🔌 button in the sync audit panel or open
   when fractional seconds are hidden.
 - When UT1 display is enabled, the UT1 time and telescope icon appear on the right
   side of the status bar. UT1 is displayed continuously, not only during BPM's UT1
-  transmission window.
+  transmission window. The UT1 time follows the main clock's fractional-second
+  precision.
 - The emoji clock on the left side of the status bar always uses UTC and rounds
   down to the nearest half hour. Click it to open clock calibration.
 - The global offset marker (for example `+2h`) comes from the `?offset=` URL
@@ -418,12 +419,13 @@ explained above.
 
 ### 5.2 Display
 
-- **Fractional seconds:** choose 0–3 decimal places for the main clock; does not
-  affect audio.
 - **Local time:** show local time in the main clock with a zone offset; audio is
   still scheduled in UTC.
-- **UT1 clock:** continuously show UT1 time on the right side of the status bar;
-  UT1 affects display only.
+- **Fractional seconds:** choose 0–3 decimal places for the main clock and the
+  UT1 status time; does not affect audio.
+- **UT1 clock:** continuously show UT1 time on the right side of the status bar,
+  using the same fractional-second precision as the main clock; UT1 affects
+  display only.
 
 ### 5.3 Station controls
 

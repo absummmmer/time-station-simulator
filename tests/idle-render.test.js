@@ -17,6 +17,16 @@ const { boot, wait } = require('./dom-harness');
   assert.strictEqual(timeEl.querySelector('.main-hm'), initialHm,
     'clock digits must be updated in place');
 
+  // Display controls: timezone offset first, then fractional seconds, then UT1,
+  // separated by a divider between the timezone group and the other controls.
+  assert.ok(d.getElementById('display_separator'), 'display controls need a separator');
+  const displayOrder = [...d.querySelectorAll('#settings_section_display input, #settings_section_display select')]
+    .map(el => el.id);
+  assert.ok(displayOrder.indexOf('local_time_mode') < displayOrder.indexOf('time_decimals'),
+    'local time must come before fractional precision');
+  assert.ok(displayOrder.indexOf('time_decimals') < displayOrder.indexOf('ut1_detail_mode'),
+    'fractional precision must come before UT1 display');
+
   // Fractional-second precision must control both the dot and digit count.
   const precision = d.getElementById('time_decimals');
   assert.strictEqual(precision.value, '2', 'new installs default to 0.01 s precision');
@@ -40,6 +50,24 @@ const { boot, wait } = require('./dom-harness');
   window.eval('updateTimeDisplay()');
   assert.strictEqual(timeEl.querySelector('.ms-digits').textContent.length, 3,
     'three decimal places must render three digits');
+
+  // The status-bar UT1 clock follows the same fractional precision.
+  const ut1Toggle = d.getElementById('ut1_detail_mode');
+  ut1Toggle.checked = true;
+  ut1Toggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  const ut1Fraction = () => {
+    const el = d.querySelector('#ut1_time .ut1-ms');
+    return el ? el.textContent.replace('.', '').length : 0;
+  };
+  precision.value = '2';
+  window.eval('updateTimeDisplay()');
+  assert.strictEqual(ut1Fraction(), 2, 'UT1 time must use two fractional digits');
+  precision.value = '0';
+  window.eval('updateTimeDisplay()');
+  assert.strictEqual(ut1Fraction(), 0, 'UT1 time must hide its decimal point at zero precision');
+  precision.value = '3';
+  window.eval('updateTimeDisplay()');
+  assert.strictEqual(ut1Fraction(), 3, 'UT1 time must use three fractional digits');
 
   // A hidden page must skip the render path entirely.
   const before = timeEl.textContent;
