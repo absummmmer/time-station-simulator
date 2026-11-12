@@ -197,7 +197,7 @@ double ticks:
 | `BCD` | Basic time code; struck through when BCD is 0% |
 | `BCD₅₀%+♪₅₀%500` | The current minute has a standard tone; a subscript appears when tone is not 100% |
 | `BCD+🗣 12:02 UTC` | Voice announcement; shows the upcoming UTC time |
-| `BCD+🗣 StationIntroduction` | Station identification/introduction |
+| `BCD+🗣 StationID` | Station identification |
 | `+DUT1+0.n` | DUT1 double tick during the first 16 seconds; `+DUT1` is the purple transmission state and the green value is the cumulative value |
 
 - Second-pulse frequency: WWV 1000 Hz, WWVH 1200 Hz.

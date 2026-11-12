@@ -58,6 +58,11 @@ function json(value) {
     && rwmPos[2].value === '\u22120.18' && rwmPos[3].value === '\u22120.16', JSON.stringify(rwmPos));
   const wwvPulse = [1, 2, 3, 4].map(s => window.eval(`wwvDut1PulseStatus(${s}, 300)`));
   check('WWV DUT1 status cumulative', wwvPulse[0] === '+0.1' && wwvPulse[2] === '+0.3' && wwvPulse[3] === '', JSON.stringify(wwvPulse));
+  window.eval('renderWWVStationStatuses(new Date(Date.UTC(2026,10,6,12,29,2)))');
+  check('WWVH ident uses StationID',
+    q('wwvh_status').textContent.includes('StationID')
+      && !q('wwvh_status').textContent.includes('StationIntroduction'),
+    q('wwvh_status').textContent);
   const code = window.eval('getWWVDigitalCode(new Date(Date.UTC(2026,10,6,12,1,0)), 300)');
   check('WWV BCD DUT1 bits', code[49] === 'one' && code[55] === 'one' && code[56] === 'one' && code[57] === 'zero');
 

@@ -157,7 +157,7 @@ https://time-api.example.com
 | `BCD` | 基础时码；BCD 为 0% 时整段加删除线 |
 | `BCD₅₀%+♪₅₀%500` | 当前分钟有标准音调；音调比例非 100% 时显示下标 |
 | `BCD+🗣 12:02 UTC` | 语音报时；显示即将播报的 UTC 时间 |
-| `BCD+🗣 StationIntroduction` | 呼号/介绍语音 |
+| `BCD+🗣 StationID` | 台站识别语音 |
 | `+DUT1+0.n` | 前 16 秒的 DUT1 双 tick，`+DUT1` 为紫色发播状态，绿色为实际累计值 |
 
 - 秒脉冲频率：WWV 1000 Hz，WWVH 1200 Hz；

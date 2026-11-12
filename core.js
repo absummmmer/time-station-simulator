@@ -1072,7 +1072,7 @@
           html = `BCD${codePercent === 100 ? '' : statusSubPercent(codePercent)}`;
         }
         if (identActive) {
-          const content = 'StationIntroduction';
+          const content = 'StationID';
           if (voicePercent === 0) {
             html += '+<span class="status-strike">\u{1F5E3} ' + content + '</span>';
           } else if (voicePercent === 100) {
