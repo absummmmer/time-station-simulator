@@ -141,6 +141,23 @@ function json(value) {
   beat.dispatchEvent(new window.Event('change', { bubbles: true }));
   check('RWM beat default frequency', q('rwm_beat_label').textContent === 'BF(4000Hz)', q('rwm_beat_label').textContent);
 
+  // The status-bar emoji is an actual-UTC anchor: it must ignore ?offset=,
+  // while the main clock and audio keep the URL shift.
+  const baseEmoji = q('clock_emoji');
+  check('emoji actual-UTC tooltip', /^(Actual UTC time:|实际 UTC 时间：)\s*\d{2}:\d{2}$/.test(baseEmoji.title),
+    baseEmoji.title);
+  const shifted = await boot({ url: 'http://localhost/time-station-simulator/?offset=-240' });
+  const shiftedDoc = shifted.window.document;
+  const shiftedEmoji = shiftedDoc.getElementById('clock_emoji');
+  const expectedActual = shifted.window.eval('clockEmojiFor(new Date())');
+  const expectedShifted = shifted.window.eval('clockEmojiFor(new Date(Date.now() - 240 * 60000))');
+  check('emoji ignores ?offset=', shiftedEmoji.textContent === expectedActual && expectedActual !== expectedShifted,
+    `${shiftedEmoji.textContent} vs actual ${expectedActual}, shifted ${expectedShifted}`);
+  const offsetBadge = shiftedDoc.getElementById('global_offset_indicator');
+  check('offset marker still applied', offsetBadge.textContent === '-4h' && !offsetBadge.classList.contains('hidden'),
+    offsetBadge.textContent);
+  check('shifted page has no errors', shifted.errors.length === 0, shifted.errors.join('; '));
+
   assert.deepStrictEqual(errors, []);
   console.log(JSON.stringify({ checks: checks.length, errors }, null, 2));
   process.exit(0);

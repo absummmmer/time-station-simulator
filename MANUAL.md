@@ -99,13 +99,17 @@ To change the address later, use the 🔌 button in the sync audit panel or open
   side of the status bar. UT1 is displayed continuously, not only during BPM's UT1
   transmission window. The UT1 time follows the main clock's fractional-second
   precision.
-- The emoji clock on the left side of the status bar always uses UTC and rounds
-  down to the nearest half hour. Click it to open clock calibration.
+- The emoji clock on the left side of the status bar is a permanent actual-UTC
+  anchor: it ignores the `?offset=` URL shift, rounds down to the nearest half
+  hour, and shows the actual UTC time to the minute when hovered. The main clock
+  and audio still apply `?offset=`. Click it to open clock calibration.
 - The global offset marker (for example `+2h`) comes from the `?offset=` URL
-  parameter and opens clock calibration when clicked. The yellow warning icon
-  indicates that the page detected an uncertain clock or a system clock jump;
-  clicking it opens calibration. With `AUTO` enabled it attempts a sync; with
-  `AUTO` disabled it only dismisses the warning and waits for a manual sync.
+  parameter and opens clock calibration when clicked. It is the shift applied to
+  the main clock and audio; the emoji clock stays on actual UTC. The yellow
+  warning icon indicates that the page detected an uncertain clock or a system
+  clock jump; clicking it opens calibration. With `AUTO` enabled it attempts a
+  sync; with `AUTO` disabled it only dismisses the warning and waits for a
+  manual sync.
 
 ### 3.2 Master volume
 
@@ -243,7 +247,8 @@ through in the status.
 
 The settings panel has no permanent entry point. Open it by:
 
-- clicking the status-bar emoji clock → **Clock calibration**;
+- clicking the status-bar emoji clock → **Clock calibration** (hovering it shows
+  the actual UTC time to the minute);
 - clicking the UT1 time or telescope → **Display**;
 - clicking any station's status text → **Station controls**;
 - clicking the clock warning or global offset marker → **Clock calibration**;

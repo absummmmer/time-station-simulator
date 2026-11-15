@@ -1283,11 +1283,17 @@
       return String.fromCodePoint(0x1F550 + index);
     }
 
-    function updateClockEmoji(clockNow) {
+    function updateClockEmoji(actualUtc) {
       const el = getUi('clock_emoji');
       if (!el) return;
-      const emoji = clockEmojiFor(clockNow);
+      const emoji = clockEmojiFor(actualUtc);
       if (el.textContent !== emoji) el.textContent = emoji;
+      const hh = String(actualUtc.getUTCHours()).padStart(2, '0');
+      const mm = String(actualUtc.getUTCMinutes()).padStart(2, '0');
+      const title = language === 'zh'
+        ? `实际 UTC 时间：${hh}:${mm}`
+        : `Actual UTC time: ${hh}:${mm}`;
+      if (el.title !== title) el.title = title;
     }
 
     let lastTimeStatusRenderKey = null;
@@ -1337,7 +1343,9 @@
       renderClockFace({ showMs, zoneLabelHtml, hours, mins, secs, msStr });
       if (statusKey !== lastTimeStatusRenderKey) {
         lastTimeStatusRenderKey = statusKey;
-        updateClockEmoji(utcNow);
+        // The status-bar emoji is a permanent actual-UTC anchor: unlike the
+        // displayed clock and audio, it intentionally ignores the ?offset= shift.
+        updateClockEmoji(new Date(utcNow.getTime() - GLOBAL_OFFSET_MS));
         renderPeriodStatus({ period, second });
         renderWWVStationStatuses(utcNow);
         renderRWMStatus(utcNow);

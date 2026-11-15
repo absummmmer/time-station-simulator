@@ -93,7 +93,7 @@ async function boot(options = {}) {
   const dom = new JSDOM(pageHtml(), {
     runScripts: 'outside-only',
     pretendToBeVisual: true,
-    url: 'http://localhost/time-station-simulator/',
+    url: options.url || 'http://localhost/time-station-simulator/',
   });
   const { window } = dom;
   const errors = [];
