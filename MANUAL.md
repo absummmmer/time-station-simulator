@@ -406,8 +406,11 @@ Trace chart order:
 1. offset (ms): the page's local correction. Each successful sync also tints the
    interval up to the next sync as a faint band around the offset: the outer band
    is the sample spread (jitter, ΔspreadMs) and the inner band is ±uncertaintyMs;
+   the band follows the offset line's slope between syncs instead of staying a
+   horizontal rectangle, so the clock frequency trim stays centered inside it;
    hover a sample for the exact values. The band reuses the sample series color
-   and stays translucent so it does not compete with the state colors; bands stop at session/segment boundaries instead of bridging another trace series;
+   and stays translucent so it does not compete with the state colors; bands stop
+   at session/segment boundaries instead of bridging another trace series;
 2. audio timeline Δ (ms): audio scheduling timeline relative to display UTC plus
    device compensation;
 3. raw wall − monotonic (ms): raw wall-clock drift.

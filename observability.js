@@ -290,7 +290,7 @@
       labels.push(`<text class="trace-label" x="${left}" y="${top - 3}" text-anchor="start">offset (ms) · sample order</text>`);
       const lastOffset = Number(allSorted[allSorted.length - 1].entry.offsetMs);
       labels.push(`<text class="trace-label" x="${width - right}" y="${top - 3}" text-anchor="end" style="fill:#fbbf24">Δ≥5ms · bright≥50ms · last ${lastOffset.toFixed(0)}ms</text>`);
-      labels.push(`<text class="trace-label" x="${left}" y="${height - 2}" text-anchor="start" style="fill:#64748b">shaded = background · faint bands = sync ±unc / Δjitter</text>`);
+      labels.push(`<text class="trace-label" x="${left}" y="${height - 2}" text-anchor="start" style="fill:#64748b">shaded = background · faint bands = sync ±unc / Δjitter, following offset</text>`);
       const colors = ['#22d3ee', '#a78bfa', '#f472b6', '#4ade80', '#facc15', '#fb923c'];
       const colorBySampleIndex = new Map();
       const seriesIndexBySampleIndex = new Map();
@@ -374,12 +374,9 @@
         }
         const anchorPoint = allSorted[anchorIndex];
         if (!anchorPoint || Math.abs(anchorPoint.raw - anchorRaw) > SYNC_WHISKER_MATCH_MS) continue;
-        const plottedOffset = numericOrNull(anchorPoint.entry.offsetMs);
-        const center = plottedOffset === null ? offsetMs : plottedOffset;
         const reasonMeta = (typeof SYNC_REASON_META !== 'undefined' && SYNC_REASON_META[entry.reason]) || {};
         syncWhiskerByIndex.set(anchorPoint.sampleIndex, {
           sampleIndex: anchorPoint.sampleIndex,
-          center,
           uncertaintyMs,
           jitterMs,
           reason: reasonMeta.label || String(entry.reason || 'sync').toUpperCase(),
@@ -394,29 +391,40 @@
         const seriesIndex = seriesIndexBySampleIndex.get(band.sampleIndex);
         const bounds = Number.isInteger(seriesIndex) ? seriesBounds[seriesIndex] : null;
         const seriesEndIndex = bounds && Number.isFinite(bounds.last) ? bounds.last : band.sampleIndex;
-        const xStart = xOf(band.sampleIndex);
-        // Never bridge a session/visibility/gap segment boundary: the offset line
-        // is split there, so the band must stop at the last sample of its own
-        // series instead of reaching the next sync in a later session.
-        const nextX = next ? xOf(next.sampleIndex) : width - right;
-        const xEnd = Math.min(nextX, xOf(seriesEndIndex));
-        const bandWidth = Math.max(1, xEnd - xStart);
-        const rects = [];
+        const nextIndex = next ? next.sampleIndex : allSorted.length - 1;
+        const lastIndex = Math.min(nextIndex, seriesEndIndex, allSorted.length - 1);
+        const samples = [];
+        for (let sampleIndex = band.sampleIndex; sampleIndex <= lastIndex; sampleIndex += 1) {
+          const point = allSorted[sampleIndex];
+          const value = numericOrNull(point && point.entry && point.entry.offsetMs);
+          if (value === null) continue;
+          samples.push({ x: xOf(point.sampleIndex), value });
+        }
+        if (!samples.length) return '';
+        if (samples.length === 1 || samples[samples.length - 1].x <= samples[0].x) {
+          samples.push({ x: samples[0].x + 1, value: samples[0].value });
+        }
+        const polygons = [];
         const addBand = (className, dataAttribute, halfSpan, opacity) => {
           if (halfSpan === null || halfSpan <= 0) return;
-          const yTop = clampPlotY(yOf(band.center + halfSpan));
-          const yBottom = clampPlotY(yOf(band.center - halfSpan));
-          const bandHeight = Math.max(1, yBottom - yTop);
-          rects.push(`<rect class="${className}" x="${xStart.toFixed(2)}" y="${yTop.toFixed(2)}"
-            width="${bandWidth.toFixed(2)}" height="${bandHeight.toFixed(2)}"
+          // The center follows the plotted offset samples. After the clock
+          // frequency trim, the interval line is no longer horizontal, so a
+          // rectangle/constant-center band would drift away from the trace.
+          const top = samples.map(sample =>
+            `${sample.x.toFixed(2)},${clampPlotY(yOf(sample.value + halfSpan)).toFixed(2)}`);
+          const bottom = samples.slice().reverse().map(sample =>
+            `${sample.x.toFixed(2)},${clampPlotY(yOf(sample.value - halfSpan)).toFixed(2)}`);
+          polygons.push(`<polygon class="${className}" points="${[...top, ...bottom].join(' ')}"
             fill="${band.color}" fill-opacity="${opacity}" ${dataAttribute}="${halfSpan}"/>`);
         };
         // Jitter is the full sample spread (max-min); its band spans half the
         // spread above and below the plotted offset, with uncertainty nested.
         addBand('trace-sync-jitter-band', 'data-sync-jitter-ms', band.jitterMs === null ? null : band.jitterMs / 2, 0.12);
         addBand('trace-sync-uncertainty-band', 'data-sync-uncertainty-ms', band.uncertaintyMs, 0.26);
-        return rects.length
-          ? `<g class="trace-sync-band" data-sync-sample-index="${band.sampleIndex}">${rects.join('')}</g>`
+        return polygons.length
+          ? `<g class="trace-sync-band" data-sync-sample-index="${band.sampleIndex}"
+               data-band-start-x="${samples[0].x.toFixed(2)}"
+               data-band-end-x="${samples[samples.length - 1].x.toFixed(2)}">${polygons.join('')}</g>`
           : '';
       }).join('');
       const changes = [];
