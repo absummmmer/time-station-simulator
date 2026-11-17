@@ -144,7 +144,7 @@ function json(value) {
   // The status-bar emoji is an actual-UTC anchor: it must ignore ?offset=,
   // while the main clock and audio keep the URL shift.
   const baseEmoji = q('clock_emoji');
-  check('emoji actual-UTC tooltip', /^(Actual UTC time:|实际 UTC 时间：)\s*\d{2}:\d{2}$/.test(baseEmoji.title),
+  check('emoji UTC tooltip', /^\d{2}:\d{2} UTC$/.test(baseEmoji.title),
     baseEmoji.title);
   const shifted = await boot({ url: 'http://localhost/time-station-simulator/?offset=-240' });
   const shiftedDoc = shifted.window.document;

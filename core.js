@@ -240,14 +240,27 @@
     function formatZoneLabel(info) {
       if (!info) return '';
       const hours = info.zoneText.slice(0, 3);
-      if (info.zoneOffsetMinutes % 60 === 0) return hours;
+      // Always keep the minute line, even for whole-hour zones. The corner
+      // annotation is the clock's complete offset, not just its hour part.
       return `${hours}<br>:${info.zoneText.slice(4)}`;
+    }
+
+    let localZoneNameCache;
+    function localTimeZoneName() {
+      if (localZoneNameCache !== undefined) return localZoneNameCache;
+      try {
+        const name = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+        localZoneNameCache = typeof name === 'string' && name.trim() ? name.trim() : '';
+      } catch (e) {
+        localZoneNameCache = '';
+      }
+      return localZoneNameCache;
     }
 
     function updateLocalTimeHint() {
       const hintEl = getUi('local_time_hint');
       if (!hintEl) return;
-      const text = getLocalTimeInfo(new Date()).zoneText;
+      const text = localTimeZoneName() || getLocalTimeInfo(new Date()).zoneText;
       if (hintEl.textContent !== text) hintEl.textContent = text;
     }
 
@@ -1290,9 +1303,7 @@
       if (el.textContent !== emoji) el.textContent = emoji;
       const hh = String(actualUtc.getUTCHours()).padStart(2, '0');
       const mm = String(actualUtc.getUTCMinutes()).padStart(2, '0');
-      const title = language === 'zh'
-        ? `实际 UTC 时间：${hh}:${mm}`
-        : `Actual UTC time: ${hh}:${mm}`;
+      const title = `${hh}:${mm} UTC`;
       if (el.title !== title) el.title = title;
     }
 

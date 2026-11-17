@@ -84,8 +84,11 @@ To change the address later, use the 🔌 button in the sync audit panel or open
 ### 3.1 Main clock
 
 - The clock shows UTC by default. Enabling local time in **Display** switches the
-  main clock to local time and shows the zone offset next to the seconds. Audio
-  continues to be scheduled in UTC and does not follow the local-time display.
+  main clock to local time and shows the zone offset next to the seconds. The pin
+  label shows the browser's IANA zone name (for example `Asia/Shanghai`) when
+  available, and the clock corner shows the complete offset in two lines
+  (`+08` / `:00`). Audio continues to be scheduled in UTC and does not follow the
+  local-time display.
 - The fractional-second selector is labeled by display step: `㎳ ×1000` = seconds
   only, `×100` = 0.1 s, `×10` = 0.01 s (default), `×1` = 0.001 s. The `×1`
   (1 ms) setting requires a display refresh high enough to sample every
@@ -101,8 +104,8 @@ To change the address later, use the 🔌 button in the sync audit panel or open
   precision.
 - The emoji clock on the left side of the status bar is a permanent actual-UTC
   anchor: it ignores the `?offset=` URL shift, rounds down to the nearest half
-  hour, and shows the actual UTC time to the minute when hovered. The main clock
-  and audio still apply `?offset=`. Click it to open clock calibration.
+  hour, and shows `hh:mm UTC` when hovered. The main clock and audio still apply
+  `?offset=`. Click it to open clock calibration.
 - The global offset marker (for example `+2h`) comes from the `?offset=` URL
   parameter and opens clock calibration when clicked. It is the shift applied to
   the main clock and audio; the emoji clock stays on actual UTC. The yellow
@@ -248,7 +251,7 @@ through in the status.
 The settings panel has no permanent entry point. Open it by:
 
 - clicking the status-bar emoji clock → **Clock calibration** (hovering it shows
-  the actual UTC time to the minute);
+  `hh:mm UTC`);
 - clicking the UT1 time or telescope → **Display**;
 - clicking any station's status text → **Station controls**;
 - clicking the clock warning or global offset marker → **Clock calibration**;
@@ -428,8 +431,9 @@ explained above.
 
 ### 5.2 Display
 
-- **Local time:** show local time in the main clock with a zone offset; audio is
-  still scheduled in UTC.
+- **Local time:** show local time in the main clock with a full two-line zone
+  offset; the pin label shows the IANA zone name when available. Audio is still
+  scheduled in UTC.
 - **Fractional seconds:** choose the display step `㎳ ×1000` = 1 s,
   `×100` = 100 ms, `×10` = 10 ms (default), or `×1` = 1 ms for the main clock and
   the UT1 status time; does not affect audio.

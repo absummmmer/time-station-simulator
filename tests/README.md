@@ -25,7 +25,7 @@ npm test
 | `rwm-lock.test.js` | RWM OFF/1Hz/10Hz lock overrides the schedule and status lock comes first |
 | `sync-whisker.test.js` | offset-chart sync uncertainty/jitter ribbons following the offset slope and session-boundary limits |
 | `prompts.test.js` | the single combined sync+trace analysis prompt stays compact, context-budgeted, conclusion-first, and keeps NTP/audio constraints |
-| `idle-render.test.js` | in-place clock DOM updates, millisecond-dot hiding, hidden-page no-op, rAF/stale-frame loop |
+| `idle-render.test.js` | in-place clock DOM updates, fractional precision, local zone label/full offset, hidden-page no-op, rAF/stale-frame loop |
 | `clock-servo.test.js` | stable-drift estimate, reference-step/variance gating, applied trim, TRIM/TRIM HOLD status |
 | `simple-export.test.js` | 6-hour reduced-column sync/trace exports and single-file combined export |
 

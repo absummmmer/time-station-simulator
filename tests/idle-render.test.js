@@ -27,6 +27,29 @@ const { boot, wait } = require('./dom-harness');
   assert.ok(displayOrder.indexOf('time_decimals') < displayOrder.indexOf('ut1_detail_mode'),
     'fractional precision must come before UT1 display');
 
+  // The pin label prefers the IANA zone name; the clock annotation still shows
+  // the complete two-line ±HH:MM offset, including the :00 minute line.
+  const localHint = d.getElementById('local_time_hint');
+  let zoneName = '';
+  try {
+    zoneName = new window.Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch (e) {
+    zoneName = '';
+  }
+  if (zoneName) {
+    assert.strictEqual(localHint.textContent, zoneName, 'pin label must show the IANA zone name');
+  } else {
+    assert.match(localHint.textContent, /^[+-]\d{2}:\d{2}$/, 'pin label falls back to the numeric offset');
+  }
+  const localToggle = d.getElementById('local_time_mode');
+  localToggle.checked = true;
+  localToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  window.eval('updateTimeDisplay()');
+  const timezoneOffset = d.getElementById('timezone_offset');
+  assert.notStrictEqual(timezoneOffset.style.display, 'none', 'local time must show the zone annotation');
+  assert.ok(timezoneOffset.innerHTML.includes('<br>'), 'zone annotation must use two lines');
+  assert.match(timezoneOffset.textContent, /^[+-]\d{2}:\d{2}$/, 'zone annotation must include hours and minutes');
+
   // Fractional-second precision must control both the dot and digit count.
   const precision = d.getElementById('time_decimals');
   assert.deepStrictEqual([...precision.options].map(option => option.textContent.trim()),
