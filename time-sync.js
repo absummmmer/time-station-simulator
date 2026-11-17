@@ -168,7 +168,7 @@
     function formatDut1CompactSeconds(value) {
       const number = Number(value);
       if (!Number.isFinite(number)) return '—';
-      return `${number >= 0 ? '+' : ''}${number.toFixed(3)}`;
+      return formatSignedMs3(number * 1000);
     }
 
     function dut1SourceSeries(info) {

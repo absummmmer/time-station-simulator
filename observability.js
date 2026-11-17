@@ -742,8 +742,7 @@
 
     function formatSignedOffsetSeconds(value) {
       if (!Number.isFinite(value)) return '—';
-      const seconds = value / 1000;
-      return `${seconds >= 0 ? '+' : '-'}${Math.abs(seconds).toFixed(3)}s`;
+      return `${formatSignedMs3(value)}s`;
     }
 
     function formatMetricMs(value, digits = 1) {

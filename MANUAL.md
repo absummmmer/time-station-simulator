@@ -275,9 +275,11 @@ see section 8 for persistence.
 #### 5.1.1 Local offset and SYNC
 
 - `local_offset_val` shows the current local correction in seconds with three
-  decimal places.
+  decimal places. A value that rounds to zero is shown as `0.000` without a sign;
+  automatic sync may keep finer-than-millisecond precision internally.
 - Three positive and three negative buttons adjust by `+0.1 / +0.01 / +0.001`
-  seconds. The ↺ button resets the local offset to zero.
+  seconds. Before applying a manual step, the current value is snapped to the
+  displayed millisecond grid; the ↺ button resets the local offset to zero.
 - `SYNC` requires the Time API address. A sync takes 7 samples, drops the slower
   samples, and uses the median offset of the kept samples. The page's local offset
   is updated to 0.1 ms precision.
@@ -358,8 +360,10 @@ UT1 transmission, WWV/WWVH BCD and double ticks, and RWM DUT1/dUT1 double pulses
 
 **Manual mode (AUTO off)**
 
-- Six buttons adjust by `±0.1 / ±0.01 / ±0.001` seconds; ↺ resets the common DUT1
-  to zero.
+- Six buttons adjust by `±0.1 / ±0.01 / ±0.001` seconds; manual steps first snap
+  the current value to the displayed millisecond grid, and ↺ resets the common
+  DUT1 to zero. Automatic values may retain sub-millisecond precision internally
+  but never display a signed `0.000`.
 - The `NTSC_EOP_yyyyMMdd.txt` and `IERS/BULLETIN-A` links download EOP files. After
   uploading a file, the page parses NTSC EOP or IERS Bulletin A format and takes
   the current day's UT1−UTC value.

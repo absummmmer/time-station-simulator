@@ -872,11 +872,25 @@
       peak.connect(lowpass);
       return { input: peak, output: lowpass };
     }
+    // All editable offset readouts resolve to whole milliseconds. Sub-ms values
+    // from automatic sync/DUT1 are kept internally, but the UI must not show a
+    // signed zero such as "-0.000".
+    function roundManualOffsetMs(valueMs) {
+      const number = Number(valueMs);
+      if (!Number.isFinite(number)) return 0;
+      return Math.sign(number) * Math.round(Math.abs(number));
+    }
+
+    function formatSignedMs3(valueMs) {
+      const roundedMs = roundManualOffsetMs(valueMs);
+      if (roundedMs === 0) return '0.000';
+      return `${roundedMs > 0 ? '+' : '-'}${(Math.abs(roundedMs) / 1000).toFixed(3)}`;
+    }
+
     // Update time display and signal type text
     function formatDut1Display(dut1Ms) {
       if (dut1Ms === 0) return '=';
-      const dut1Sec = dut1Ms / 1000;
-      return `${dut1Sec > 0 ? '+' : ''}${dut1Sec.toFixed(3)}`;
+      return formatSignedMs3(dut1Ms);
     }
 
     function clampDut1Ms(value) {
@@ -1720,10 +1734,8 @@
       }, 3200);
     }
     function updateOffsetDisplay() {
-      const localSec = localOffset / 1000;
-      const dut1Sec = window.ut1DUT1 / 1000;
-      document.getElementById('local_offset_val').textContent = (localSec > 0 ? '+' : '') + localSec.toFixed(3);
       const compEl = document.getElementById('network_comp_val');
+      document.getElementById('local_offset_val').textContent = formatSignedMs3(localOffset);
       if (compEl) {
         const sign = deviceExtraMs > 0 ? '+' : '';
         const devicePart = deviceExtraMs
@@ -1731,7 +1743,7 @@
           : '';
         compEl.innerHTML = `(+${networkCompensation}${devicePart}ms)`;
       }
-      document.getElementById('dut1_val').textContent = (dut1Sec > 0 ? '+' : '') + dut1Sec.toFixed(3);
+      document.getElementById('dut1_val').textContent = formatSignedMs3(window.ut1DUT1);
       saveSettings();
       NextAudio.onTimingChanged();
     }

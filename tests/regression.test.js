@@ -141,6 +141,35 @@ function json(value) {
   beat.dispatchEvent(new window.Event('change', { bubbles: true }));
   check('RWM beat default frequency', q('rwm_beat_label').textContent === 'BF(4000Hz)', q('rwm_beat_label').textContent);
 
+  check('signed millisecond format hides zero sign',
+    window.eval('formatSignedMs3(-0.4)') === '0.000'
+      && window.eval('formatSignedMs3(0)') === '0.000'
+      && window.eval('formatSignedMs3(-1.4)') === '-0.001',
+    window.eval('[formatSignedMs3(-0.4), formatSignedMs3(0), formatSignedMs3(-1.4)].join(",")'));
+  check('manual offset snapping rounds to displayed ms',
+    window.eval('roundManualOffsetMs(-0.4)') === 0
+      && window.eval('roundManualOffsetMs(-1.4)') === -1
+      && window.eval('formatDut1CompactSeconds(-0.0004)') === '0.000');
+  window.bpmDUT1 = -0.4;
+  window.otherDUT1 = -0.4;
+  window.ut1DUT1 = -0.4;
+  window.eval('updateOffsetDisplay()');
+  check('DUT1 zero display has no sign', q('dut1_val').textContent === '0.000', q('dut1_val').textContent);
+  q('dut1_section').querySelector('[data-offset="dut1"][data-delta="1"]').click();
+  check('manual +1ms snaps from displayed zero',
+    window.bpmDUT1 === 1 && q('dut1_val').textContent === '+0.001',
+    `${window.bpmDUT1}/${q('dut1_val').textContent}`);
+  window.bpmDUT1 = -0.4;
+  window.otherDUT1 = -0.4;
+  window.ut1DUT1 = -0.4;
+  window.eval('updateOffsetDisplay()');
+  q('dut1_section').querySelector('[data-offset="dut1"][data-delta="-1"]').click();
+  check('manual -1ms snaps from displayed zero',
+    window.bpmDUT1 === -1 && q('dut1_val').textContent === '-0.001',
+    `${window.bpmDUT1}/${q('dut1_val').textContent}`);
+  window.eval('setCommonDut1(0)');
+  window.eval('updateOffsetDisplay()');
+
   // The status-bar emoji is an actual-UTC anchor: it must ignore ?offset=,
   // while the main clock and audio keep the URL shift.
   const baseEmoji = q('clock_emoji');

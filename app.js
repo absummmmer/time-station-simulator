@@ -1362,14 +1362,14 @@
             const delta = parseInt(deltaStr);
             if (!isNaN(delta)) {
               if (type === 'local') {
-                localOffset += delta;
+                localOffset = roundManualOffsetMs(localOffset) + delta;
                 document.getElementById('sync_error').textContent = '';
                 clearClockUncertain();
               } else if (type === 'comp') {
                 networkCompensation += delta;
                 networkCompensation = Math.max(0, networkCompensation);
               } else if (type === 'dut1') {
-                setCommonDut1(window.bpmDUT1 + delta);
+                setCommonDut1(roundManualOffsetMs(window.bpmDUT1) + delta);
                 const eopStatus = document.getElementById('eop_status');
                 eopStatus.textContent = '';
                 eopStatus.classList.remove('text-green-400', 'text-red-400', 'text-yellow-400');
