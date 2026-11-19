@@ -41,6 +41,22 @@ const { boot, wait } = require('./dom-harness');
   } else {
     assert.match(localHint.textContent, /^[+-]\d{2}:\d{2}$/, 'pin label falls back to the numeric offset');
   }
+  // The label must follow a live timezone change, not keep a cached first value.
+  const originalDateTimeFormat = window.Intl.DateTimeFormat;
+  let fakeZone = 'Asia/Shanghai';
+  window.Intl.DateTimeFormat = function FakeDateTimeFormat() {
+    return { resolvedOptions: () => ({ timeZone: fakeZone }) };
+  };
+  try {
+    window.eval('updateLocalTimeHint()');
+    assert.strictEqual(localHint.textContent, 'Asia/Shanghai', 'pin label must react to timezone selection');
+    fakeZone = 'Europe/Berlin';
+    window.eval('updateLocalTimeHint()');
+    assert.strictEqual(localHint.textContent, 'Europe/Berlin', 'pin label must follow a timezone change');
+  } finally {
+    window.Intl.DateTimeFormat = originalDateTimeFormat;
+    window.eval('updateLocalTimeHint()');
+  }
   const localToggle = d.getElementById('local_time_mode');
   localToggle.checked = true;
   localToggle.dispatchEvent(new window.Event('change', { bubbles: true }));

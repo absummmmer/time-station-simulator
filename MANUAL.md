@@ -85,10 +85,10 @@ To change the address later, use the 🔌 button in the sync audit panel or open
 
 - The clock shows UTC by default. Enabling local time in **Display** switches the
   main clock to local time and shows the zone offset next to the seconds. The pin
-  label shows the browser's IANA zone name (for example `Asia/Shanghai`) when
-  available, and the clock corner shows the complete offset in two lines
-  (`+08` / `:00`). Audio continues to be scheduled in UTC and does not follow the
-  local-time display.
+  label follows the browser/OS timezone live (without a page reload) and shows the
+  browser's IANA zone name (for example `Asia/Shanghai`) when available; the clock
+  corner shows the complete offset in two lines (`+08` / `:00`). Audio continues
+  to be scheduled in UTC and does not follow the local-time display.
 - The fractional-second selector is labeled by display step: `㎳ ×1000` = seconds
   only, `×100` = 0.1 s, `×10` = 0.01 s (default), `×1` = 0.001 s. The `×1`
   (1 ms) setting requires a display refresh high enough to sample every

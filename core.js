@@ -245,16 +245,16 @@
       return `${hours}<br>:${info.zoneText.slice(4)}`;
     }
 
-    let localZoneNameCache;
     function localTimeZoneName() {
-      if (localZoneNameCache !== undefined) return localZoneNameCache;
+      // Do not cache this: when the OS timezone changes, the label must follow
+      // the live offset without requiring a page reload. updateLocalTimeHint()
+      // only runs once per second, so constructing the formatter is cheap.
       try {
         const name = new Intl.DateTimeFormat().resolvedOptions().timeZone;
-        localZoneNameCache = typeof name === 'string' && name.trim() ? name.trim() : '';
+        return typeof name === 'string' && name.trim() ? name.trim() : '';
       } catch (e) {
-        localZoneNameCache = '';
+        return '';
       }
-      return localZoneNameCache;
     }
 
     function updateLocalTimeHint() {
