@@ -175,20 +175,27 @@ function json(value) {
     source: 'IERS Bulletin A',
     source_key: 'iers',
     updated_at: '2026-11-20T00:00:00Z',
-    current: { date: '2026-11-20', value: -0.06557, type: 'final' },
+    published_at: '2026-11-12',
+    bulletin: 'Vol. XXXIX No. 046',
+    current: { date: '2026-11-20', value: -0.07447, type: 'predicted' },
     alternate: {
       source: 'NTSC EOP',
       source_key: 'ntsc',
       stale: false,
-      current: { date: '2026-11-18', value: -0.0660106, type: 'final' },
+      published_at: '2026-11-19',
+      bulletin: 'NTSC_EOP_20261119',
+      current: { date: '2026-11-19', value: -0.0660106, type: 'final' },
     },
   };
   window.eval(`setDut1CompactStatus(${JSON.stringify(compactData)}, '20261120')`);
-  check('DUT1 compact status shows relative source ages',
-    q('eop_status').textContent === 'IERS@today|NTSC@-2d=-0.066',
+  check('DUT1 compact status shows relative publication ages',
+    q('eop_status').textContent === 'IERS@-8d|NTSC@-1d=-0.066',
     q('eop_status').textContent);
-  check('DUT1 compact title keeps absolute measurement dates',
-    q('eop_status').title.includes('2026-11-20') && q('eop_status').title.includes('2026-11-18'),
+  check('DUT1 compact title keeps publication dates and bulletins',
+    q('eop_status').title.includes('published 2026-11-12')
+      && q('eop_status').title.includes('Vol. XXXIX No. 046')
+      && q('eop_status').title.includes('published 2026-11-19')
+      && q('eop_status').title.includes('NTSC_EOP_20261119'),
     q('eop_status').title);
   window.eval("setEopStatus('', 'text-gray-500')");
 

@@ -381,9 +381,10 @@ UT1 transmission, WWV/WWVH BCD and double ticks, and RWM DUT1/dUT1 double pulses
 - When the backend has both NTSC and IERS data:
   - BPM uses NTSC;
   - WWV, WWVH, and RWM use IERS;
-  - the compact source status shows each source's **relative measurement age**
-    (`today`, `-1d`, `-2d`, …) so a slower mirror is visible at a glance; hover it
-    for the absolute measurement dates, values, and update time;
+  - the compact source status shows each source's **relative publication age**
+    (`today`, `-1d`, `-2d`, …) so a slower/older bulletin or mirror is visible at
+    a glance; hover it for the bulletin/file publication dates, issue labels,
+    value dates, values, and update time;
   - the UT1 clock uses the currently selected source; click the compact source
     status on the right side of the DUT1 row to switch the UT1 display between
     NTSC and IERS;

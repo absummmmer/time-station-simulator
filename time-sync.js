@@ -217,13 +217,19 @@
       const otherValue = otherPoint && Number.isFinite(Number(otherPoint.value))
         ? formatDut1CompactSeconds(otherPoint.value)
         : '—';
-      const referenceDate = data.date || (activePoint && activePoint.date) || '';
-      const activeAge = formatDut1DateAge(activePoint && activePoint.date, referenceDate);
-      const otherAge = formatDut1DateAge(otherPoint && otherPoint.date, referenceDate);
+      const referenceDate = data.date || new Date().toISOString().slice(0, 10);
+      const activeAge = formatDut1DateAge(data.published_at, referenceDate);
+      const otherAge = formatDut1DateAge(other && other.published_at, referenceDate);
+      const activePublication = data.published_at
+        ? `published ${data.published_at} (${activeAge}${data.bulletin ? `; ${data.bulletin}` : ''})`
+        : 'publication date unknown';
+      const otherPublication = otherPoint && other.published_at
+        ? `published ${other.published_at} (${otherAge}${other.bulletin ? `; ${other.bulletin}` : ''})`
+        : 'publication date unknown';
       const title = [
-        `${data.source || 'Time API'} ${activePoint ? activePoint.date : '—'} (${activeAge}) UT1-UTC ${activePoint ? Number(activePoint.value).toFixed(6) : '—'} s (${activePoint ? activePoint.type : 'unknown'})`,
+        `${data.source || 'Time API'} value ${activePoint ? activePoint.date : '—'} UT1-UTC ${activePoint ? Number(activePoint.value).toFixed(6) : '—'} s (${activePoint ? activePoint.type : 'unknown'}); ${activePublication}`,
         otherPoint
-          ? `${other.source || otherKey} ${otherPoint.date} (${otherAge}) UT1-UTC ${Number(otherPoint.value).toFixed(6)} s (${otherPoint.type || 'unknown'}${other.stale ? ', stale' : ''})`
+          ? `${other.source || otherKey} value ${otherPoint.date} UT1-UTC ${Number(otherPoint.value).toFixed(6)} s (${otherPoint.type || 'unknown'}${other.stale ? ', stale' : ''}); ${otherPublication}`
           : `${otherLabel} value unavailable`,
         otherPoint && otherKey !== activeKey ? `Click to switch to ${otherLabel}` : '',
         `updated ${data.updated_at || 'unknown'}`,
