@@ -170,6 +170,28 @@ function json(value) {
   window.eval('setCommonDut1(0)');
   window.eval('updateOffsetDisplay()');
 
+  const compactData = {
+    date: '2026-11-20',
+    source: 'IERS Bulletin A',
+    source_key: 'iers',
+    updated_at: '2026-11-20T00:00:00Z',
+    current: { date: '2026-11-20', value: -0.06557, type: 'final' },
+    alternate: {
+      source: 'NTSC EOP',
+      source_key: 'ntsc',
+      stale: false,
+      current: { date: '2026-11-18', value: -0.0660106, type: 'final' },
+    },
+  };
+  window.eval(`setDut1CompactStatus(${JSON.stringify(compactData)}, '20261120')`);
+  check('DUT1 compact status shows relative source ages',
+    q('eop_status').textContent === 'IERS@today|NTSC@-2d=-0.066',
+    q('eop_status').textContent);
+  check('DUT1 compact title keeps absolute measurement dates',
+    q('eop_status').title.includes('2026-11-20') && q('eop_status').title.includes('2026-11-18'),
+    q('eop_status').title);
+  window.eval("setEopStatus('', 'text-gray-500')");
+
   // The status-bar emoji is an actual-UTC anchor: it must ignore ?offset=,
   // while the main clock and audio keep the URL shift.
   const baseEmoji = q('clock_emoji');

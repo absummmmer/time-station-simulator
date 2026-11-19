@@ -171,6 +171,17 @@
       return formatSignedMs3(number * 1000);
     }
 
+    function formatDut1DateAge(pointDate, referenceDate) {
+      if (!pointDate) return '?';
+      const pointMs = Date.parse(`${pointDate}T00:00:00Z`);
+      const reference = referenceDate || pointDate;
+      const referenceMs = Date.parse(`${reference}T00:00:00Z`);
+      if (!Number.isFinite(pointMs) || !Number.isFinite(referenceMs)) return '?';
+      const days = Math.round((pointMs - referenceMs) / 86400000);
+      if (days === 0) return 'today';
+      return `${days > 0 ? '+' : ''}${days}d`;
+    }
+
     function dut1SourceSeries(info) {
       const series = new Map();
       for (const name of ['previous', 'current', 'next']) {
@@ -206,18 +217,18 @@
       const otherValue = otherPoint && Number.isFinite(Number(otherPoint.value))
         ? formatDut1CompactSeconds(otherPoint.value)
         : '—';
-      const date = activePoint && activePoint.date
-        ? activePoint.date.replace(/-/g, '')
-        : (key || '—');
+      const referenceDate = data.date || (activePoint && activePoint.date) || '';
+      const activeAge = formatDut1DateAge(activePoint && activePoint.date, referenceDate);
+      const otherAge = formatDut1DateAge(otherPoint && otherPoint.date, referenceDate);
       const title = [
-        `${data.source || 'Time API'} ${activePoint ? activePoint.date : '—'} UT1-UTC ${activePoint ? Number(activePoint.value).toFixed(6) : '—'} s (${activePoint ? activePoint.type : 'unknown'})`,
+        `${data.source || 'Time API'} ${activePoint ? activePoint.date : '—'} (${activeAge}) UT1-UTC ${activePoint ? Number(activePoint.value).toFixed(6) : '—'} s (${activePoint ? activePoint.type : 'unknown'})`,
         otherPoint
-          ? `${other.source || otherKey} ${otherPoint.date} UT1-UTC ${Number(otherPoint.value).toFixed(6)} s (${otherPoint.type || 'unknown'}${other.stale ? ', stale' : ''})`
+          ? `${other.source || otherKey} ${otherPoint.date} (${otherAge}) UT1-UTC ${Number(otherPoint.value).toFixed(6)} s (${otherPoint.type || 'unknown'}${other.stale ? ', stale' : ''})`
           : `${otherLabel} value unavailable`,
         otherPoint && otherKey !== activeKey ? `Click to switch to ${otherLabel}` : '',
         `updated ${data.updated_at || 'unknown'}`,
       ].filter(Boolean).join('\n');
-      setEopStatus(`${activeLabel}@${date}|${otherLabel}=${otherValue}`, 'text-green-400', title);
+      setEopStatus(`${activeLabel}@${activeAge}|${otherLabel}@${otherAge}=${otherValue}`, 'text-green-400', title);
     }
 
     function applyDut1AutoPayload(data, fetchDateKey) {
