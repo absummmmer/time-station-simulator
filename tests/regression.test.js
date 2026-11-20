@@ -37,6 +37,36 @@ function json(value) {
   toggles[2].click();
   check('station panels collapse all', [...d.querySelectorAll('.station-item')].every(x => !x.classList.contains('expanded')));
 
+  const bpmVolume = q('station_bpm_volume');
+  const bpmBalance = q('bpm_balance');
+  bpmVolume.value = '0.5';
+  bpmVolume.dispatchEvent(new window.Event('input', { bubbles: true }));
+  bpmBalance.value = '-50';
+  bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
+  check('station balance shows with volume',
+    q('bpm_balance_label').textContent === 'L50'
+      && q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent === '50%·L50',
+    q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent);
+  bpmBalance.value = '4';
+  bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
+  check('station balance snaps to centre',
+    bpmBalance.value === '0'
+      && q('bpm_balance_label').textContent === 'C'
+      && q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent === '50%',
+    `${bpmBalance.value}/${q('bpm_balance_label').textContent}`);
+  bpmBalance.value = '50';
+  bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
+  check('station balance shows right side',
+    q('bpm_balance_label').textContent === 'R50'
+      && q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent === '50%·R50',
+    q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent);
+  q('settings_section_stations').querySelector('[data-station-reset="bpm"]').click();
+  check('station reset clears balance',
+    bpmBalance.value === '0' && q('bpm_balance_label').textContent === 'C',
+    `${bpmBalance.value}/${q('bpm_balance_label').textContent}`);
+  bpmVolume.value = '1';
+  bpmVolume.dispatchEvent(new window.Event('input', { bubbles: true }));
+
   const ut1 = q('ut1_detail_mode');
   ut1.checked = true;
   ut1.dispatchEvent(new window.Event('change', { bubbles: true }));

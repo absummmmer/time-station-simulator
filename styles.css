@@ -873,7 +873,8 @@
       }
 
       .station-volume-toggle {
-        width: 2.2rem;
+        width: auto;
+        min-width: 2.2rem;
         margin-left: auto;
       }
     }

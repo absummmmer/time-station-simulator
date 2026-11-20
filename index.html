@@ -172,6 +172,14 @@
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
             </label>
           </div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400 text-xs font-mono">BAL</span>
+            <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
+            <input type="range" id="bpm_balance" data-station-balance="bpm" min="-100" max="100" step="1" value="0"
+              aria-label="BPM left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
+            <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
+            <span id="bpm_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
+          </div>
         </div>
         <div class="border-t border-dark-700"></div>
         <div class="flex items-center justify-between">
@@ -197,6 +205,14 @@
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
             </label>
           </div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400 text-xs font-mono">BAL</span>
+            <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
+            <input type="range" id="wwv_balance" data-station-balance="wwv" min="-100" max="100" step="1" value="0"
+              aria-label="WWV left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
+            <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
+            <span id="wwv_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
+          </div>
         </div>
         <div class="border-t border-dark-700"></div>
         <div class="flex items-center justify-between">
@@ -221,6 +237,14 @@
               <input type="range" id="wwvh_voice_volume" min="0" max="100" step="1" value="100"
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
             </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400 text-xs font-mono">BAL</span>
+            <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
+            <input type="range" id="wwvh_balance" data-station-balance="wwvh" min="-100" max="100" step="1" value="0"
+              aria-label="WWVH left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
+            <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
+            <span id="wwvh_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
           </div>
         </div>
         <div class="border-t border-dark-700"></div>
@@ -267,6 +291,14 @@
               </label>
             </div>
           </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-400 text-xs font-mono">BAL</span>
+          <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
+          <input type="range" id="rwm_balance" data-station-balance="rwm" min="-100" max="100" step="1" value="0"
+            aria-label="RWM left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
+          <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
+          <span id="rwm_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
         </div>
       </div>
       <div id="settings_section_noise" class="settings-section hidden space-y-3"></div>

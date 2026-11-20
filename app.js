@@ -980,6 +980,23 @@
         });
       }
 
+      const stationVolumeText = (station) => {
+        const percent = Math.round((stationVolumes[station] ?? 0) * 100);
+        const balance = clampStationBalance(stationBalances[station]);
+        if (!balance) return `${percent}%`;
+        return `${percent}%·${balance < 0 ? 'L' : 'R'}${Math.abs(balance)}`;
+      };
+      const stationBalanceText = (station) => {
+        const balance = clampStationBalance(stationBalances[station]);
+        return balance ? `${balance < 0 ? 'L' : 'R'}${Math.abs(balance)}` : 'C';
+      };
+      const syncStationBalanceControl = (station) => {
+        const slider = document.querySelector(`[data-station-balance="${station}"]`);
+        const label = document.getElementById(`${station}_balance_label`);
+        if (slider) slider.value = String(clampStationBalance(stationBalances[station]));
+        if (label) label.textContent = stationBalanceText(station);
+      };
+
       const resetStationConfig = (station) => {
         if (station === 'bpm') {
           lowFreqVolume = 0;
@@ -1018,6 +1035,12 @@
           syncAdjustControl('rwm_morse_volume', 'rwm_morse_label', 'MCid', 1);
           NextAudio.onTimingChanged();
         }
+        stationBalances[station] = 0;
+        if (typeof NextAudio.setStationBalance === 'function') {
+          NextAudio.setStationBalance(station, 0);
+        }
+        syncStationBalanceControl(station);
+        syncStationVolumeControl(station);
         invalidateTimeRender();
         updateTimeDisplay();
         saveSettings();
@@ -1108,7 +1131,7 @@
         const slider = document.querySelector(`[data-station-volume="${station}"]`);
         const toggle = document.querySelector(`[data-station-toggle="${station}"]`);
         if (slider) slider.value = String(value);
-        if (toggle) toggle.textContent = `${Math.round(value * 100)}%`;
+        if (toggle) toggle.textContent = stationVolumeText(station);
       };
       const toggleAllStationPanels = () => {
         if (zenModeActive) return;
@@ -1122,16 +1145,20 @@
           const toggle = document.querySelector(`[data-station-toggle="${station}"]`);
           if (toggle) toggle.setAttribute('aria-expanded', willExpand ? 'true' : 'false');
           if (willExpand) syncStationVolumeControl(station);
+          if (willExpand) syncStationBalanceControl(station);
         }
         if (willExpand && typeof requestAnimationFrame === 'function') {
           requestAnimationFrame(() => {
-            for (const item of items) syncStationVolumeControl(item.dataset.station);
+            for (const item of items) {
+              syncStationVolumeControl(item.dataset.station);
+              syncStationBalanceControl(item.dataset.station);
+            }
           });
         }
       };
       document.querySelectorAll('[data-station-toggle]').forEach((toggle) => {
         const station = toggle.dataset.stationToggle;
-        toggle.textContent = `${Math.round((stationVolumes[station] ?? 0) * 100)}%`;
+        toggle.textContent = stationVolumeText(station);
         toggle.onclick = toggleAllStationPanels;
       });
       document.querySelectorAll('[data-station-volume]').forEach((slider) => {
@@ -1148,7 +1175,7 @@
           }
           stationVolumes[station] = value;
           const toggle = document.querySelector(`[data-station-toggle="${station}"]`);
-          if (toggle) toggle.textContent = `${Math.round(value * 100)}%`;
+          if (toggle) toggle.textContent = stationVolumeText(station);
           NextAudio.setStationVolume(station, value);
           updateZenStationVisibility();
           saveSettings();
@@ -1156,6 +1183,25 @@
         slider.addEventListener('change', () => {
           syncStationVolumeControl(station);
         });
+      });
+      document.querySelectorAll('[data-station-balance]').forEach((slider) => {
+        const station = slider.dataset.stationBalance;
+        syncStationBalanceControl(station);
+        const applyBalance = function () {
+          let value = clampStationBalance(this.value);
+          // Soft magnetic detent: small near-centre offsets settle at C.
+          if (Math.abs(value) <= 5) value = 0;
+          if (Number(this.value) !== value) this.value = String(value);
+          stationBalances[station] = value;
+          if (typeof NextAudio.setStationBalance === 'function') {
+            NextAudio.setStationBalance(station, value);
+          }
+          syncStationBalanceControl(station);
+          syncStationVolumeControl(station);
+          saveSettings();
+        };
+        slider.addEventListener('input', applyBalance);
+        slider.addEventListener('change', applyBalance);
       });
       updateZenStationVisibility();
       if (allStationVolumesSilent) saveSettings();

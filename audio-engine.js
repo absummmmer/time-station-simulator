@@ -160,6 +160,7 @@
       let wwvGain = null;
       let wwvhGain = null;
       let rwmGain = null;
+      let stationPanners = null;
       let wwvAdjustNodes = null;
       let rwmAdjustNodes = null;
       let pulseGain = null;
@@ -343,6 +344,21 @@
         rwmGain = ctx.createGain();
         rwmGain.gain.value = stationVolumes.rwm;
         rwmGain.connect(masterGain);
+        // Put a stereo panner after each station bus. This keeps the master
+        // volume and every station's component ratios unchanged, while the
+        // station balance can move independently between L100 and R100.
+        stationPanners = {};
+        if (typeof ctx.createStereoPanner === 'function') {
+          const stationGains = { bpm: bpmGain, wwv: wwvGain, wwvh: wwvhGain, rwm: rwmGain };
+          for (const [station, gain] of Object.entries(stationGains)) {
+            const panner = ctx.createStereoPanner();
+            panner.pan.value = clampStationBalance(stationBalances[station]) / 100;
+            gain.disconnect();
+            gain.connect(panner);
+            panner.connect(masterGain);
+            stationPanners[station] = panner;
+          }
+        }
         rwmAdjustNodes = {
           pulse10: ctx.createGain(),
           morse: ctx.createGain(),
@@ -1087,6 +1103,7 @@
         wwvGain = null;
         wwvhGain = null;
         rwmGain = null;
+        stationPanners = null;
         wwvAdjustNodes = null;
         rwmAdjustNodes = null;
         pulseGain = null;
@@ -1211,6 +1228,12 @@
         if (gain && ctx) gain.gain.setTargetAtTime(value, ctx.currentTime, 0.01);
       }
 
+      function setStationBalance(station, value) {
+        const panner = stationPanners && stationPanners[station];
+        if (!panner || !ctx) return;
+        panner.pan.setTargetAtTime(clampStationBalance(value) / 100, ctx.currentTime, 0.01);
+      }
+
       function setMasterVolume(value) {
         if (masterGain && ctx) masterGain.gain.setTargetAtTime(Math.pow(value, 3), ctx.currentTime, 0.01);
         if (noiseGain && ctx) {
@@ -1289,6 +1312,7 @@
         onVisible,
         setVolume,
         setStationVolume,
+        setStationBalance,
         setMasterVolume,
         setLowFreqVolume,
         setBpmMorseAdjust,

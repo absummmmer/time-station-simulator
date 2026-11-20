@@ -114,6 +114,11 @@
     let noiseVolume = 0.0;
     let language = 'en';
     const stationVolumes = { bpm: 1, wwv: 0, wwvh: 0, rwm: 0 };
+    const stationBalances = { bpm: 0, wwv: 0, wwvh: 0, rwm: 0 };
+    function clampStationBalance(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? Math.max(-100, Math.min(100, Math.round(number))) : 0;
+    }
     const wwvAdjustments = {
       wwv: { tone: 1, code: 1, voice: 1 },
       wwvh: { tone: 1, code: 1, voice: 1 },
@@ -616,6 +621,7 @@
           dut1AutoMode: dut1AutoMode,
           dut1SourceMode: dut1SourceMode,
           stationVolumes: { ...stationVolumes },
+          stationBalances: { ...stationBalances },
           language: language,
         };
         try {
@@ -731,6 +737,13 @@
           for (const station of ['bpm', 'wwv', 'wwvh', 'rwm']) {
             if (typeof settings.stationVolumes[station] === 'number') {
               stationVolumes[station] = Math.max(0, Math.min(1, settings.stationVolumes[station]));
+            }
+          }
+        }
+        if (settings.stationBalances && typeof settings.stationBalances === 'object') {
+          for (const station of ['bpm', 'wwv', 'wwvh', 'rwm']) {
+            if (typeof settings.stationBalances[station] === 'number') {
+              stationBalances[station] = clampStationBalance(settings.stationBalances[station]);
             }
           }
         }

@@ -24,11 +24,13 @@ const { boot } = require('./dom-harness');
     hasLowFreq: !!q('low_freq_volume'),
     hasLanguage: !!q('language_row'),
     hasSprite: !!window.WWV_SPRITE,
+    balances: [...d.querySelectorAll('[data-station-balance]')].length,
   };
   assert.deepStrictEqual(errors, []);
   assert.deepStrictEqual(result.tabs, ['clock', 'display', 'stations', 'noise']);
   assert.strictEqual(result.sections.find(s => s.name === 'clock').children, 3);
-  assert.strictEqual(result.sections.find(s => s.name === 'stations').children, 11);
+  assert.strictEqual(result.sections.find(s => s.name === 'stations').children, 12);
+  assert.strictEqual(result.balances, 4);
   assert.strictEqual(result.strips.length, 4);
   assert.ok(result.strips.every(s => s.status && s.slider));
   assert.ok(result.hasClock && result.hasUt1 && result.hasLowFreq && result.hasLanguage && result.hasSprite);

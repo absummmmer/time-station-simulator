@@ -149,6 +149,11 @@ right:
   the end when necessary.
 - Station volume is saved independently. Changing a station volume does not change
   that station's internal signal-component ratios.
+- Each station has an independent **L/R balance** in **Station controls**, from
+  `L100` to `R100`; the slider has a small centre detent. The row percentage
+  appends `·Lnn` or `·Rnn` only when off-centre (for example `50%·L50`); at the
+  centre only the volume is shown. The station reset button recentres balance but
+  does not change that station's master volume.
 
 ### 3.4 Zen mode
 
