@@ -980,6 +980,7 @@
         });
       }
 
+      const STATION_PAN_DEADZONE = 5;
       const stationVolumeText = (station) => {
         const percent = Math.round((stationVolumes[station] ?? 0) * 100);
         const balance = clampStationBalance(stationBalances[station]);
@@ -988,12 +989,26 @@
       };
       const stationBalanceText = (station) => {
         const balance = clampStationBalance(stationBalances[station]);
-        return balance ? `${balance < 0 ? 'L' : 'R'}${Math.abs(balance)}` : 'C';
+        if (!balance) return 'PAN(  0  )';
+        return `PAN(${balance < 0 ? 'L' : 'R'} ${String(Math.abs(balance)).padStart(3, ' ')})`;
+      };
+      const stationBalanceFromSlider = (raw) => {
+        const value = Math.max(-105, Math.min(105, Math.round(Number(raw) || 0)));
+        if (Math.abs(value) <= STATION_PAN_DEADZONE) return 0;
+        return Math.sign(value) * Math.min(100, Math.abs(value) - STATION_PAN_DEADZONE);
+      };
+      const stationBalanceToSlider = (value) => {
+        const balance = clampStationBalance(value);
+        return balance ? Math.sign(balance) * (Math.abs(balance) + STATION_PAN_DEADZONE) : 0;
       };
       const syncStationBalanceControl = (station) => {
         const slider = document.querySelector(`[data-station-balance="${station}"]`);
         const label = document.getElementById(`${station}_balance_label`);
-        if (slider) slider.value = String(clampStationBalance(stationBalances[station]));
+        const balance = clampStationBalance(stationBalances[station]);
+        if (slider) {
+          slider.value = String(stationBalanceToSlider(balance));
+          slider.setAttribute('aria-valuetext', stationBalanceText(station));
+        }
         if (label) label.textContent = stationBalanceText(station);
       };
 
@@ -1188,20 +1203,27 @@
         const station = slider.dataset.stationBalance;
         syncStationBalanceControl(station);
         const applyBalance = function () {
-          let value = clampStationBalance(this.value);
-          // Soft magnetic detent: small near-centre offsets settle at C.
-          if (Math.abs(value) <= 5) value = 0;
-          if (Number(this.value) !== value) this.value = String(value);
+          const value = stationBalanceFromSlider(this.value);
           stationBalances[station] = value;
           if (typeof NextAudio.setStationBalance === 'function') {
             NextAudio.setStationBalance(station, value);
           }
-          syncStationBalanceControl(station);
+          const label = document.getElementById(`${station}_balance_label`);
+          if (label) label.textContent = stationBalanceText(station);
+          this.setAttribute('aria-valuetext', stationBalanceText(station));
           syncStationVolumeControl(station);
           saveSettings();
         };
         slider.addEventListener('input', applyBalance);
-        slider.addEventListener('change', applyBalance);
+        slider.addEventListener('change', function () {
+          const value = stationBalanceFromSlider(this.value);
+          stationBalances[station] = value;
+          // If released inside the wide centre detent, park the thumb at 0.
+          this.value = String(stationBalanceToSlider(value));
+          syncStationBalanceControl(station);
+          syncStationVolumeControl(station);
+          saveSettings();
+        });
       });
       updateZenStationVisibility();
       if (allStationVolumesSilent) saveSettings();

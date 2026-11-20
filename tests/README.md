@@ -18,7 +18,7 @@ npm test
 | `startup.test.js` | loading spinner, first audio start, settings wiring |
 | `backend-config.test.js` | backend URL normalization, first-AUTO/SYNC/DUT1 prompt, audit-panel entry and migration path |
 | `smoke.test.js` | settings sections, station strips, sprite/assets |
-| `regression.test.js` | UTC lock, UT1 clock, actual-UTC emoji anchor, DUT1 split rules, publication-age labels, BPM sample-level DUT1 display, correction-value visibility thresholds with rounding-boundary margin, per-station balance snap/reset, WWV/RWM encodings, RWM timing, NTP chart, beat frequency, audio timeline diagnostics |
+| `regression.test.js` | UTC lock, UT1 clock, actual-UTC emoji anchor, DUT1 split rules, publication-age labels, BPM sample-level DUT1 display, correction-value visibility thresholds with rounding-boundary margin, per-station PAN detent/L1-R1/reset, WWV/RWM encodings, RWM timing, NTP chart, beat frequency, audio timeline diagnostics |
 | `sync-reanchor.test.js` | successful sync forces a fresh audio timeline anchor even without an offset change |
 | `audio-marker.test.js` | manual/system audio-output markers render on both trace charts |
 | `calibration.test.js` | repeated delay-button clicks collapse into one idle-ended CALIBRATION row |

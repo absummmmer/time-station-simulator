@@ -149,10 +149,12 @@ right:
   the end when necessary.
 - Station volume is saved independently. Changing a station volume does not change
   that station's internal signal-component ratios.
-- Each station has an independent **L/R balance** in **Station controls**, from
-  `L100` to `R100`; the slider has a small centre detent. The row percentage
+- Each station has an independent **PAN** control at the top of its station
+  controls, with a five-character `PAN(L  50)` / `PAN(R   1)` / `PAN(  0  )`
+  readout. The centre has a widened ±5 detent: drag through it to reach `L1`/`R1`;
+  when released inside the detent the thumb parks at `0`. The row percentage
   appends `·Lnn` or `·Rnn` only when off-centre (for example `50%·L50`); at the
-  centre only the volume is shown. The station reset button recentres balance but
+  centre only the volume is shown. The station reset button recentres PAN but
   does not change that station's master volume.
 
 ### 3.4 Zen mode

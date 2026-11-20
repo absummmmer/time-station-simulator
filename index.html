@@ -153,6 +153,11 @@
             class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
         </div>
         <div id="bpm_station_panel" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span id="bpm_balance_label" class="text-gray-400 text-xs font-mono whitespace-pre">PAN(  0  )</span>
+            <input type="range" id="bpm_balance" data-station-balance="bpm" min="-105" max="105" step="1" value="0"
+              aria-label="BPM PAN" class="station-slider station-balance-slider flex-1 min-w-0">
+          </div>
           <div id="bpm_top_row" class="flex items-center gap-x-4 gap-y-2 flex-wrap">
             <div class="flex items-center gap-2 flex-1 min-w-[10rem]">
               <span id="low_freq_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(&#32;&#32;0%)</span>
@@ -172,14 +177,6 @@
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
             </label>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-gray-400 text-xs font-mono">BAL</span>
-            <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
-            <input type="range" id="bpm_balance" data-station-balance="bpm" min="-100" max="100" step="1" value="0"
-              aria-label="BPM left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
-            <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
-            <span id="bpm_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
-          </div>
         </div>
         <div class="border-t border-dark-700"></div>
         <div class="flex items-center justify-between">
@@ -188,6 +185,11 @@
             class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
         </div>
         <div id="wwv_station_panel" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span id="wwv_balance_label" class="text-gray-400 text-xs font-mono whitespace-pre">PAN(  0  )</span>
+            <input type="range" id="wwv_balance" data-station-balance="wwv" min="-105" max="105" step="1" value="0"
+              aria-label="WWV PAN" class="station-slider station-balance-slider flex-1 min-w-0">
+          </div>
           <div class="flex items-center gap-2">
             <span id="wwv_code_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
             <input type="range" id="wwv_code_volume" min="0" max="200" step="1" value="100"
@@ -205,14 +207,6 @@
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
             </label>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-gray-400 text-xs font-mono">BAL</span>
-            <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
-            <input type="range" id="wwv_balance" data-station-balance="wwv" min="-100" max="100" step="1" value="0"
-              aria-label="WWV left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
-            <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
-            <span id="wwv_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
-          </div>
         </div>
         <div class="border-t border-dark-700"></div>
         <div class="flex items-center justify-between">
@@ -221,6 +215,11 @@
             class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
         </div>
         <div id="wwvh_station_panel" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span id="wwvh_balance_label" class="text-gray-400 text-xs font-mono whitespace-pre">PAN(  0  )</span>
+            <input type="range" id="wwvh_balance" data-station-balance="wwvh" min="-105" max="105" step="1" value="0"
+              aria-label="WWVH PAN" class="station-slider station-balance-slider flex-1 min-w-0">
+          </div>
           <div class="flex items-center gap-2">
             <span id="wwvh_code_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
             <input type="range" id="wwvh_code_volume" min="0" max="200" step="1" value="100"
@@ -238,20 +237,17 @@
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
             </label>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-gray-400 text-xs font-mono">BAL</span>
-            <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
-            <input type="range" id="wwvh_balance" data-station-balance="wwvh" min="-100" max="100" step="1" value="0"
-              aria-label="WWVH left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
-            <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
-            <span id="wwvh_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
-          </div>
         </div>
         <div class="border-t border-dark-700"></div>
         <div class="flex items-center justify-between">
           <div class="text-xs text-gray-500 font-mono">RWM</div>
           <button type="button" data-station-reset="rwm" aria-label="Reset RWM"
             class="text-xs text-gray-500 hover:text-gray-300 transition px-1">&#8634;</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="rwm_balance_label" class="text-gray-400 text-xs font-mono whitespace-pre">PAN(  0  )</span>
+          <input type="range" id="rwm_balance" data-station-balance="rwm" min="-105" max="105" step="1" value="0"
+            aria-label="RWM PAN" class="station-slider station-balance-slider flex-1 min-w-0">
         </div>
         <div id="rwm_station_panel" class="flex flex-col sm:flex-row gap-3">
           <div class="rwm-lock-group flex sm:flex-col gap-2 shrink-0" role="radiogroup" aria-label="RWM pulse lock">
@@ -291,14 +287,6 @@
               </label>
             </div>
           </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-gray-400 text-xs font-mono">BAL</span>
-          <span class="text-[10px] text-gray-500 whitespace-nowrap">L100</span>
-          <input type="range" id="rwm_balance" data-station-balance="rwm" min="-100" max="100" step="1" value="0"
-            aria-label="RWM left-right balance" class="station-slider station-balance-slider flex-1 min-w-0">
-          <span class="text-[10px] text-gray-500 whitespace-nowrap">R100</span>
-          <span id="rwm_balance_label" class="w-8 text-right text-xs font-mono text-gray-400">C</span>
         </div>
       </div>
       <div id="settings_section_noise" class="settings-section hidden space-y-3"></div>

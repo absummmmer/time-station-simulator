@@ -41,28 +41,35 @@ function json(value) {
   const bpmBalance = q('bpm_balance');
   bpmVolume.value = '0.5';
   bpmVolume.dispatchEvent(new window.Event('input', { bubbles: true }));
-  bpmBalance.value = '-50';
+  bpmBalance.value = '-55';
   bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
-  check('station balance shows with volume',
-    q('bpm_balance_label').textContent === 'L50'
+  check('station PAN shows with volume',
+    q('bpm_balance_label').textContent === 'PAN(L  50)'
       && q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent === '50%·L50',
     q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent);
   bpmBalance.value = '4';
   bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
-  check('station balance snaps to centre',
+  bpmBalance.dispatchEvent(new window.Event('change', { bubbles: true }));
+  check('station PAN centre detent',
     bpmBalance.value === '0'
-      && q('bpm_balance_label').textContent === 'C'
+      && q('bpm_balance_label').textContent === 'PAN(  0  )'
       && q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent === '50%',
     `${bpmBalance.value}/${q('bpm_balance_label').textContent}`);
-  bpmBalance.value = '50';
+  bpmBalance.value = '-6';
   bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
-  check('station balance shows right side',
-    q('bpm_balance_label').textContent === 'R50'
+  bpmBalance.dispatchEvent(new window.Event('change', { bubbles: true }));
+  check('station PAN reaches L1',
+    q('bpm_balance_label').textContent === 'PAN(L   1)',
+    q('bpm_balance_label').textContent);
+  bpmBalance.value = '55';
+  bpmBalance.dispatchEvent(new window.Event('input', { bubbles: true }));
+  check('station PAN shows right side',
+    q('bpm_balance_label').textContent === 'PAN(R  50)'
       && q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent === '50%·R50',
     q('station_bpm_volume').closest('.station-item').querySelector('[data-station-toggle]').textContent);
   q('settings_section_stations').querySelector('[data-station-reset="bpm"]').click();
-  check('station reset clears balance',
-    bpmBalance.value === '0' && q('bpm_balance_label').textContent === 'C',
+  check('station reset clears PAN',
+    bpmBalance.value === '0' && q('bpm_balance_label').textContent === 'PAN(  0  )',
     `${bpmBalance.value}/${q('bpm_balance_label').textContent}`);
   bpmVolume.value = '1';
   bpmVolume.dispatchEvent(new window.Event('input', { bubbles: true }));
