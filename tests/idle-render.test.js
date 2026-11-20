@@ -110,6 +110,14 @@ const { boot, wait } = require('./dom-harness');
     'UT1 seconds must update in place');
   assert.strictEqual(d.querySelector('#ut1_time .ut1-ms'), ut1MsNode,
     'UT1 milliseconds must update in place');
+  window.eval("renderUt1Time(new Date(Date.UTC(2026, 0, 1, 0, 0, 0, 987)), 1)");
+  assert.strictEqual(ut1MsNode.textContent, '.9', 'one-decimal UT1 must update to .9');
+  window.eval("renderUt1Time(new Date(Date.UTC(2026, 0, 1, 0, 0, 0, 123)), 1)");
+  assert.strictEqual(ut1MsNode.textContent, '.1', 'one-decimal UT1 must update to .1');
+  assert.strictEqual(d.querySelector('#ut1_time .ut1-ms'), ut1MsNode,
+    'low-precision UT1 updates must reuse the same node');
+  window.eval("renderUt1Time(new Date(Date.UTC(2026, 0, 1, 0, 0, 0, 987)), 3)");
+  assert.strictEqual(ut1MsNode.textContent, '.987', 'three-decimal UT1 must update to .987');
   d.querySelector('#ut1_time .ut1-sec').click();
   assert.ok(!d.getElementById('settings_panel').classList.contains('hidden'),
     'clicking the UT1 seconds must open display settings');

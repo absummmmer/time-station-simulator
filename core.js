@@ -1060,7 +1060,9 @@
     function ut1CanRevealCorrection(stepSeconds, decimals = getTimeDecimals(),
       ut1Visible = ut1DetailMode, localVisible = showLocalTime,
       correctionMs = Number(window.otherDUT1) || 0) {
-      if (!ut1Visible || localVisible) return false;
+      // Local time is also usable here: its zone offset is shown next to the
+      // main clock, so UTC can be derived without hiding the zone annotation.
+      if (!ut1Visible) return false;
       const stepMs = stepSeconds * 1000;
       const resolutionMs = Math.pow(10, 3 - decimals);
       // The display must be strictly finer than half the correction step.

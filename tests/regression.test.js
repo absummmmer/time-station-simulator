@@ -195,7 +195,8 @@ function json(value) {
       && window.eval('ut1CanRevealCorrection(0.02, 3, true, false, -76.55)') === true
       && window.eval('ut1CanRevealCorrection(0.02, 3, true, false, -90)') === false
       && window.eval('ut1CanRevealCorrection(0.1, 3, false, false)') === false
-      && window.eval('ut1CanRevealCorrection(0.1, 3, true, true)') === false);
+      && window.eval('ut1CanRevealCorrection(0.1, 3, true, true, -76.55)') === true
+      && window.eval('ut1CanRevealCorrection(0.1, 3, true, true, -49.5)') === false);
   check('signed-zero formatting respects displayed precision',
     window.eval('formatSignedFixed(-0.04, 1)') === '0.0'
       && window.eval('formatSignedFixed(0.04, 1)') === '0.0'

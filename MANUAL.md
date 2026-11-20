@@ -217,13 +217,13 @@ double ticks:
   introduction voice starts at the first second of the minute.
 - DUT1 double ticks during the first 16 seconds: seconds 1–8 are positive, 9–16
   are negative, and each is 0.1 s.
-- The green DUT1 value is suppressed only when the UT1 clock is visible, the main
-  clock is UTC, both use the same DUT1 value, the display step is strictly finer
-  than half the 0.1 s correction (`×10` or `×1`), and the correction is at least
-  one display unit away from a 0.05 s rounding boundary. At `×1000`/`×100` the
-  two clocks can display identical digits (for example for a −0.07655 s
-  correction), so the value remains visible; near a rounding boundary it also
-  remains visible.
+- The green DUT1 value is suppressed only when the UT1 clock is visible, both use
+  the same DUT1 value, the display step is strictly finer than half the 0.1 s
+  correction (`×10` or `×1`), and the correction is at least one display unit
+  away from a 0.05 s rounding boundary. The main clock may be UTC or local time:
+  its zone offset is shown, so UTC remains derivable. At `×1000`/`×100` the two
+  clocks can display identical digits (for example for a −0.07655 s correction),
+  so the value remains visible; near a rounding boundary it also remains visible.
 
 Tone, BCD, and voice have independent ratio sliders; components at 0% are struck
 through in the status.
@@ -248,10 +248,10 @@ through in the status.
   carrier, off, Morse, and tail gaps.
 - `1Hz🔒` still sends DUT1 double pulses; `10Hz🔒` does not send DUT1.
 - The DUT1 (0.1 s) value follows the same suppression rule as WWV/WWVH: hidden
-  only at `×10` or `×1` when the UT1 clock is visible, the main clock is UTC, and
-  both use the same value, with the same rounding-boundary margin. The dUT1
-  (0.02 s) value is hidden only at `×1` and only when it is safely away from a
-  0.01 s rounding boundary; otherwise both cumulative values remain visible.
+  only at `×10` or `×1` when the UT1 clock is visible and both use the same value,
+  with the same rounding-boundary margin. The dUT1 (0.02 s) value is hidden only
+  at `×1` and only when it is safely away from a 0.01 s rounding boundary;
+  otherwise both cumulative values remain visible.
 - Locking changes only RWM transmission and does not trigger clock sync.
 - At 0% 10 Hz ratio, the non-integer-second ds pulses are zero and the whole-second
   pulses remain, so the status displays `1_Hz`.
