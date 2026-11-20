@@ -98,11 +98,22 @@ const { boot, wait } = require('./dom-harness');
   ut1Toggle.dispatchEvent(new window.Event('change', { bubbles: true }));
   const ut1Fraction = () => {
     const el = d.querySelector('#ut1_time .ut1-ms');
-    return el ? el.textContent.replace('.', '').length : 0;
+    return el && el.style.display !== 'none' ? el.textContent.replace('.', '').length : 0;
   };
   precision.value = '2';
   window.eval('updateTimeDisplay()');
   assert.strictEqual(ut1Fraction(), 2, 'UT1 time must use two fractional digits');
+  const ut1SecNode = d.querySelector('#ut1_time .ut1-sec');
+  const ut1MsNode = d.querySelector('#ut1_time .ut1-ms');
+  window.eval('updateTimeDisplay()');
+  assert.strictEqual(d.querySelector('#ut1_time .ut1-sec'), ut1SecNode,
+    'UT1 seconds must update in place');
+  assert.strictEqual(d.querySelector('#ut1_time .ut1-ms'), ut1MsNode,
+    'UT1 milliseconds must update in place');
+  d.querySelector('#ut1_time .ut1-sec').click();
+  assert.ok(!d.getElementById('settings_panel').classList.contains('hidden'),
+    'clicking the UT1 seconds must open display settings');
+  d.getElementById('settings_close').click();
   precision.value = '0';
   window.eval('updateTimeDisplay()');
   assert.strictEqual(ut1Fraction(), 0, 'UT1 time must hide its decimal point at zero precision');

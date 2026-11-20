@@ -920,15 +920,43 @@
       dut1SplitActive = false;
     }
 
-    function formatUt1TimeHtml(ut1Now, decimals) {
+    let ut1TimeNodes = null;
+
+    function buildUt1TimeNodes(el) {
+      const head = document.createElement('span');
+      head.className = 'ut1-hm';
+      const sec = document.createElement('span');
+      sec.className = 'ut1-sec';
+      const ms = document.createElement('span');
+      ms.className = 'ut1-ms';
+      const dot = document.createElement('span');
+      dot.className = 'seg-dot';
+      dot.textContent = '.';
+      const digits = document.createElement('span');
+      digits.className = 'ut1-digits';
+      ms.append(dot, digits);
+      el.replaceChildren(head, sec, ms);
+      return { el, head, sec, ms, digits };
+    }
+
+    function renderUt1Time(ut1Now, decimals) {
+      const el = getUi('ut1_time');
+      if (!el) return;
+      if (!ut1TimeNodes || ut1TimeNodes.el !== el || !el.contains(ut1TimeNodes.head)) {
+        ut1TimeNodes = buildUt1TimeNodes(el);
+      }
+      const nodes = ut1TimeNodes;
       const baseText = ut1Now.toISOString().substr(11, 8);
-      const secStart = Math.max(0, baseText.length - 3);
-      let html = `${baseText.slice(0, secStart)}<span class="ut1-sec">${baseText.slice(secStart)}</span>`;
+      const headText = baseText.slice(0, 5);
+      const secText = baseText.slice(5);
+      if (nodes.head.textContent !== headText) nodes.head.textContent = headText;
+      if (nodes.sec.textContent !== secText) nodes.sec.textContent = secText;
+      const msDisplay = decimals > 0 ? 'inline-block' : 'none';
+      if (nodes.ms.style.display !== msDisplay) nodes.ms.style.display = msDisplay;
       if (decimals > 0) {
         const fraction = String(ut1Now.getUTCMilliseconds()).padStart(3, '0').slice(0, decimals);
-        html += `<span class="ut1-ms"><span class="seg-dot">.</span>${fraction}</span>`;
+        if (nodes.digits.textContent !== fraction) nodes.digits.textContent = fraction;
       }
-      return html;
     }
 
     let clockFaceNodes = null;
@@ -1294,11 +1322,12 @@
         // The switch means "show UT1 time" continuously, regardless of
         // whether the current UTC segment is an UT1 broadcast window.
         const ut1Now = new Date(utcNow.getTime() + window.ut1DUT1);
-        ut1TimeEl.innerHTML = formatUt1TimeHtml(ut1Now, decimals);
+        renderUt1Time(ut1Now, decimals);
         ut1TimeEl.classList.add('seven-seg');
         if (ut1IndicatorEl) ut1IndicatorEl.classList.remove('hidden');
       } else {
         ut1TimeEl.textContent = '';
+        ut1TimeNodes = null;
       }
     }
 
