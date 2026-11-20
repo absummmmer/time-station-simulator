@@ -306,6 +306,7 @@
     let dut1AutoLastError = '';
     let dut1AutoData = null;
     let dut1AutoLastData = null;
+    let dut1AutoCompactDateKey = '';
     window.bpmDUT1 = 0;
     window.otherDUT1 = 0;
     window.ut1DUT1 = 0;
@@ -1276,15 +1277,23 @@
     function syncAutoDut1ForDate(utcNow) {
       if (!window.isAutoDUT1 || !dut1AutoSeriesBySource) return;
       const currentKey = dut1DateKey(utcNow);
-      if (!applyDut1ForDate(utcNow)) return;
-      updateOffsetDisplay();
+      const changed = applyDut1ForDate(utcNow);
+      if (changed) updateOffsetDisplay();
       if (dut1AutoMode) {
-        if (dut1AutoLastData) {
+        const statusEl = getUi('eop_status');
+        const statusIsTransient = statusEl && (
+          dut1AutoBusy
+          || statusEl.classList.contains('text-red-400')
+          || statusEl.classList.contains('text-yellow-400')
+        );
+        if (dut1AutoLastData && (changed || currentKey !== dut1AutoCompactDateKey) && !statusIsTransient) {
+          // Recompute relative publication ages when the UTC date changes even
+          // if the numeric DUT1 values happen to be unchanged.
           setDut1CompactStatus(dut1AutoLastData, currentKey);
-        } else {
+        } else if (!dut1AutoLastData && changed) {
           setEopStatus(`API@${currentKey}`, 'text-green-400', 'DUT1 value switched for the new UTC date');
         }
-      } else {
+      } else if (changed) {
         const status = getUi('eop_status');
         status.textContent = `${window.currentDataSource ?? 'Auto'} @ ${currentKey}`;
         status.classList.remove('text-red-400', 'text-yellow-400');

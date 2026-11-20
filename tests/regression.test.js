@@ -171,7 +171,7 @@ function json(value) {
   window.eval('updateOffsetDisplay()');
 
   const compactData = {
-    date: '2026-11-20',
+    date: '2026-11-19',
     source: 'IERS Bulletin A',
     source_key: 'iers',
     updated_at: '2026-11-20T00:00:00Z',

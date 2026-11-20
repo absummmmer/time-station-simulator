@@ -217,7 +217,10 @@
       const otherValue = otherPoint && Number.isFinite(Number(otherPoint.value))
         ? formatDut1CompactSeconds(otherPoint.value)
         : '—';
-      const referenceDate = data.date || new Date().toISOString().slice(0, 10);
+      const referenceKey = dateKey || key;
+      const referenceDate = referenceKey && /^\d{8}$/.test(referenceKey)
+        ? `${referenceKey.slice(0, 4)}-${referenceKey.slice(4, 6)}-${referenceKey.slice(6, 8)}`
+        : (data.date || new Date().toISOString().slice(0, 10));
       const activeAge = formatDut1DateAge(data.published_at, referenceDate);
       const otherAge = formatDut1DateAge(other && other.published_at, referenceDate);
       const activePublication = data.published_at
@@ -235,6 +238,7 @@
         `updated ${data.updated_at || 'unknown'}`,
       ].filter(Boolean).join('\n');
       setEopStatus(`${activeLabel}@${activeAge}|${otherLabel}@${otherAge}=${otherValue}`, 'text-green-400', title);
+      dut1AutoCompactDateKey = referenceKey || '';
     }
 
     function applyDut1AutoPayload(data, fetchDateKey) {
