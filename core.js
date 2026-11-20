@@ -890,8 +890,17 @@
 
     // Update time display and signal type text
     function formatDut1Display(dut1Ms) {
-      if (dut1Ms === 0) return '=';
-      return formatSignedMs3(dut1Ms);
+      const ms = Number(dut1Ms);
+      if (!Number.isFinite(ms)) return '—';
+      if (ms === 0) return '=';
+      const highPrecision = Math.abs(ms - Math.round(ms)) > 1e-9;
+      if (highPrecision) {
+        const seconds = ms / 1000;
+        const rounded = Number(seconds.toFixed(5));
+        if (rounded === 0) return '0.00000';
+        return `${rounded > 0 ? '+' : ''}${seconds.toFixed(5)}`;
+      }
+      return formatSignedMs3(ms);
     }
 
     function clampDut1Ms(value) {
@@ -1020,17 +1029,21 @@
       return '';
     }
 
-    function selectedDut1SourceKey() {
-      if (!dut1AutoMode || !dut1SplitActive) return '';
-      if (dut1SourceMode === 'ntsc' || dut1SourceMode === 'iers') return dut1SourceMode;
-      if (dut1SourceMode === 'auto') return dut1AutoPrimaryKey || '';
-      return '';
+    function ut1CanRevealCorrection(stepSeconds, decimals = getTimeDecimals(),
+      ut1Visible = ut1DetailMode, localVisible = showLocalTime) {
+      if (!ut1Visible || localVisible) return false;
+      const resolution = Math.pow(10, -decimals);
+      // Keep a conservative margin: the display must be strictly finer than
+      // half the correction step before we suppress the numeric value.
+      return resolution < stepSeconds / 2;
     }
 
-    function shouldShowBpmDut1Status() {
-      if (!ut1DetailMode) return true;
-      return selectedDut1SourceKey() === 'iers'
-        && Math.round(window.bpmDUT1) !== Math.round(window.ut1DUT1);
+    function shouldShowOtherStationDut1Value(stepSeconds = 0.1) {
+      // Only suppress the value when the UT1 clock and this station use the
+      // same correction. Otherwise comparing the clocks reveals a different
+      // DUT1 value.
+      if (Math.abs(Number(window.ut1DUT1) - Number(window.otherDUT1)) > 1e-9) return true;
+      return !ut1CanRevealCorrection(stepSeconds);
     }
 
     function renderPeriodStatus({ period, second }) {
@@ -1045,7 +1058,9 @@
       if (lockEl) lockEl.classList.toggle('hidden', !forceUtcOnly);
       const dut1El = getUi('bpm_dut1');
       if (dut1El) {
-        const showDut1 = !forceUtcOnly && period === 'ut1' && shouldShowBpmDut1Status();
+        // BPM is the precise broadcast source: keep its own DUT1 visible in
+        // every UT1 period, even when the UT1 clock is also shown.
+        const showDut1 = !forceUtcOnly && period === 'ut1';
         dut1El.textContent = showDut1 ? formatDut1Display(window.bpmDUT1) : '';
         dut1El.classList.toggle('hidden', !showDut1);
       }
@@ -1132,7 +1147,7 @@
         const dut1Pulse = wwvDut1PulseStatus(second, window.otherDUT1);
         if (dut1Pulse) {
           html += '<span class="status-dut1-label">+DUT1</span>';
-          if (shouldShowOtherStationDut1Value()) {
+          if (shouldShowOtherStationDut1Value(0.1)) {
             html += `<span class="status-dut1-value">${dut1Pulse}</span>`;
           }
         }
@@ -1190,16 +1205,19 @@
         return {
           label: `D${sign}`,
           value: `${sign}${(count / 10).toFixed(1)}`,
+          correctionStep: 0.1,
         };
       }
       if (state.extraSeconds.includes(second)) {
         const count = state.extraSeconds.indexOf(second) + 1;
         const pulseSign = state.dSign > 0 ? '+' : '\u2212';
         const total = tenths * 0.1 + state.dSign * count * 0.02;
-        const sign = total < 0 ? '\u2212' : '+';
+        const roundedAbs = Number(Math.abs(total).toFixed(2));
+        const sign = roundedAbs === 0 ? '' : (total < 0 ? '\u2212' : '+');
         return {
           label: `d${pulseSign}`,
           value: `${sign}${Math.abs(total).toFixed(2)}`,
+          correctionStep: 0.02,
         };
       }
       return null;
@@ -1227,7 +1245,7 @@
         } else {
           const pulseStatus = rwmDut1PulseStatus(second, window.otherDUT1);
           html = pulseStatus
-            ? `<span class="status-rwm-pulse-label">${pulseStatus.label}</span>${shouldShowOtherStationDut1Value()
+            ? `<span class="status-rwm-pulse-label">${pulseStatus.label}</span>${shouldShowOtherStationDut1Value(pulseStatus.correctionStep)
               ? `<span class="status-rwm-pulse-value">${pulseStatus.value}</span>`
               : ''}`
             : '—';
@@ -1370,6 +1388,7 @@
         JSON.stringify(wwvAdjustments),
         JSON.stringify(rwmAdjustments),
         rwmLockMode,
+        getTimeDecimals(),
         ut1DetailMode ? 'ut1-detail' : 'ut1-auto',
         window.bpmDUT1, window.otherDUT1, window.ut1DUT1,
         dut1SplitActive ? 'dut1-split' : 'dut1-common',

@@ -7,10 +7,16 @@
       return `${(seconds / 86400).toFixed(2)}d`;
     }
 
-    function formatTraceSigned(value, digits = 1) {
+    function formatSignedFixed(value, digits) {
       const number = Number(value);
       if (!Number.isFinite(number)) return '—';
-      return `${number >= 0 ? '+' : ''}${number.toFixed(digits)}`;
+      const rounded = Number(number.toFixed(digits));
+      if (rounded === 0) return (0).toFixed(digits);
+      return `${rounded > 0 ? '+' : ''}${number.toFixed(digits)}`;
+    }
+
+    function formatTraceSigned(value, digits = 1) {
+      return formatSignedFixed(value, digits);
     }
 
     function traceTooltipRow(key, value, color) {
@@ -812,9 +818,8 @@
     }
 
     function formatSignedNtpMs(value, digits = 1) {
-      const number = Number(value);
-      if (!Number.isFinite(number)) return '—';
-      return `${number >= 0 ? '+' : ''}${number.toFixed(digits)}ms`;
+      const text = formatSignedFixed(value, digits);
+      return text === '—' ? '—' : `${text}ms`;
     }
 
     function formatNtpDetails(view) {
@@ -1132,8 +1137,9 @@
     function formatServoStatus(entry) {
       if (!entry) return '';
       const ppm = Number(entry.clockServoPpm);
-      if (entry.clockServoState === 'stable' && Number.isFinite(ppm) && ppm !== 0) {
-        return `TRIM ${ppm > 0 ? '+' : ''}${ppm.toFixed(2)}ppm`;
+      if (entry.clockServoState === 'stable' && Number.isFinite(ppm)
+        && Number(ppm.toFixed(2)) !== 0) {
+        return `TRIM ${formatSignedFixed(ppm, 2)}ppm`;
       }
       if (entry.clockServoState === 'unstable') return 'TRIM HOLD';
       return '';
@@ -1143,10 +1149,10 @@
       if (!entry) return '';
       if (entry.clockServoState === 'stable' && Number.isFinite(Number(entry.clockServoPpm))) {
         const applied = Number(entry.clockServoAppliedMs);
-        const appliedText = Number.isFinite(applied) ? ` · applied ${applied.toFixed(2)}ms` : '';
+        const appliedText = Number.isFinite(applied) ? ` · applied ${formatSignedFixed(applied, 2)}ms` : '';
         const points = Number(entry.clockServoPoints);
         const pointsText = Number.isFinite(points) ? ` · ${points} syncs` : '';
-        return ` · TRIM ${Number(entry.clockServoPpm).toFixed(2)}ppm${appliedText}${pointsText}`;
+        return ` · TRIM ${formatSignedFixed(entry.clockServoPpm, 2)}ppm${appliedText}${pointsText}`;
       }
       if (entry.clockServoState === 'unstable') return ' · TRIM paused (unstable sync history)';
       return '';

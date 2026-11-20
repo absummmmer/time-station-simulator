@@ -184,9 +184,11 @@ Status text is mainly English and symbols.
 
 - The lock icon is always first in the BPM status; with UTC lock it shows as
   `🔒UTC…`.
-- When BPM is in a UT1 period and the UT1 clock is hidden, the current DUT1 value
-  is appended. When the UT1 clock is visible, the value is shown only if BPM and
-  the UT1 display use different DUT1 values.
+- When BPM is in a UT1 period, the current DUT1 value is appended regardless of
+  whether the UT1 clock is visible. If the applied value has sub-millisecond
+  resolution (automatic source or a high-precision uploaded file), it is shown
+  with five decimal places (10 µs); after a manual button adjustment the value is
+  snapped to 1 ms and shown with three decimal places.
 - BPM call/voice components at 0% are struck through. BPM time code at 0% shows
   `—` rather than a struck-through component. WWV/WWVH BCD, tone, or voice
   components at 0% are struck through.
@@ -215,8 +217,11 @@ double ticks:
   introduction voice starts at the first second of the minute.
 - DUT1 double ticks during the first 16 seconds: seconds 1–8 are positive, 9–16
   are negative, and each is 0.1 s.
-- When the UT1 clock is enabled and its value matches the station DUT1, the green
-  DUT1 value is not repeated; only the purple transmission state remains.
+- The green DUT1 value is suppressed only when the UT1 clock is visible, the main
+  clock is UTC, both use the same DUT1 value, and the display step is strictly
+  finer than half the 0.1 s correction: `×10` or `×1`. At `×1000`/`×100`, with
+  the UT1 clock hidden, with a local-time main clock, or when the values differ,
+  the value remains visible.
 
 Tone, BCD, and voice have independent ratio sliders; components at 0% are struck
 through in the status.
@@ -240,8 +245,10 @@ through in the status.
 - `1Hz🔒` / `10Hz🔒` force continuous output of the corresponding pulses across
   carrier, off, Morse, and tail gaps.
 - `1Hz🔒` still sends DUT1 double pulses; `10Hz🔒` does not send DUT1.
-- When the UT1 clock is enabled and its value matches the DUT1 used by RWM, the
-  green cumulative value is hidden and only the `D±` / `d±` purple state remains.
+- The DUT1 (0.1 s) value follows the same suppression rule as WWV/WWVH: hidden
+  only at `×10` or `×1` when the UT1 clock is visible, the main clock is UTC, and
+  both use the same value. The dUT1 (0.02 s) value is hidden only at `×1`;
+  otherwise both cumulative values remain visible.
 - Locking changes only RWM transmission and does not trigger clock sync.
 - At 0% 10 Hz ratio, the non-integer-second ds pulses are zero and the whole-second
   pulses remain, so the status displays `1_Hz`.
@@ -380,17 +387,15 @@ UT1 transmission, WWV/WWVH BCD and double ticks, and RWM DUT1/dUT1 double pulses
   shows an error state, and retries.
 - When the backend has both NTSC and IERS data:
   - BPM uses NTSC;
-  - WWV, WWVH, and RWM use IERS;
+  - WWV, WWVH, RWM, and the UT1 clock use the currently selected DUT1 source;
   - the compact source status shows each source's **relative publication age**
     (`today`, `-1d`, `-2d`, …) so a slower/older bulletin or mirror is visible at
     a glance; it is recomputed automatically when the UTC date rolls over, even
     before a new DUT1 fetch; hover it for the bulletin/file publication dates,
     issue labels, value dates, values, and update time;
-  - the UT1 clock uses the currently selected source; click the compact source
-    status on the right side of the DUT1 row to switch the UT1 display between
-    NTSC and IERS;
-  - the station broadcast source assignment does not change when you switch the
-    UT1 display.
+  - click the compact source status on the right side of the DUT1 row to switch
+    the selected source for the three foreign stations and the UT1 clock; BPM
+    keeps using NTSC regardless of that selection.
 - When only one source is available, all stations fall back to that source.
 
 UTC lock changes only BPM transmission. It does not hide DUT1 controls and does not

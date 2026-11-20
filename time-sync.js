@@ -29,6 +29,17 @@
       return Number.isFinite(value) ? value : null;
     }
 
+    function dut1StationValues(ntsc, iers, selectedKey) {
+      const selectedValue = selectedKey === 'ntsc'
+        ? (ntsc != null ? ntsc : iers)
+        : (iers != null ? iers : ntsc);
+      return {
+        bpmValue: ntsc != null ? ntsc : iers,
+        otherValue: selectedValue,
+        selectedValue,
+      };
+    }
+
     function applyDut1ForDate(date) {
       if (!dut1AutoMode) {
         if (!window.isAutoDUT1 || !window.eopData) return false;
@@ -48,23 +59,23 @@
       const iers = dut1PointForDate(dut1AutoSeriesBySource.iers, key);
       if (ntsc == null && iers == null) return false;
 
-      const bpmValue = ntsc != null ? ntsc : iers;
-      const otherValue = iers != null ? iers : ntsc;
       let selectedKey = dut1SourceMode;
       if (selectedKey === 'auto') {
         selectedKey = dut1AutoPrimaryKey || (ntsc != null ? 'ntsc' : 'iers');
       }
-      const selectedValue = selectedKey === 'ntsc'
-        ? (ntsc != null ? ntsc : iers)
-        : (iers != null ? iers : ntsc);
+      // BPM keeps the NTSC tradition. The other three stations and the UT1
+      // clock follow the currently selected source, so comparing them in the
+      // UI uses the same DUT1 correction.
+      const { bpmValue: nextBpm, otherValue: nextOther, selectedValue: nextUt1 } =
+        dut1StationValues(ntsc, iers, selectedKey);
       const nextSplit = ntsc != null && iers != null;
-      const changed = window.bpmDUT1 !== bpmValue
-        || window.otherDUT1 !== otherValue
-        || window.ut1DUT1 !== selectedValue
+      const changed = window.bpmDUT1 !== nextBpm
+        || window.otherDUT1 !== nextOther
+        || window.ut1DUT1 !== nextUt1
         || dut1SplitActive !== nextSplit;
-      window.bpmDUT1 = clampDut1Ms(bpmValue);
-      window.otherDUT1 = clampDut1Ms(otherValue);
-      window.ut1DUT1 = clampDut1Ms(selectedValue);
+      window.bpmDUT1 = clampDut1Ms(nextBpm);
+      window.otherDUT1 = clampDut1Ms(nextOther);
+      window.ut1DUT1 = clampDut1Ms(nextUt1);
       dut1SplitActive = nextSplit;
       return changed;
     }
@@ -182,6 +193,14 @@
       return `${days > 0 ? '+' : ''}${days}d`;
     }
 
+    function formatDut1SourceSeconds(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return '—';
+      const rounded = Number(number.toFixed(6));
+      if (rounded === 0) return '0.000000';
+      return `${rounded > 0 ? '+' : ''}${number.toFixed(6)}`;
+    }
+
     function dut1SourceSeries(info) {
       const series = new Map();
       for (const name of ['previous', 'current', 'next']) {
@@ -230,9 +249,9 @@
         ? `published ${other.published_at} (${otherAge}${other.bulletin ? `; ${other.bulletin}` : ''})`
         : 'publication date unknown';
       const title = [
-        `${data.source || 'Time API'} value ${activePoint ? activePoint.date : '—'} UT1-UTC ${activePoint ? Number(activePoint.value).toFixed(6) : '—'} s (${activePoint ? activePoint.type : 'unknown'}); ${activePublication}`,
+        `${data.source || 'Time API'} value ${activePoint ? activePoint.date : '—'} UT1-UTC ${activePoint ? formatDut1SourceSeconds(activePoint.value) : '—'} s (${activePoint ? activePoint.type : 'unknown'}); ${activePublication}`,
         otherPoint
-          ? `${other.source || otherKey} value ${otherPoint.date} UT1-UTC ${Number(otherPoint.value).toFixed(6)} s (${otherPoint.type || 'unknown'}${other.stale ? ', stale' : ''}); ${otherPublication}`
+          ? `${other.source || otherKey} value ${otherPoint.date} UT1-UTC ${formatDut1SourceSeconds(otherPoint.value)} s (${otherPoint.type || 'unknown'}${other.stale ? ', stale' : ''}); ${otherPublication}`
           : `${otherLabel} value unavailable`,
         otherPoint && otherKey !== activeKey ? `Click to switch to ${otherLabel}` : '',
         `updated ${data.updated_at || 'unknown'}`,
@@ -296,6 +315,8 @@
         source_key: other.source_key,
         source_mode: targetKey,
         updated_at: other.updated_at,
+        published_at: other.published_at,
+        bulletin: other.bulletin,
         stale: other.stale,
         available: other.available,
         previous: other.previous,
@@ -305,6 +326,8 @@
           source: data.source,
           source_key: data.source_key,
           updated_at: data.updated_at,
+          published_at: data.published_at,
+          bulletin: data.bulletin,
           stale: data.stale,
           available: data.available,
           previous: data.previous,

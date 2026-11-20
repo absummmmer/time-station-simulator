@@ -56,6 +56,18 @@ function json(value) {
   const rwmPos = json(window.eval('JSON.stringify([9,10,21,22].map(s => rwmDut1PulseStatus(s, -160)))'));
   check('RWM cumulative DUT1', rwmPos[0].value === '\u22120.1' && rwmPos[1].value === '\u22120.2'
     && rwmPos[2].value === '\u22120.18' && rwmPos[3].value === '\u22120.16', JSON.stringify(rwmPos));
+  check('RWM correction steps', rwmPos[0].correctionStep === 0.1 && rwmPos[2].correctionStep === 0.02,
+    JSON.stringify(rwmPos));
+  const iersStationValues = json(window.eval('JSON.stringify(dut1StationValues(-66.0106, -74.47, "iers"))'));
+  const ntscStationValues = json(window.eval('JSON.stringify(dut1StationValues(-66.0106, -74.47, "ntsc"))'));
+  check('DUT1 source assignment keeps BPM on NTSC',
+    iersStationValues.bpmValue === -66.0106
+      && iersStationValues.otherValue === -74.47
+      && iersStationValues.selectedValue === -74.47
+      && ntscStationValues.bpmValue === -66.0106
+      && ntscStationValues.otherValue === -66.0106
+      && ntscStationValues.selectedValue === -66.0106,
+    `${JSON.stringify(iersStationValues)} ${JSON.stringify(ntscStationValues)}`);
   const wwvPulse = [1, 2, 3, 4].map(s => window.eval(`wwvDut1PulseStatus(${s}, 300)`));
   check('WWV DUT1 status cumulative', wwvPulse[0] === '+0.1' && wwvPulse[2] === '+0.3' && wwvPulse[3] === '', JSON.stringify(wwvPulse));
   window.eval('renderWWVStationStatuses(new Date(Date.UTC(2026,10,6,12,29,2)))');
@@ -167,6 +179,41 @@ function json(value) {
   check('manual -1ms snaps from displayed zero',
     window.bpmDUT1 === -1 && q('dut1_val').textContent === '-0.001',
     `${window.bpmDUT1}/${q('dut1_val').textContent}`);
+  window.eval('setCommonDut1(0)');
+  window.eval('updateOffsetDisplay()');
+
+  check('DUT1 high-precision display',
+    window.eval('formatDut1Display(-74.47)') === '-0.07447'
+      && window.eval('formatDut1Display(-74)') === '-0.074'
+      && window.eval('formatDut1Display(-0.00004)') === '0.00000',
+    window.eval('[formatDut1Display(-74.47), formatDut1Display(-74), formatDut1Display(-0.00004)].join(",")'));
+  check('DUT1 correction visibility follows display precision',
+    window.eval('ut1CanRevealCorrection(0.1, 1, true, false)') === false
+      && window.eval('ut1CanRevealCorrection(0.1, 2, true, false)') === true
+      && window.eval('ut1CanRevealCorrection(0.02, 2, true, false)') === false
+      && window.eval('ut1CanRevealCorrection(0.02, 3, true, false)') === true
+      && window.eval('ut1CanRevealCorrection(0.1, 3, false, false)') === false
+      && window.eval('ut1CanRevealCorrection(0.1, 3, true, true)') === false);
+  check('signed-zero formatting respects displayed precision',
+    window.eval('formatSignedFixed(-0.04, 1)') === '0.0'
+      && window.eval('formatSignedFixed(0.04, 1)') === '0.0'
+      && window.eval('formatSignedNtpMs(-0.04, 1)') === '0.0ms'
+      && window.eval('formatServoStatus({clockServoState:"stable", clockServoPpm:-0.004})') === '');
+  const ut1Toggle = q('ut1_detail_mode');
+  ut1Toggle.checked = true;
+  ut1Toggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  const forceUtc = q('force_utc_mode');
+  const previousForceUtc = forceUtc.checked;
+  forceUtc.checked = false;
+  forceUtc.dispatchEvent(new window.Event('change', { bubbles: true }));
+  window.bpmDUT1 = -74.47;
+  window.eval("renderPeriodStatus({ period: 'ut1', second: 1 })");
+  check('BPM DUT1 stays visible with sample-level precision',
+    q('bpm_dut1').textContent === '-0.07447', q('bpm_dut1').textContent);
+  forceUtc.checked = previousForceUtc;
+  forceUtc.dispatchEvent(new window.Event('change', { bubbles: true }));
+  ut1Toggle.checked = false;
+  ut1Toggle.dispatchEvent(new window.Event('change', { bubbles: true }));
   window.eval('setCommonDut1(0)');
   window.eval('updateOffsetDisplay()');
 
