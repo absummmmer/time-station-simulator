@@ -1030,12 +1030,27 @@
     }
 
     function ut1CanRevealCorrection(stepSeconds, decimals = getTimeDecimals(),
-      ut1Visible = ut1DetailMode, localVisible = showLocalTime) {
+      ut1Visible = ut1DetailMode, localVisible = showLocalTime,
+      correctionMs = Number(window.otherDUT1) || 0) {
       if (!ut1Visible || localVisible) return false;
-      const resolution = Math.pow(10, -decimals);
-      // Keep a conservative margin: the display must be strictly finer than
-      // half the correction step before we suppress the numeric value.
-      return resolution < stepSeconds / 2;
+      const stepMs = stepSeconds * 1000;
+      const resolutionMs = Math.pow(10, 3 - decimals);
+      // The display must be strictly finer than half the correction step.
+      if (!(resolutionMs < stepMs / 2)) return false;
+      const valueMs = Math.abs(Number(correctionMs) || 0);
+      let boundaryDistanceMs;
+      if (stepMs >= 50) {
+        boundaryDistanceMs = Math.abs((valueMs % stepMs) - stepMs / 2);
+      } else {
+        // RWM dUT1 is encoded from the residual after the 0.1 s step.
+        const tenthsMs = Math.round(valueMs / 100) * 100;
+        const residualMs = valueMs - tenthsMs;
+        boundaryDistanceMs = Math.abs(Math.abs(residualMs) % stepMs - stepMs / 2);
+      }
+      // Keep one display unit of margin around the rounding boundary: otherwise
+      // truncation can make the two clocks look equal or one step off even when
+      // the encoded correction would round the other way.
+      return boundaryDistanceMs > resolutionMs;
     }
 
     function shouldShowOtherStationDut1Value(stepSeconds = 0.1) {
@@ -1075,11 +1090,6 @@
       const count = second - start + 1;
       const sign = negative ? '\u2212' : '+';
       return `${sign}0.${count}`;
-    }
-
-    function shouldShowOtherStationDut1Value() {
-      if (!ut1DetailMode) return true;
-      return Math.round(window.ut1DUT1) !== Math.round(window.otherDUT1);
     }
 
     function renderWWVStationStatuses(utcNow) {

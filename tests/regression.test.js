@@ -188,10 +188,12 @@ function json(value) {
       && window.eval('formatDut1Display(-0.00004)') === '0.00000',
     window.eval('[formatDut1Display(-74.47), formatDut1Display(-74), formatDut1Display(-0.00004)].join(",")'));
   check('DUT1 correction visibility follows display precision',
-    window.eval('ut1CanRevealCorrection(0.1, 1, true, false)') === false
-      && window.eval('ut1CanRevealCorrection(0.1, 2, true, false)') === true
-      && window.eval('ut1CanRevealCorrection(0.02, 2, true, false)') === false
-      && window.eval('ut1CanRevealCorrection(0.02, 3, true, false)') === true
+    window.eval('ut1CanRevealCorrection(0.1, 1, true, false, -76.55)') === false
+      && window.eval('ut1CanRevealCorrection(0.1, 2, true, false, -76.55)') === true
+      && window.eval('ut1CanRevealCorrection(0.1, 2, true, false, -46.55)') === false
+      && window.eval('ut1CanRevealCorrection(0.02, 2, true, false, -76.55)') === false
+      && window.eval('ut1CanRevealCorrection(0.02, 3, true, false, -76.55)') === true
+      && window.eval('ut1CanRevealCorrection(0.02, 3, true, false, -90)') === false
       && window.eval('ut1CanRevealCorrection(0.1, 3, false, false)') === false
       && window.eval('ut1CanRevealCorrection(0.1, 3, true, true)') === false);
   check('signed-zero formatting respects displayed precision',
