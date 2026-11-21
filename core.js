@@ -309,6 +309,8 @@
     let dut1AutoAbortController = null;
     let dut1AutoLastFetch = 0;
     let dut1AutoLastError = '';
+    let dut1AutoRetryAttempt = 0;
+    let dut1AutoPublicationAttempt = 0;
     let dut1AutoData = null;
     let dut1AutoLastData = null;
     let dut1AutoCompactDateKey = '';
@@ -456,6 +458,15 @@
     const DUT1_AUTO_INITIAL_WINDOW_MS = 60 * 60 * 1000;
     const DUT1_AUTO_RETRY_MIN_MS = 60 * 1000;
     const DUT1_AUTO_RETRY_MAX_MS = 60 * 60 * 1000;
+    const DUT1_AUTO_MAX_INTERVAL_MS = 6 * 60 * 60 * 1000;
+    const DUT1_AUTO_PUBLICATION_RETRY_MIN_MS = 10 * 60 * 1000;
+    const DUT1_AUTO_PUBLICATION_RETRY_MAX_MS = 60 * 60 * 1000;
+    const DUT1_PUBLICATION_GRACE_MS = 10 * 60 * 1000;
+    // NTSC daily EOP is published around 15:30 UTC+08 (07:30 UTC).
+    const DUT1_NTSC_PUBLICATION_UTC_MINUTES = 7 * 60 + 30;
+    // IERS Bulletin A is published weekly, Thursday around 17:40 UTC.
+    const DUT1_IERS_PUBLICATION_WEEKDAY = 4;
+    const DUT1_IERS_PUBLICATION_UTC_MINUTES = 17 * 60 + 40;
 
     // Optional global time offset in whole minutes, e.g. ?offset=2 or
     // ?offset=-3. Positive values advance both the displayed UTC and the audio

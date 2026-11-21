@@ -392,9 +392,13 @@ UT1 transmission, WWV/WWVH BCD and double ticks, and RWM DUT1/dUT1 double pulses
 
 - With AUTO enabled, the manual DUT1 buttons, file picker, and source links are
   hidden.
-- The page fetches DUT1 from the Time API: once immediately when enabled, then for
-  the new UTC date after a date change. On failure it keeps the applied value,
-  shows an error state, and retries.
+- The page fetches DUT1 from the Time API immediately, then follows the expected
+  publication windows: daily around 15:30 UTC+08 for NTSC and weekly on Thursday
+  around 17:40 UTC for IERS. It also keeps a six-hour baseline check. If the
+  selected source's expected publication is late, it retries after 10, 20, 40,
+  then 60 minutes; a new UTC date also triggers a fresh check. On failure it
+  keeps the applied value, shows an error state, and retries with capped
+  exponential backoff.
 - When the backend has both NTSC and IERS data:
   - BPM uses NTSC;
   - WWV, WWVH, RWM, and the UT1 clock use the currently selected DUT1 source;

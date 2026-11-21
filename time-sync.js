@@ -162,8 +162,77 @@
         dut1AutoTick();
         return;
       }
-      const range = DUT1_AUTO_RETRY_MAX_MS - DUT1_AUTO_RETRY_MIN_MS;
-      const delay = DUT1_AUTO_RETRY_MIN_MS + Math.random() * range;
+      const exponent = Math.min(Math.max(0, dut1AutoRetryAttempt - 1), 6);
+      const base = Math.min(DUT1_AUTO_RETRY_MAX_MS, DUT1_AUTO_RETRY_MIN_MS * Math.pow(2, exponent));
+      const delay = base + Math.random() * 30 * 1000;
+      scheduleDut1FetchIn(delay, dateKey);
+    }
+
+    // Published DUT1 data is not useful merely because it was fetched: the
+    // frontend should poll around the source's publication window, retry soon
+    // after a late issue, and otherwise keep a low-frequency baseline check.
+    function dut1PublicationTargets(sourceKey, nowMs) {
+      if (sourceKey === 'ntsc') {
+        const d = new Date(nowMs);
+        let latest = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(),
+          7, 30) + DUT1_PUBLICATION_GRACE_MS;
+        if (latest > nowMs) latest -= 24 * 60 * 60 * 1000;
+        return { latest, next: latest + 24 * 60 * 60 * 1000 };
+      }
+      if (sourceKey === 'iers') {
+        const d = new Date(nowMs);
+        const dayDelta = (d.getUTCDay() - DUT1_IERS_PUBLICATION_WEEKDAY + 7) % 7;
+        let latest = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dayDelta,
+          17, 40) + DUT1_PUBLICATION_GRACE_MS;
+        if (latest > nowMs) latest -= 7 * 24 * 60 * 60 * 1000;
+        return { latest, next: latest + 7 * 24 * 60 * 60 * 1000 };
+      }
+      return null;
+    }
+
+    function dut1PublicationDateKey(ms) {
+      return new Date(ms).toISOString().slice(0, 10).replace(/-/g, '');
+    }
+
+    function dut1NextPublicationDelay(data, nowMs) {
+      const sourceKey = data && (data.source_key === 'ntsc' || data.source_key === 'iers')
+        ? data.source_key : '';
+      if (!data || !sourceKey) {
+        dut1AutoPublicationAttempt = 0;
+        return DUT1_AUTO_MAX_INTERVAL_MS;
+      }
+      const entries = [data];
+      if (data.alternate) entries.push(data.alternate);
+      let nextAt = Infinity;
+      for (const entry of entries) {
+        const key = entry && entry.source_key;
+        if (key !== 'ntsc' && key !== 'iers') continue;
+        const target = dut1PublicationTargets(key, nowMs);
+        if (target && target.next > nowMs) nextAt = Math.min(nextAt, target.next);
+      }
+      const primary = entries.find(entry => entry && entry.source_key === sourceKey) || data;
+      const published = String(primary.published_at || '').replace(/-/g, '');
+      const primaryTarget = dut1PublicationTargets(sourceKey, nowMs);
+      if (!published || !primaryTarget) {
+        dut1AutoPublicationAttempt = 0;
+        return DUT1_AUTO_MAX_INTERVAL_MS;
+      }
+      if (primary.stale === true || published < dut1PublicationDateKey(primaryTarget.latest)) {
+        dut1AutoPublicationAttempt += 1;
+        const exponent = Math.min(dut1AutoPublicationAttempt - 1, 6);
+        let delay = DUT1_AUTO_PUBLICATION_RETRY_MIN_MS * Math.pow(2, exponent);
+        delay = Math.min(delay, DUT1_AUTO_PUBLICATION_RETRY_MAX_MS);
+        return Math.max(60 * 1000, Math.min(delay, DUT1_AUTO_MAX_INTERVAL_MS));
+      }
+      dut1AutoPublicationAttempt = 0;
+      const untilNext = nextAt - nowMs;
+      return Math.max(30 * 1000, Math.min(untilNext, DUT1_AUTO_MAX_INTERVAL_MS));
+    }
+
+    function scheduleDut1NextPublicationCheck(data) {
+      if (!dut1AutoMode) return;
+      const dateKey = displayDut1DateKey();
+      const delay = dut1NextPublicationDelay(data, Date.now());
       scheduleDut1FetchIn(delay, dateKey);
     }
 
@@ -386,6 +455,8 @@
         if (series.size === 0) throw new Error('empty DUT1 series');
         if (!dut1AutoMode || dut1AutoAbortController !== controller) return;
         if (!applyDut1AutoPayload(data, fetchDateKey)) throw new Error('empty DUT1 series');
+        dut1AutoRetryAttempt = 0;
+        scheduleDut1NextPublicationCheck(data);
         if (displayDut1DateKey() !== fetchDateKey) setTimeout(dut1AutoTick, 0);
       } catch (e) {
         console.error('DUT1 auto update failed:', e);
@@ -394,6 +465,7 @@
           const modeLabel = DUT1_SOURCE_MODE_LABELS[dut1SourceMode] || 'AUTO';
           setEopStatus(`API error · ${modeLabel}`, 'text-red-400', dut1AutoLastError);
           if (displayDut1DateKey() === fetchDateKey) {
+            dut1AutoRetryAttempt += 1;
             scheduleDut1Retry(fetchDateKey);
           } else {
             setTimeout(dut1AutoTick, 0);
@@ -417,6 +489,8 @@
       }
       const key = displayDut1DateKey();
       dut1AutoLastSeenDate = key;
+      dut1AutoRetryAttempt = 0;
+      dut1AutoPublicationAttempt = 0;
       // One fetch on page refresh / enabling DUT1 AUTO.
       refreshDut1Auto();
       dut1AutoTimer = setInterval(() => {
@@ -438,6 +512,8 @@
       dut1AutoScheduledDate = '';
       dut1AutoSuccessDate = '';
       dut1AutoLastSeenDate = '';
+      dut1AutoRetryAttempt = 0;
+      dut1AutoPublicationAttempt = 0;
     }
 
     function syncForceUtcUI() {

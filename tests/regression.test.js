@@ -284,6 +284,41 @@ function json(value) {
       && q('eop_status').title.includes('published 2026-11-19')
       && q('eop_status').title.includes('NTSC_EOP_20261119'),
     q('eop_status').title);
+  const autoDut1Pacing = window.eval(`(function () {
+    const at = (hour, minute) => Date.UTC(2026, 10, 20, hour, minute);
+    const ntscBefore = { source_key: 'ntsc', published_at: '2026-11-19', stale: false };
+    const ntscLate = { source_key: 'ntsc', published_at: '2026-11-19', stale: false };
+    const ntscFresh = { source_key: 'ntsc', published_at: '2026-11-20', stale: false };
+    const iersFresh = { source_key: 'iers', published_at: '2026-11-19', stale: false };
+    const iersStale = { source_key: 'iers', published_at: '2026-11-05', stale: false };
+    dut1AutoPublicationAttempt = 0;
+    const before = dut1NextPublicationDelay(ntscBefore, at(7, 35));
+    dut1AutoPublicationAttempt = 0;
+    const late = dut1NextPublicationDelay(ntscLate, at(8, 0));
+    dut1AutoPublicationAttempt = 0;
+    const fresh = dut1NextPublicationDelay(ntscFresh, at(8, 0));
+    dut1AutoPublicationAttempt = 0;
+    const weekly = dut1NextPublicationDelay(iersFresh, at(0, 0));
+    dut1AutoPublicationAttempt = 0;
+    const stale = dut1NextPublicationDelay(iersStale, at(0, 0));
+    const backoff = (() => {
+      // Let the helper reset its own backoff counter via fresh data.
+      dut1NextPublicationDelay(ntscFresh, at(8, 0));
+      return [dut1NextPublicationDelay(ntscLate, at(8, 0)),
+        dut1NextPublicationDelay(ntscLate, at(8, 0))];
+    })();
+    return { before, late, fresh, weekly, stale, backoff };
+  })()`);
+  check('frontend DUT1 polling follows publication windows',
+    autoDut1Pacing.before === 5 * 60 * 1000
+      && autoDut1Pacing.late === 10 * 60 * 1000
+      && autoDut1Pacing.fresh === 6 * 60 * 60 * 1000
+      && autoDut1Pacing.weekly === 6 * 60 * 60 * 1000
+      && autoDut1Pacing.stale === 10 * 60 * 1000
+      && autoDut1Pacing.backoff[0] === 10 * 60 * 1000
+      && autoDut1Pacing.backoff[1] === 20 * 60 * 1000,
+    JSON.stringify(autoDut1Pacing));
+
   window.eval("setEopStatus('', 'text-gray-500')");
 
   // The status-bar emoji is an actual-UTC anchor: it must ignore ?offset=,
