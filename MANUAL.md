@@ -300,6 +300,9 @@ see section 8 for persistence.
 - `SYNC` requires the Time API address. A sync takes 7 samples, drops the slower
   samples, and uses the median offset of the kept samples. The page's local offset
   is updated to 0.1 ms precision.
+- When `/v1/time/ntp` returns the `X-Time-Server-*` precision headers, the final
+  timestamp is taken at header arrival, so the JSON body download is not charged
+  to the path estimate; older backends fall back to the body timestamps.
 - After a sync, the page re-anchors the audio timeline.
 - The clock calibration row shows the last sync's uncertainty, kept samples, RTT,
   and sample spread.

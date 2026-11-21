@@ -4,12 +4,24 @@ const { boot, wait } = require('./dom-harness');
 function syncFetch() {
   return async () => {
     const now = Date.now();
+    const receivedUs = now * 1000;
+    const sentUs = receivedUs + 100;
     return {
       ok: true,
       status: 200,
+      headers: {
+        get(name) {
+          switch (String(name).toLowerCase()) {
+            case 'x-time-server-received-unix-us': return String(receivedUs);
+            case 'x-time-server-sent-unix-us': return String(sentUs);
+            case 'x-time-server-processing-us': return '100';
+            default: return null;
+          }
+        },
+      },
       json: async () => ({
-        server_received_unix_us: now * 1000,
-        server_sent_unix_us: now * 1000,
+        server_received_unix_us: receivedUs,
+        server_sent_unix_us: sentUs,
         server_received_ms: now,
         server_sent_ms: now,
         clock_correction_applied: false,

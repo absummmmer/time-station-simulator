@@ -600,8 +600,9 @@
     }
 
     // Network sync: take several samples, discard the slowest ones, and use
-    // the median offset. The server timestamp is generated before the body is
-    // sent, so t4 must be taken after response.json() has consumed the body.
+    // the median offset. The server stamps receive/send in response headers as
+    // well as the body; t4 is taken immediately after headers arrive when
+    // those precision headers are available.
     const SYNC_SAMPLE_COUNT = 7;
     const SYNC_MIN_SAMPLES = 3;
     const SYSTEM_CLOCK_JUMP_MS = 80;
@@ -635,10 +636,22 @@
           response = await fetch(timeUrl, requestOptions);
         }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // The precision headers are stamped after the server has marshaled
+        // the body; taking t4 as soon as headers arrive avoids charging the
+        // JSON download to the network path.
+        const headerReceivedRaw = response.headers && typeof response.headers.get === 'function'
+          ? response.headers.get('x-time-server-received-unix-us') : null;
+        const headerSentRaw = response.headers && typeof response.headers.get === 'function'
+          ? response.headers.get('x-time-server-sent-unix-us') : null;
+        const headerReceivedUs = Number(headerReceivedRaw);
+        const headerSentUs = Number(headerSentRaw);
+        const headerT4 = Date.now();
         const data = await response.json();
-        const t4 = Date.now();
-        let t2 = Number(data.server_received_unix_us) / 1000;
-        let t3 = Number(data.server_sent_unix_us) / 1000;
+        const hasHeaderTimes = Number.isFinite(headerReceivedUs)
+          && Number.isFinite(headerSentUs) && headerSentUs >= headerReceivedUs;
+        const t4 = hasHeaderTimes ? headerT4 : Date.now();
+        let t2 = hasHeaderTimes ? headerReceivedUs / 1000 : Number(data.server_received_unix_us) / 1000;
+        let t3 = hasHeaderTimes ? headerSentUs / 1000 : Number(data.server_sent_unix_us) / 1000;
         let serverMs;
         if (Number.isFinite(t2) && Number.isFinite(t3) && t3 >= t2) {
           serverMs = t2;
