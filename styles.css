@@ -663,6 +663,14 @@
       background: rgba(156, 163, 175, 0.06);
     }
 
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    #ntp_detail_panel {
+      overflow: hidden;
+    }
+
     .ntp-history-chart {
       border: 1px solid #1f2937;
       border-radius: 0.5rem;

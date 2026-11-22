@@ -1079,7 +1079,6 @@
       const target = entry || (ntpDetailEntryAt
         ? syncAuditLog.find(item => item.at === ntpDetailEntryAt)
         : syncAuditLog[syncAuditLog.length - 1]);
-      renderNtpHistoryChart(target && target.at);
       if (!target) {
         el.innerHTML = '<div class="text-gray-500">NO SYNC DETAIL DATA</div>';
         return;
@@ -1128,36 +1127,49 @@
       </div>` : '';
 
       el.innerHTML = `${syncBlock}
-      <div class="border-t border-dark-700 pt-3">
-        <div class="flex flex-wrap items-center gap-2">
+      <div class="mt-4 border-t border-dark-700 pt-3">
+        <div class="mb-2 flex flex-wrap items-center gap-2">
           <span class="text-[10px] uppercase tracking-wide text-gray-500">ntp</span>
           <span class="ntp-badge ntp-${view.status}">${ntpStatusLabel(view)}</span>
           <span class="text-gray-500">measured at last successful NTP sample</span>
         </div>
-      </div>
-      <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-        ${metric('source', sourceLabel)}
-        ${metric('measured offset', view.offsetMs !== null ? formatSignedNtpMs(view.offsetMs, 2) : '—')}
-        ${metric('uncertainty', view.uncertaintyMs !== null ? `±${view.uncertaintyMs.toFixed(1)} ms` : '—')}
-        ${metric('rtt', view.rttMs !== null ? `${view.rttMs.toFixed(1)} ms` : '—')}
-        ${metric('stratum', view.stratum !== null ? `${view.stratum}` : '—')}
-        ${metric('sample age', view.ageS !== null ? `${formatNtpAge(view.ageS)} (${Math.round(view.ageS)}s)` : '—')}
-        ${metric('correction', correction)}
-        ${metric('last success', lastSuccess)}
-      </div>
-      ${errorBlock}
-      ${sourcesBlock}`;
+        <div id="ntp_history_chart" class="ntp-history-chart mb-3"></div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+          ${metric('source', sourceLabel)}
+          ${metric('measured offset', view.offsetMs !== null ? formatSignedNtpMs(view.offsetMs, 2) : '—')}
+          ${metric('uncertainty', view.uncertaintyMs !== null ? `±${view.uncertaintyMs.toFixed(1)} ms` : '—')}
+          ${metric('rtt', view.rttMs !== null ? `${view.rttMs.toFixed(1)} ms` : '—')}
+          ${metric('stratum', view.stratum !== null ? `${view.stratum}` : '—')}
+          ${metric('sample age', view.ageS !== null ? `${formatNtpAge(view.ageS)} (${Math.round(view.ageS)}s)` : '—')}
+          ${metric('correction', correction)}
+          ${metric('last success', lastSuccess)}
+        </div>
+        ${errorBlock}
+        ${sourcesBlock}
+      </div>`;
+      renderNtpHistoryChart(target.at);
+    }
+
+    function syncModalBodyLock() {
+      const ids = ['sync_log_panel', 'ntp_detail_panel', 'combined_prompt_panel', 'backend_config_panel'];
+      const anyOpen = ids.some(id => {
+        const el = getUi(id);
+        return !!el && !el.classList.contains('hidden');
+      });
+      document.body.classList.toggle('modal-open', anyOpen);
     }
 
     function openNtpDetailPanel(entry = null) {
       ntpDetailEntryAt = entry && entry.at ? entry.at : null;
       renderNtpDetailPanel(entry);
       getUi('ntp_detail_panel').classList.remove('hidden');
+      syncModalBodyLock();
     }
 
     function closeNtpDetailPanel() {
       ntpDetailEntryAt = null;
       getUi('ntp_detail_panel').classList.add('hidden');
+      syncModalBodyLock();
     }
 
     function ntpCorrectionParticipated(entry) {
@@ -1390,10 +1402,12 @@
       renderSyncAuditLog();
       setAuditTab(activeAuditTab);
       getUi('sync_log_panel').classList.remove('hidden');
+      syncModalBodyLock();
     }
 
     function closeSyncAuditLog() {
       getUi('sync_log_panel').classList.add('hidden');
+      syncModalBodyLock();
     }
 
     function clearSyncAuditLog() {
