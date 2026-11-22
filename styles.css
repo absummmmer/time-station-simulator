@@ -721,7 +721,7 @@
     }
 
     .ntp-sources {
-      width: 100%;
+      width: auto;
       border-collapse: collapse;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 9px;
