@@ -7,8 +7,8 @@
   <title>Time Station Simulator</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="favicon.ico" type="image/x-icon">
-  <link rel="stylesheet" href="tailwind.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="tailwind.css?v=20261122-2">
+  <link rel="stylesheet" href="styles.css?v=20261122-2">
 </head>
 
 <body class="bg-black text-white min-h-screen min-w-[320px] p-4 sm:p-8 flex flex-col justify-center">
@@ -439,7 +439,7 @@
   </div>
 
   <div id="sync_log_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
-    <div class="w-full max-w-5xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col">
+    <div class="w-full max-w-5xl mx-auto h-full max-h-[90vh] bg-dark-800 rounded-xl p-3 sm:p-4 flex flex-col relative">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0">
           <button id="audit_tab_sync" type="button"
@@ -491,9 +491,9 @@
           </div>
         </div>
       </div>
+      <button id="sync_log_back_to_top" type="button" aria-label="Back to top"
+        class="audit-back-to-top hidden" title="Back to top">&#8593;</button>
     </div>
-    <button id="sync_log_back_to_top" type="button" aria-label="Back to top"
-      class="audit-back-to-top hidden" title="Back to top">&#8593;</button>
   </div>
 
   <div id="combined_prompt_panel" class="hidden fixed inset-0 z-50 bg-black/80 p-2 sm:p-6">
@@ -562,12 +562,12 @@
     </form>
   </div>
 
-  <script src="audio/wwv/sprite.js"></script>
-  <script src="core.js"></script>
-  <script src="audio-engine.js"></script>
-  <script src="time-sync.js"></script>
-  <script src="observability.js"></script>
-  <script src="app.js"></script>
+  <script src="audio/wwv/sprite.js?v=20261122-2"></script>
+  <script src="core.js?v=20261122-2"></script>
+  <script src="audio-engine.js?v=20261122-2"></script>
+  <script src="time-sync.js?v=20261122-2"></script>
+  <script src="observability.js?v=20261122-2"></script>
+  <script src="app.js?v=20261122-2"></script>
 </body>
 
 </html>

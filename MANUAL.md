@@ -430,6 +430,8 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
   `clockServoState`, and `clockServoAppliedMs`;
 - NTP cells open NTP details and a 24-hour trend;
 - the sync audit list has a floating back-to-top button once it is scrolled;
+- at `641–1000px` the audit list keeps the wide one-record-per-row table and
+  scrolls horizontally; at `≤640px` it switches to stacked cards;
 - NTP source table labels uncertainty as `unc`, root as
   `root delay±root dispersion`, and leap as `N/+/-/?` (normal/insert/delete/unknown);
 - the single 🤖 button opens the combined sync+trace analysis prompt in

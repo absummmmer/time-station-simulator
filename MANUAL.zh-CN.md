@@ -346,6 +346,8 @@ UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止�
   `clockServoPpm`、`clockServoState` 和 `clockServoAppliedMs`；
 - NTP 单元格可点击打开 NTP 详情和最近 24 小时趋势；
 - 审计列表向下滚动后会显示浮动的返回顶部按钮；
+- `641–1000px` 宽度下审计列表保持一行一条的宽表并允许横向滚动；`≤640px`
+  才切换为堆叠卡片；
 - NTP 源表的误差列标为 `unc`，root 列显示为
   `root delay±root dispersion`，leap 用 `N/+/-/?` 表示正常/插入/删除/未知；
 - 面板中的 🤖 按钮提供同步+轨迹合并分析提示词（中文/英文），并可导出精简的
