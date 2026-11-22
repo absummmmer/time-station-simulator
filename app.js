@@ -71,6 +71,35 @@
           openEntryDetails(e.target);
         });
       }
+      const syncView = getUi('sync_audit_view');
+      const backToTop = getUi('sync_log_back_to_top');
+      const updateBackToTop = () => {
+        if (!backToTop) return;
+        const visible = !!syncEntries && !!syncView
+          && !syncView.classList.contains('hidden')
+          && syncEntries.scrollTop > 200;
+        backToTop.classList.toggle('hidden', !visible);
+      };
+      if (syncEntries && backToTop) {
+        syncEntries.addEventListener('scroll', updateBackToTop, { passive: true });
+        backToTop.addEventListener('click', () => {
+          if (typeof syncEntries.scrollTo === 'function') {
+            syncEntries.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            syncEntries.scrollTop = 0;
+          }
+          updateBackToTop();
+        });
+      }
+      if (openBtn && backToTop) {
+        openBtn.addEventListener('click', () => setTimeout(updateBackToTop, 0));
+      }
+      if (syncTab && backToTop) {
+        syncTab.addEventListener('click', () => setTimeout(updateBackToTop, 0));
+      }
+      if (traceTab && backToTop) {
+        traceTab.addEventListener('click', () => setTimeout(updateBackToTop, 0));
+      }
       const ntpDetailClose = getUi('ntp_detail_close');
       if (ntpDetailClose) ntpDetailClose.addEventListener('click', closeNtpDetailPanel);
       const ntpDetailPanel = getUi('ntp_detail_panel');

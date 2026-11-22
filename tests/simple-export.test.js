@@ -16,6 +16,7 @@ const { boot, wait } = require('./dom-harness');
     uncertaintyMs: 2, rttMs: 21, spreadMs: 1, samples: 5, kept: 5, durationMs: 900,
     backendNtpSource: 'ntp.test', backendNtpFallback: false,
     backendNtpCorrectionApplied: true, backendNtpCorrectionReason: 'primary_synchronized',
+    clockServoPpm: 5.54, clockServoState: 'stable', clockServoAppliedMs: 0.2,
     backendNtpServers: 'full-list-should-not-appear', backendNtpSources: '[{"server":"x"}]',
   })})`);
   window.eval('recordClockTrace("HEARTBEAT")');
@@ -30,8 +31,10 @@ const { boot, wait } = require('./dom-harness');
   }
 
   const sync = await exportAndRead('exportSyncAuditCsv({simple:true})');
-  assert.strictEqual(sync.lines[0].split(',').length, 15);
+  assert.strictEqual(sync.lines[0].split(',').length, 18);
   assert.ok(sync.lines[0].includes('backendNtpCorrectionApplied'));
+  assert.ok(sync.lines[0].includes('clockServoPpm'));
+  assert.ok(sync.lines[1].includes('5.54'));
   assert.ok(!sync.lines[0].includes('backendNtpSources'));
   assert.ok(sync.name.includes('simple-6h'));
 

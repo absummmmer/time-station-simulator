@@ -853,6 +853,16 @@
       return `${formatSignedNtpMs(view.offsetMs, 1)}±${view.uncertaintyMs.toFixed(1)}ms`;
     }
 
+    function formatNtpLeap(leap, reachable) {
+      if (!reachable) return '?';
+      const value = Number(leap);
+      if (!Number.isFinite(value)) return '?';
+      if (value === 0) return 'N';
+      if (value === 1) return '+';
+      if (value === 2) return '-';
+      return '?';
+    }
+
     function formatNtpSourceTable(view) {
       if (!view || !view.sources.length) return '';
       const hasNumber = value => value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value));
@@ -879,9 +889,9 @@
         const failures = hasNumber(source.consecutive_failures) ? String(Number(source.consecutive_failures)) : '—';
         const flags = `${source.offset_ok === true ? 'O' : '-'}${source.quality_ok === true ? 'Q' : '-'}`;
         const root = hasNumber(source.root_delay_ms) && hasNumber(source.root_dispersion_ms)
-          ? `${Number(source.root_delay_ms).toFixed(1)}/${Number(source.root_dispersion_ms).toFixed(1)}ms`
+          ? `${Number(source.root_delay_ms).toFixed(1)}±${Number(source.root_dispersion_ms).toFixed(1)}ms`
           : '—';
-        const leap = hasNumber(source.leap) ? `L${Number(source.leap)}` : '—';
+        const leap = formatNtpLeap(source.leap, reachable);
         const titleParts = [];
         if (source.resolved_ip) titleParts.push(`resolved ${source.resolved_ip}`);
         if (source.last_success_at) titleParts.push(`last success ${formatFullTimestamp(source.last_success_at)}`);
@@ -905,7 +915,7 @@
         </tr>`;
       }).join('');
       return `<div class="ntp-sources-wrap"><table class="ntp-sources">
-        <thead><tr><th></th><th>source</th><th>S</th><th>offset</th><th>±ms</th><th>RTT</th><th>age</th><th>reach</th><th>fail</th><th>OQ</th><th>root</th><th>LP</th></tr></thead>
+        <thead><tr><th></th><th>source</th><th>S</th><th>offset</th><th title="uncertainty">unc</th><th>RTT</th><th>age</th><th>reach</th><th>fail</th><th>OQ</th><th title="root delay ± root dispersion">root</th><th title="N=normal, +=insert, -=delete, ?=unknown">leap</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
     }
@@ -1270,6 +1280,15 @@
       summary.textContent = `${syncAuditLog.length} SYNC · ${okCount} OK · ${failCount} ERR · ${formatTraceSpan(span)}`;
     }
 
+    function formatAuditTrim(entry) {
+      const ppm = Number(entry && entry.clockServoPpm);
+      if (entry && entry.clockServoState === 'stable' && Number.isFinite(ppm)) {
+        return `${formatSignedFixed(ppm, 2)}ppm`;
+      }
+      if (entry && entry.clockServoState === 'unstable') return 'HOLD';
+      return '—';
+    }
+
     function renderSyncAuditLog() {
       renderSyncAuditSummary();
       const entriesEl = getUi('sync_log_entries');
@@ -1286,11 +1305,12 @@
         <th class="c-offset num">BEFORE</th>
         <th class="c-arrow"></th>
         <th class="c-offset num">AFTER</th>
-        <th class="c-metric num">±</th>
+        <th class="c-metric num" title="uncertainty">unc</th>
         <th class="c-metric num">Δ</th>
         <th class="c-metric num">RTT</th>
         <th class="c-metric num">SAMPLES</th>
         <th class="c-duration num">TOOK</th>
+        <th class="c-trim num" title="clock frequency trim">TRIM</th>
         <th class="c-ntp">NTP</th>
       </tr></thead>`;
       const rows = syncAuditLog.slice().reverse().map(entry => {
@@ -1309,6 +1329,7 @@
         const duration = formatDurationSeconds(entry.durationMs);
         const fullServer = entry.ok ? escapeSyncText(formatFullTimestamp(entry.serverTime)) : '';
         const server = entry.ok ? escapeSyncText(formatAuditTimestamp(entry.serverTime)) : '—';
+        const trim = formatAuditTrim(entry);
         const ntpView = ntpEntryView(entry);
         const ntpPair = formatNtpOffsetPair(ntpView);
         const ntpCell = ntpView
@@ -1329,11 +1350,12 @@
           <td class="c-offset c-before num" data-label="BEFORE">${before}</td>
           <td class="c-arrow">→</td>
           <td class="c-offset c-after num" data-label="AFTER">${after}</td>
-          <td class="c-metric num" data-label="±">${uncertainty}</td>
+          <td class="c-metric num" data-label="unc">${uncertainty}</td>
           <td class="c-metric num" data-label="Δ">${spread}</td>
           <td class="c-metric num" data-label="RTT">${rtt}</td>
           <td class="c-metric num" data-label="SAMPLES">${samples}</td>
           <td class="c-duration num" data-label="TOOK">${duration}</td>
+          <td class="c-trim num" data-label="TRIM">${trim}</td>
           <td${ntpCellAttrs}>${ntpCell}</td>
         </tr>`;
       }).join('');
@@ -1370,6 +1392,7 @@
       'uncertaintyMs', 'rttMs', 'spreadMs', 'kept', 'samples', 'durationMs',
       'backendNtpSource', 'backendNtpFallback', 'backendNtpCorrectionApplied',
       'backendNtpCorrectionReason',
+      'clockServoPpm', 'clockServoState', 'clockServoAppliedMs',
     ];
     const SIMPLE_COMBINED_HEADERS = [
       'kind', 'at', 'rawAt', 'monoMs', 'offsetBeforeMs', 'offsetMs', 'reason', 'ok',
@@ -1378,6 +1401,7 @@
       'audioContextSession', 'audioSkewPpm', 'reanchorReason', 'calibrationSteps',
       'networkCompMs', 'deviceExtraMs', 'backendNtpSource', 'backendNtpFallback',
       'backendNtpCorrectionApplied', 'backendNtpCorrectionReason',
+      'clockServoPpm', 'clockServoState', 'clockServoAppliedMs',
     ];
 
     function exportSyncAuditCsv(options = {}) {
@@ -1396,6 +1420,8 @@
         'backendNtpCorrectionUncertaintyMs', 'backendNtpCorrectionEligible',
         'backendNtpCorrectionMode', 'backendNtpCorrectionSource',
         'backendNtpCorrectionReason', 'backendNtpClockSource',
+        'clockServoPpm', 'clockServoState', 'clockServoAppliedMs',
+        'clockServoPoints', 'clockServoMadPpm', 'clockServoUpdatedAtMs',
       ];
       const cutoff = getLogNowMs() - (simple ? SIMPLE_EXPORT_WINDOW_MS : LOG_EXPORT_WINDOW_MS);
       const entries = syncAuditLog.filter((entry) => {

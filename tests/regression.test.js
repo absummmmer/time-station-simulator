@@ -152,7 +152,19 @@ function json(value) {
     root_dispersion_ms: 2, leap: 0
   }]})`);
   check('NTP source units', sourceTable.includes('±2.5ms')
-    && sourceTable.includes('±ms') && sourceTable.includes('10.0/2.0ms'), sourceTable);
+    && sourceTable.includes('>unc</th>')
+    && sourceTable.includes('10.0±2.0ms')
+    && sourceTable.includes('<td>N</td>'), sourceTable);
+  check('NTP leap encoding',
+    window.eval('formatNtpLeap(0, true)') === 'N'
+      && window.eval('formatNtpLeap(1, true)') === '+'
+      && window.eval('formatNtpLeap(2, true)') === '-'
+      && window.eval('formatNtpLeap(3, true)') === '?'
+      && window.eval('formatNtpLeap(0, false)') === '?');
+  check('audit trim formatting',
+    window.eval('formatAuditTrim({clockServoState:"stable",clockServoPpm:5.54})') === '+5.54ppm'
+      && window.eval('formatAuditTrim({clockServoState:"unstable"})') === 'HOLD'
+      && window.eval('formatAuditTrim({clockServoState:"idle"})') === '—');
 
   const correctionFields = json(window.eval(`JSON.stringify(backendCorrectionAuditFields({
     clockCorrectionApplied: false,

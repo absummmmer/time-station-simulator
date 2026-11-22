@@ -361,6 +361,36 @@
     .sync-log-table td.c-server { color: #6b7280; }
     .sync-log-table td.mark-ok { color: #4ade80; }
     .sync-log-table td.mark-fail { color: #f87171; }
+    .sync-log-table th.c-trim, .sync-log-table td.c-trim { min-width: 4.2rem; }
+
+    .audit-back-to-top {
+      position: absolute;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 65;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border: 1px solid #374151;
+      border-radius: 9999px;
+      background: rgba(17, 24, 39, 0.92);
+      color: #e5e7eb;
+      font-size: 1.15rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .audit-back-to-top:hover {
+      background: #1f2937;
+      color: #fff;
+    }
+
+    .audit-back-to-top.hidden {
+      display: none;
+    }
 
     @media (max-width: 1000px) {
       .sync-log-table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -398,7 +428,7 @@
       .sync-log-table td.c-server { overflow-wrap: anywhere; word-break: break-all; }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 800px) {
       .sync-log-table tr { grid-template-columns: minmax(0, 1fr); }
     }
 
