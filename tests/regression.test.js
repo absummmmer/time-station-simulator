@@ -215,6 +215,15 @@ function json(value) {
   check('NTP source table has no redundant tooltips',
     !sourceTable.includes('title=')
       && sourceTable.includes('ntp-last-sample-header'), sourceTable);
+  check('NTP source supplement column order',
+    (() => {
+      const sample = sourceTable.indexOf('>Last sample</th>');
+      const oq = sourceTable.indexOf('>OQ</th>');
+      const root = sourceTable.indexOf('Rt delay/disp');
+      const leap = sourceTable.indexOf('>leap</th>');
+      return sample >= 0 && sample < oq && oq < root && root < leap
+        && sourceTable.includes('ntp-supplement');
+    })(), sourceTable);
   check('NTP leap encoding',
     window.eval('formatNtpLeap(0, true)') === 'N'
       && window.eval('formatNtpLeap(1, true)') === '+'

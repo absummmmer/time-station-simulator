@@ -948,10 +948,10 @@
           <td>${reach}</td>
           <td>${lastRx}</td>
           <td class="ntp-last-sample">${sampleText}</td>
+          <td class="center ntp-supplement">${flags}</td>
           <td>${rootDelayText}</td>
           <td>${rootDispText}</td>
-          <td class="center">${flags}</td>
-          <td class="center">${leap}</td>
+          <td class="center ntp-supplement">${leap}</td>
         </tr>`;
       }).join('');
       return `<div class="ntp-sources-wrap"><table class="ntp-sources">
@@ -963,9 +963,9 @@
           <th>Reach</th>
           <th>LastRx</th>
           <th class="ntp-last-sample-header">Last sample</th>
+          <th class="center ntp-supplement">OQ</th>
           <th colspan="2" class="center">Rt delay/disp</th>
-          <th class="center">OQ</th>
-          <th class="center">leap</th>
+          <th class="center ntp-supplement">leap</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
