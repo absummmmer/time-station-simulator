@@ -1127,11 +1127,9 @@
       </div>` : '';
 
       el.innerHTML = `${syncBlock}
-      <div class="mt-4 border-t border-dark-700 pt-3">
-        <div class="mb-2 flex flex-wrap items-center gap-2">
-          <span class="text-[10px] uppercase tracking-wide text-gray-500">ntp</span>
-          <span class="ntp-badge ntp-${view.status}">${ntpStatusLabel(view)}</span>
-          <span class="text-gray-500">measured at last successful NTP sample</span>
+      <div class="mt-5">
+        <div class="mb-2">
+          <span class="ntp-badge ntp-${view.status}" title="NTP status">${ntpStatusLabel(view)}</span>
         </div>
         <div id="ntp_history_chart" class="ntp-history-chart mb-3"></div>
         <div class="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -1156,6 +1154,7 @@
         const el = getUi(id);
         return !!el && !el.classList.contains('hidden');
       });
+      document.documentElement.classList.toggle('modal-open', anyOpen);
       document.body.classList.toggle('modal-open', anyOpen);
     }
 
