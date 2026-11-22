@@ -444,7 +444,9 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
   decimal points; a source that is currently unreachable but still has nonzero
   reach keeps its last sample and a growing `LastRx`, while current `RTT` shows
   `-` and `OQ` shows `--`; after eight consecutive failures (reach zero) it
-  becomes `x` and its row is filled with `-`;
+  becomes `x` and its row is filled with `-`; a source that has never succeeded
+  shows `?` with defaults `Stratum=0`, `Reach=0`, `Last sample=+0us ± 0us` and
+  `leap=?`;
 - the single 🤖 button opens the combined sync+trace analysis prompt in
   Chinese/English and exports a simplified 6-hour combined CSV; copy the prompt
   with that export. The prompt separates `clockServo*` frequency trim from

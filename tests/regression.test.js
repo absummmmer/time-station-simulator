@@ -159,6 +159,12 @@ function json(value) {
     reach: 1, reach_octal: '001', offset_ok: true, quality_ok: true,
     root_delay_ms: 2, root_dispersion_ms: 3, leap: 0
   },{
+    server: 'failed.test', resolved_ip: '192.0.2.3', reachable: false,
+    offset_ms: 1, rtt_ms: 10, stratum: 2,
+    last_success_at: new Date(Date.now() - 3600000).toISOString(), age_s: 3600,
+    reach: 0, reach_octal: '000', offset_ok: true, quality_ok: true,
+    root_delay_ms: 3, root_dispersion_ms: 4, leap: 0
+  },{
     server: 'down.test', reachable: false, offset_ms: 0, rtt_ms: 0, stratum: 0,
     reach: 0, reach_octal: '000', offset_ok: false, quality_ok: false,
     root_delay_ms: 0, root_dispersion_ms: 0, leap: 3
@@ -177,8 +183,8 @@ function json(value) {
     && !sourceTable.includes('ntp-source-legend')
     && !sourceTable.includes('>unc</th>'), sourceTable);
   check('NTP source rows stay at eleven cells',
-    (sourceTable.match(/<tr class=/g) || []).length === 3
-      && (sourceTable.match(/<td/g) || []).length === 33, sourceTable);
+    (sourceTable.match(/<tr class=/g) || []).length === 4
+      && (sourceTable.match(/<td/g) || []).length === 44, sourceTable);
   check('NTP source integer units and octal reach',
     !/\d+\.\d+(?:ms|us|s)/.test(sourceTable) && !sourceTable.includes('0377'), sourceTable);
   check('NTP source keeps last sample while reach remains',
@@ -189,10 +195,23 @@ function json(value) {
         const staleRow = (sourceTable.match(/<tr class="ntp-source-stale"[\s\S]*?<\/tr>/) || [''])[0];
         return !staleRow.includes('>30ms</td>') && staleRow.includes('>--</td>');
       })(), sourceTable);
-  check('NTP source unreachable row after eight misses',
-    sourceTable.includes('>down.test</td>')
-      && sourceTable.includes('>x</td>')
-      && /down\.test[\s\S]*?<td>-<\/td>/.test(sourceTable), sourceTable);
+  check('NTP source first unreachable uses chrony defaults',
+    (() => {
+      const unknownRow = (sourceTable.match(/<tr class="ntp-source-unknown"[\s\S]*?<\/tr>/) || [''])[0];
+      return unknownRow.includes('>?</td>')
+        && unknownRow.includes('>0</td>')
+        && unknownRow.includes('+0us')
+        && unknownRow.includes('±')
+        && unknownRow.includes('0us')
+        && unknownRow.includes('>?</td>');
+    })(), sourceTable);
+  check('NTP source failed after samples is x and dashed',
+    (() => {
+      const failedRow = (sourceTable.match(/<tr class="ntp-source-down"[\s\S]*?<\/tr>/) || [''])[0];
+      return failedRow.includes('>failed.test/192.0.2.3</td>')
+        && failedRow.includes('>x</td>')
+        && failedRow.includes('<td class="ntp-last-sample">-</td>');
+    })(), sourceTable);
   check('NTP leap encoding',
     window.eval('formatNtpLeap(0, true)') === 'N'
       && window.eval('formatNtpLeap(1, true)') === '+'
