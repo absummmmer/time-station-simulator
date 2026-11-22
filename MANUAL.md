@@ -430,9 +430,11 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
 - audit and trace stay local for 48 hours; normal exports cover 24 hours; sync
   CSV exports include `clockServoPpm`, `clockServoState`, and
   `clockServoAppliedMs`;
-- the NTP source table follows chrony conventions; `S`, `Reach`, `-`, `x`, and
-  `?` distinguish selectable, stale, failed, and never-sampled sources without
-  repeating every column in prose;
+- the NTP source table follows chrony conventions; `?` means unreachable,
+  not sampled, or not selectable, while `x` is reserved for a falseticker
+  (not produced by the current probe); nonzero reach keeps the last sample,
+  while reach zero uses `Stratum=0`, `Reach=0`, `Last sample=+0us ± 0us`,
+  and `leap=?` defaults;
 - the single 🤖 button provides the Chinese/English combined analysis prompt and
   a 6-hour combined CSV; CSV files stay local and are never uploaded.
 

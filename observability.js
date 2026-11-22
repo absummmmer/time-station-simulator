@@ -870,39 +870,39 @@
         if (value < 31536000) return `${Math.min(99, Math.round(value / 86400))}d`;
         return `${Math.round(value / 31536000)}y`;
       };
-      const stateFor = (source, reachNumber, hasLastSuccess) => {
+      const stateFor = source => {
         if (source.selected === true) return '*';
-        if (source.reachable !== true) {
-          if (reachNumber === 0) return hasLastSuccess ? 'x' : '?';
-          return '?';
-        }
+        // Reserve x for chrony-style falsetickers. The time-api probe has no
+        // majority election, so unreachable/unknown sources are '?'.
+        if (source.reachable !== true) return '?';
         if (source.offset_ok === true && source.quality_ok === true) return '+';
         return '?';
       };
       const rows = view.sources.map(source => {
         if (!source || typeof source !== 'object') return '';
         const reachable = source.reachable === true;
-        const hasLastSuccess = !!source.last_success_at;
         const reachNumber = hasNumber(source.reach)
           ? Number(source.reach)
           : (source.reach_octal ? parseInt(String(source.reach_octal), 8) : 0);
+        const defaultUnreachable = !reachable && reachNumber === 0;
         const showValues = reachable || reachNumber !== 0;
-        const neverSampled = !hasLastSuccess;
-        const state = stateFor(source, reachNumber, hasLastSuccess);
+        const state = stateFor(source);
         const rowClass = source.selected === true
           ? 'ntp-source-selected'
           : reachable
             ? ''
-            : (neverSampled ? 'ntp-source-unknown' : (reachNumber === 0 ? 'ntp-source-down' : 'ntp-source-stale'));
+            : (reachNumber === 0 ? 'ntp-source-unknown' : 'ntp-source-stale');
         const offset = showValues && hasNumber(source.offset_ms)
           ? chronySigned(Number(source.offset_ms))
           : '-';
         const rtt = reachable && hasNumber(source.rtt_ms)
           ? chronyDuration(Number(source.rtt_ms))
           : '-';
-        const stratum = showValues && hasNumber(source.stratum) && Number(source.stratum) > 0
-          ? String(Number(source.stratum))
-          : (neverSampled ? '0' : '-');
+        const stratum = defaultUnreachable
+          ? '0'
+          : (showValues && hasNumber(source.stratum) && Number(source.stratum) > 0
+            ? String(Number(source.stratum))
+            : '-');
         const lastRx = showValues && hasNumber(source.age_s) && source.last_success_at
           ? chronyLastRx(Number(source.age_s))
           : '-';
@@ -911,14 +911,14 @@
         const rootDistance = rootDelay !== null && rootDispersion !== null
           ? rootDelay / 2 + rootDispersion
           : null;
-        const sampleError = neverSampled ? '0us' : (showValues && rootDistance !== null
-          ? chronyDuration(rootDistance)
-          : '-');
+        const sampleError = defaultUnreachable
+          ? '0us'
+          : (showValues && rootDistance !== null ? chronyDuration(rootDistance) : '-');
         const rootDelayText = showValues && rootDelay !== null ? chronyDuration(rootDelay) : '-';
         const rootDispText = showValues && rootDispersion !== null ? chronyDuration(rootDispersion) : '-';
         const rawReach = source.reach_octal
           || (hasNumber(source.reach) ? Number(source.reach).toString(8) : '');
-        const reach = neverSampled
+        const reach = defaultUnreachable
           ? '0'
           : (showValues && rawReach !== ''
             ? String(rawReach).replace(/^0+(?=\d)/, '')
@@ -926,14 +926,14 @@
         const flags = reachable
           ? `${source.offset_ok === true ? 'O' : '-'}${source.quality_ok === true ? 'Q' : '-'}`
           : '--';
-        const leap = neverSampled ? '?' : (showValues ? formatNtpLeap(source.leap, true) : '-');
+        const leap = defaultUnreachable ? '?' : (showValues ? formatNtpLeap(source.leap, true) : '-');
         const resolvedIp = source.resolved_ip && source.resolved_ip !== source.server
           ? source.resolved_ip
           : '';
         const nameIp = resolvedIp ? `${source.server || '-'}/${resolvedIp}` : (source.server || '-');
         // Keep Last sample self-contained under one header. Fixed character
         // padding on both halves keeps the value and unit columns aligned.
-        const sampleText = neverSampled
+        const sampleText = defaultUnreachable
           ? `${'+0us'.padStart(7, ' ')} ± ${'0us'.padStart(6, ' ')}`
           : (showValues && offset !== '-'
             ? (sampleError !== '-'

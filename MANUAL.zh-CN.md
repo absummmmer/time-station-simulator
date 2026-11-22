@@ -344,8 +344,9 @@ UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止�
   offset 色带外层对应 spread、内层对应 uncertainty，音频事件只画在 audio Δ 图；
 - 审计和 trace 本地保留 48 小时；普通导出 24 小时；同步 CSV 含
   `clockServoPpm`、`clockServoState`、`clockServoAppliedMs`；
-- NTP 源表使用 chrony 风格；不可达、未采样和 noselect 状态用 `S`、`Reach`、
-  `-`、`x`、`?` 区分，不再重复解释每一列；
+- NTP 源表使用 chrony 风格；`?` 表示不可达、未采样或不可选，`x` 保留给
+  falseticker（当前探测不产生）；reach 非零时保留最近采样，reach 归零后显示
+  `Stratum=0`、`Reach=0`、`Last sample=+0us ± 0us`、`leap=?` 的默认值；
 - 🤖 提供中英文合并分析提示词和 6 小时合并 CSV；CSV 仅在本机导出。
 
 ### 5.2 页面展示

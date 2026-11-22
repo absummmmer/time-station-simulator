@@ -195,23 +195,19 @@ function json(value) {
         const staleRow = (sourceTable.match(/<tr class="ntp-source-stale"[\s\S]*?<\/tr>/) || [''])[0];
         return !staleRow.includes('>30ms</td>') && staleRow.includes('>--</td>');
       })(), sourceTable);
-  check('NTP source first unreachable uses chrony defaults',
+  check('NTP source unreachable rows use chrony defaults',
     (() => {
-      const unknownRow = (sourceTable.match(/<tr class="ntp-source-unknown"[\s\S]*?<\/tr>/) || [''])[0];
-      return unknownRow.includes('>?</td>')
-        && unknownRow.includes('>0</td>')
-        && unknownRow.includes('+0us')
-        && unknownRow.includes('±')
-        && unknownRow.includes('0us')
-        && unknownRow.includes('>?</td>');
+      const unknownRows = [...sourceTable.matchAll(/<tr class="ntp-source-unknown"[\s\S]*?<\/tr>/g)]
+        .map(match => match[0]);
+      return unknownRows.length === 2 && unknownRows.every(row =>
+        row.includes('>?</td>')
+          && row.includes('>0</td>')
+          && row.includes('+0us')
+          && row.includes('±')
+          && row.includes('0us'));
     })(), sourceTable);
-  check('NTP source failed after samples is x and dashed',
-    (() => {
-      const failedRow = (sourceTable.match(/<tr class="ntp-source-down"[\s\S]*?<\/tr>/) || [''])[0];
-      return failedRow.includes('>failed.test/192.0.2.3</td>')
-        && failedRow.includes('>x</td>')
-        && failedRow.includes('<td class="ntp-last-sample">-</td>');
-    })(), sourceTable);
+  check('NTP source reserves x for falsetickers',
+    !sourceTable.includes('>x</td>') && !sourceTable.includes('ntp-source-down'), sourceTable);
   check('NTP source table has no redundant tooltips',
     !sourceTable.includes('title=')
       && sourceTable.includes('ntp-last-sample-header'), sourceTable);
