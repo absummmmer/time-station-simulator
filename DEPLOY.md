@@ -1,13 +1,10 @@
 # Deployment
 
-The application is plain static files. Serve this directory over HTTP(S); do not
-open `index.html` via `file://`, because audio assets and the Time API are loaded
-over HTTP.
+Serve the project directory over HTTP; `file://` will not work because the
+page fetches audio assets and the time API. The server must serve `.js`,
+`.css`, `.woff2`, `.woff`, `.mp3`, `.svg` and `.ico` with normal MIME types.
 
-The server must serve `.html`, `.js`, `.css`, `.woff2`, `.woff`, `.mp3`, `.svg`
-and `.ico` with their normal MIME types.
-
-## Runtime files
+## Required runtime files
 
 ```text
 index.html
@@ -35,66 +32,74 @@ dseg7-classic-mini-400-normal.woff2
 dseg7-classic-mini-400-normal.woff
 dseg7-classic-mini-700-normal.woff2
 dseg7-classic-mini-700-normal.woff
+```
 
+## Licenses only
+
+The deployment bundle includes only these non-runtime files:
+
+```text
 THIRD_PARTY_WWV_LICENSE.txt
 DSEG7-LICENSE.txt
 DSEG7-MINI-LICENSE.txt
 ```
 
-Tests and Markdown documentation are not required in the static deployment.
-There is no build step for the committed runtime files.
+Repository documentation (`README.md`, `MANUAL.md`, etc.) is intentionally not
+part of the deploy bundle.
 
-## Backend
+## Do not deploy
 
-The backend is the companion
-[`time-api`](https://github.com/absummmmer/time-api) project; its README
-documents API configuration, NTP health, and self-hosting.
-
-No backend URL is embedded in the page. The first `AUTO`, `SYNC` or `DUT1 AUTO`
-opens a setup dialog for the Time API base URL. The value is stored in the
-browser's `localStorage`; changing the host or clearing site data requires
-entering it again.
-
-Requirements:
-
-- the backend must allow the page origin through CORS;
-- an HTTPS page cannot call an HTTP backend except localhost;
-- a base path prefix is supported;
-- pasted `/v1/time`, `/v1/time/ntp` or `/v1/dut1` URLs are normalized to the
-  base URL.
-
-The URL can be changed later from the sync audit panel's 🔌 button or with
-`?setup=backend`.
+```text
+tests/
+archive/
+wwv-master/
+package.json
+tailwind.config.cjs
+tailwind.input.css
+*.pdf
+RWM - Wikipedia.mhtml
+*.mp3 reference recordings not under audio/
+```
 
 ## Build-only steps
 
-Only needed when changing Tailwind utility classes:
+Only needed when changing utility classes:
 
 ```bash
+cd time-station-simulator
 npm install
 npm run build:css
 ```
 
-`tailwind.css` is committed and is the file deployed.
+The generated `tailwind.css` is already committed and is the file deployed.
 
 ## Cache
 
-After updating a deployment, hard-refresh once or version the static asset URLs.
-The page loads several separate scripts, so an old cached `index.html` must not
-be mixed with a new `app.js` / `core.js` set. Replace the complete runtime set
-from one package (or at least `core.js`, `app.js`, `time-sync.js`,
-`observability.js` together): a newer script can call functions that do not
-exist in an older companion script. If the browser still serves stale files,
-verify them in the network panel or append a version query to the script URLs.
+The internal deployment build stamps the deployed `index.html` with a
+content-derived `?v=` value for every CSS/JS reference, so a changed runtime file
+automatically invalidates the browser cache without a manual version bump. The
+build also mirrors the result to the configured SMB site and verifies every file
+by SHA256; use `-SkipSmbMirror` only for a local-only bundle.
 
-## Tests
+When serving a checkout directly (including the public repository), hard-refresh
+once after changing the files or configure the web server to send
+`Cache-Control: no-cache` for `index.html`. The page loads several separate
+scripts, so an old cached `index.html` must not be mixed with a new
+`app.js`/`core.js` set.
 
-The test suite is not deployed. To run it locally:
+## Backend
 
-```bash
-cd tests
-npm install
-npm test
-```
+No active backend URL is embedded in the static bundle. The first AUTO, manual
+SYNC or DUT1 AUTO opens a small setup dialog that asks for the `time-api` base
+URL and stores it in that browser's `localStorage`. The backend must allow the
+page origin through CORS; an HTTPS page cannot call an HTTP endpoint except
+localhost. A path prefix is supported, and pasted `/v1/time` endpoints are
+normalized.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+Existing browsers with old settings get a one-time migration prompt that asks
+for the new backend address; no old address is prefilled. After that, use the
+🔌 button in the sync audit header or `?setup=backend` to change it. The
+frontend can still be deployed before or after the `time-api` update; unknown
+correction fields simply appear blank until the API returns them. Rebuild the
+`time-api` image and keep `NTP_CORRECTION_MODE=first` (or `off`) as described in
+`time-api/README.md`. No NAS chrony configuration change is required.
