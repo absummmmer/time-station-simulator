@@ -371,29 +371,22 @@
       outline-offset: -1px;
     }
 
-    @media (min-width: 701px) {
-      .sync-log-table th.c-server, .sync-log-table td.c-server,
-      .sync-log-table th.c-unc, .sync-log-table td.c-unc,
-      .sync-log-table th.c-spread, .sync-log-table td.c-spread,
-      .sync-log-table th.c-samples, .sync-log-table td.c-samples,
-      .sync-log-table th.c-duration, .sync-log-table td.c-duration {
-        display: none;
-      }
-      .sync-log-table .ntp-entry-meta { display: none; }
-      .sync-log-table th.c-state, .sync-log-table td.c-state {
-        min-width: 6rem;
-        max-width: 8rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .sync-log-table th.c-timestamp, .sync-log-table td.c-timestamp { min-width: 6.4rem; }
-      .sync-log-table th.c-offset, .sync-log-table td.c-offset { min-width: 2.8rem; }
-      .sync-log-table th.c-arrow, .sync-log-table td.c-arrow { min-width: 0.4rem; }
-      .sync-log-table th.c-metric, .sync-log-table td.c-metric { min-width: 2.2rem; }
-      .sync-log-table th.c-trim, .sync-log-table td.c-trim { min-width: 3.2rem; }
-      .sync-log-table th.c-mark, .sync-log-table td.c-mark { min-width: 1rem; }
-      .sync-log-table th.c-ntp, .sync-log-table td.c-ntp { min-width: 7.2rem; }
+    /* The audit table is always the compact one; only its layout changes
+       between the wide table and stacked cards. */
+    .sync-log-table .ntp-entry-meta { display: none; }
+    .sync-log-table th.c-state, .sync-log-table td.c-state {
+      min-width: 6rem;
+      max-width: 8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .sync-log-table th.c-timestamp, .sync-log-table td.c-timestamp { min-width: 6.4rem; }
+    .sync-log-table th.c-offset, .sync-log-table td.c-offset { min-width: 2.8rem; }
+    .sync-log-table th.c-arrow, .sync-log-table td.c-arrow { min-width: 0.4rem; }
+    .sync-log-table th.c-metric, .sync-log-table td.c-metric { min-width: 2.2rem; }
+    .sync-log-table th.c-trim, .sync-log-table td.c-trim { min-width: 3.2rem; }
+    .sync-log-table th.c-mark, .sync-log-table td.c-mark { min-width: 1rem; }
+    .sync-log-table th.c-ntp, .sync-log-table td.c-ntp { min-width: 7.2rem; }
 
     .audit-back-to-top {
       position: absolute;
@@ -456,6 +449,7 @@
         text-transform: uppercase;
       }
       .sync-log-table td.c-arrow { display: none; }
+      .sync-log-table td.c-state { max-width: none; overflow: visible; text-overflow: clip; }
       .sync-log-table td.c-timestamp,
       .sync-log-table td.c-server { overflow-wrap: anywhere; word-break: break-all; }
     }
