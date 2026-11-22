@@ -20,6 +20,14 @@ for (const [name, body] of [['combined zh', combinedZh], ['combined en', combine
   assert.ok(body.text.includes('CALIBRATION'), `${name} must describe calibration events`);
   assert.ok(body.text.includes('backendNtpCorrectionApplied'), `${name} must gate NTP participation`);
   assert.ok(body.text.includes('backendNtpOffsetMs'), `${name} must separate backend NTP offset`);
+  assert.ok(body.text.includes('clockServoPpm') && body.text.includes('clockServoState')
+    && body.text.includes('clockServoAppliedMs'), `${name} must explain TRIM fields`);
+  assert.ok(body.text.includes('spread/2') || body.text.includes('spread / 2'),
+    `${name} must map the outer sync band to spread`);
+  assert.ok(body.text.includes('采样序号') || body.text.includes('sample order'),
+    `${name} must state that the trace x-axis is sample order`);
+  assert.ok(body.text.includes('5ms') && body.text.includes('50ms'),
+    `${name} must describe offset jump thresholds`);
   assert.ok(body.text.includes('6 小时') || body.text.includes('6小时') || body.text.includes('6 hours') || body.text.includes('6h'),
     `${name} must mention the simplified 6h export`);
   assert.ok(body.text.includes('【结论】') || body.text.includes('[Conclusion]'),

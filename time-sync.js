@@ -989,6 +989,13 @@
 - trace：rawAt 是未校正墙钟，monoMs 是页面单调钟（START 重置），offsetMs 是当前校正量。只有同一连续 session 内 (rawAt−monoMs) 的变化能算原始漂移；跨 session 不能连起来算。
 - audioTimelineDeltaMs = 音频调度时间轴 −（显示UTC+设备补偿），不是扬声器延迟；audioSkewPpm/audioTimeScale 是音频时钟偏差/倍率；CALIBRATION、AUDIO_OUTPUT_MANUAL/SYSTEM 是事件；只在音频Δ图解读，不能当offset或raw漂移。
 - backendNtp* 是后端上游观测；只有 backendNtpCorrectionApplied=true 才表示参与页面时间；backendNtpOffsetMs ≠ offsetMs。
+- clockServo* 是页面频率微调，不是同步质量：clockServoState=stable 时 clockServoPpm 是已应用的 TRIM，clockServoAppliedMs 是自上次同步以来累计施加的微调量；state=unstable 表示 TRIM HOLD，ppm 为空。clockServoPpm 不等于晶振原始频偏，不要把它加到 offsetMs 上；clockServoPoints/clockServoMadPpm 只在完整导出中出现，表示参与估计的同步数和离散度。
+
+图表（若同时提供 trace 截图）：
+- 三图顺序为 offset、audio timeline Δ、raw wall−monotonic residual；横轴是采样序号，不是等间隔时间轴。
+- offset 图的淡色带：外层对应 spread/2，内层对应 ±uncertainty；黄色竖线是 |Δoffset|≥5ms 的台阶（更粗为≥50ms）。质量带不外推到 session/分段边界之外。
+- 音频事件只在 audio timeline Δ 图：CALIBRATION、AUDIO_OUTPUT_MANUAL、AUDIO_OUTPUT_SYSTEM；residual 图只有 HIDDEN 背景灰带，不带同步质量带或音频事件。
+- NTP 趋势图横轴是时间，不是采样序号；不要把它和 trace 三图混读。
 
 计算（能给数就给数，不能就说明）：
 1. 同步质量：成功/失败数，中位 uncertainty、RTT、kept/samples；先判断同步是否可信。
@@ -997,10 +1004,11 @@
 4. trace原始漂移：每个连续session内拟合 (rawAt−monoMs) 的ppm和跨度；session断裂单独说明。
 5. 音频：给出 audioTimelineDeltaMs 的中位/极值、audioSkewPpm 是否稳定、有无重锚/校准/输出切换；说明音频是否跟随显示，不承诺物理延迟。
 6. 只有sync没有trace时，明确“不能从sync推断raw漂移或音频Δ”。
+7. TRIM：只在 clockServoState=stable 时引用 clockServoPpm；unstable 视为 HOLD，不能把空值当0频偏；clockServoAppliedMs 是自上次同步以来的累计微调，不要与 offsetMs 相加。
 
 输出模板（严格按此，不扩写；结论必须带数字，禁止只写“有漂移/不稳定”）：
 【结论】1–2句：是否可信、主要误差来源、要不要处理。
-【关键数字】最多4行，每行“指标=数值”：同步±ms、24h校正ppm、最大台阶ms、音频Δ ms。
+【关键数字】最多4行，每行“指标=数值”：同步±ms、24h校正ppm、最大台阶ms、音频Δ ms；若 TRIM stable，可在证据或建议中补一句 TRIM ppm，不新增行。
 【证据】最多3条，每条一行：区段/时间+数值+含义。
 【建议】最多2条，必须引用上面的数字；无问题写“无需操作”。
 【边界】1句：同步不确定度/参考跳变/数据缺口对结论的限制。
@@ -1018,6 +1026,13 @@ Semantics:
 - trace: rawAt is uncorrected wall time; monoMs is page monotonic time (resets on START); offsetMs is current correction. Only within one continuous session can changes in (rawAt−monoMs) estimate raw drift; never connect across sessions.
 - audioTimelineDeltaMs = audio scheduling timeline − (display UTC + device compensation), not speaker latency; audioSkewPpm/audioTimeScale are the audio-clock skew/rate; CALIBRATION and AUDIO_OUTPUT_MANUAL/SYSTEM are events; read them only on the audio-Δ chart, never as offset or raw drift.
 - backendNtp* are upstream observations; only backendNtpCorrectionApplied=true means they affected page time; backendNtpOffsetMs ≠ offsetMs.
+- clockServo* is frequency trim, not sync quality: clockServoState=stable means clockServoPpm is applied TRIM and clockServoAppliedMs is cumulative trim since the last sync; clockServoState=unstable means TRIM HOLD and ppm is blank. clockServoPpm is not raw oscillator error; never add it to offsetMs. clockServoPoints/MadPpm appear only in the full export; sample count/scatter.
+
+Charts (with trace screenshots):
+- Order: offset, audio timeline Δ, raw wall−monotonic residual. X is sample order, not time.
+- Offset bands: outer = spread/2, inner = ±uncertainty; yellow lines are |Δoffset|≥5ms steps (thick ≥50ms). Bands stop at session/segment boundaries.
+- Audio events appear only in the audio Δ chart: CALIBRATION, AUDIO_OUTPUT_MANUAL, AUDIO_OUTPUT_SYSTEM. The residual chart has only HIDDEN background bands, no sync bands or audio events.
+- NTP trend uses a time axis, not the trace x-axis.
 
 Calculations (give numbers when possible; otherwise say why not):
 1. Sync quality: success/failure counts, median uncertainty, RTT, kept/samples; first decide whether sync is trustworthy.
@@ -1026,10 +1041,11 @@ Calculations (give numbers when possible; otherwise say why not):
 4. Raw trace drift: per continuous session fit (rawAt−monoMs) and report ppm and span; describe session breaks separately.
 5. Audio: report audioTimelineDeltaMs median/extremes, whether audioSkewPpm is stable, and any re-anchor/calibration/output switch; say whether audio follows the display, without promising physical latency.
 6. With sync only and no trace, state clearly that raw drift and audio Δ cannot be inferred.
+7. TRIM: cite clockServoPpm only when stable; unstable means HOLD, and blank is not 0 ppm. clockServoAppliedMs is cumulative since the last sync; do not add it to offsetMs.
 
 Output template (follow exactly, do not expand; the conclusion must contain numbers, never a vague "there is drift"):
 [Conclusion] 1–2 sentences: trustworthy or not; main error source; action needed.
-[Key numbers] at most 4 lines, "metric=value": sync ±ms, 24h correction ppm, largest step ms, audio Δ ms.
+[Key numbers] at most 4 lines, "metric=value": sync ±ms, 24h correction ppm, largest step ms, audio Δ ms; if TRIM is stable, put its ppm in evidence or action, not a 5th line.
 [Evidence] at most 3 one-line items: time/section + value + meaning.
 [Action] at most 2 items, each citing a number above; write "no action needed" if fine.
 [Limits] one sentence: sync uncertainty, reference steps, or data gaps that limit the conclusion.

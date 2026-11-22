@@ -440,8 +440,9 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
   `root delay±root dispersion`, and leap as `N/+/-/?` (normal/insert/delete/unknown);
 - the single 🤖 button opens the combined sync+trace analysis prompt in
   Chinese/English and exports a simplified 6-hour combined CSV; copy the prompt
-  with that export. The prompt samples long CSVs and returns a conclusion-first,
-  length-capped report;
+  with that export. The prompt separates `clockServo*` frequency trim from
+  offset, explains trace-chart bands/jump lines/audio events, samples long CSVs
+  and returns a conclusion-first, length-capped report;
 - sync and trace CSV files contain only local records and are never uploaded
   automatically.
 
