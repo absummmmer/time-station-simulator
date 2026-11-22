@@ -289,7 +289,9 @@
     }
 
     #sync_log_entries {
-      overflow-x: hidden;
+      overflow-x: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .sync-log-table th {
@@ -392,13 +394,13 @@
       display: none;
     }
 
-    @media (max-width: 1000px) {
+    @media (max-width: 640px) {
       .sync-log-table { width: 100%; border-collapse: separate; border-spacing: 0; }
       .sync-log-table thead { display: none; }
       .sync-log-table, .sync-log-table tbody, .sync-log-table tr, .sync-log-table td { display: block; }
       .sync-log-table tr {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.15rem 0.8rem;
         padding: 0.6rem 0;
         border-bottom: 1px solid #374151;
@@ -428,8 +430,8 @@
       .sync-log-table td.c-server { overflow-wrap: anywhere; word-break: break-all; }
     }
 
-    @media (max-width: 800px) {
-      .sync-log-table tr { grid-template-columns: minmax(0, 1fr); }
+    @media (min-width: 641px) and (max-width: 1000px) {
+      .sync-log-table { min-width: 980px; }
     }
 
     .trace-chart {
