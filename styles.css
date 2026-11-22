@@ -736,6 +736,10 @@
       white-space: nowrap;
     }
 
+    .ntp-sources td {
+      color: #cbd5e1;
+    }
+
     .ntp-sources th:first-child,
     .ntp-sources td:first-child {
       text-align: center;
@@ -782,23 +786,20 @@
     }
 
     .ntp-sources td.ntp-supplement {
-      color: #6b7280;
-    }
-
-    .ntp-sources tr.ntp-source-selected td {
-      color: #e5e7eb;
-      background: rgba(34, 211, 238, 0.06);
-    }
-
-    .ntp-sources tr.ntp-source-unknown td {
-      color: #6b7280;
-    }
-
-    .ntp-sources tr.ntp-source-stale td {
       color: #9ca3af;
     }
 
-    .ntp-sources tr.ntp-source-down td {
+    .ntp-sources tr.ntp-source-selected td {
+      color: #cbd5e1;
+      background: rgba(34, 211, 238, 0.06);
+    }
+
+    .ntp-sources tr.ntp-source-selected .ntp-source-state {
+      color: #4ade80;
+    }
+
+    .ntp-sources tr.ntp-source-unknown .ntp-source-state,
+    .ntp-sources tr.ntp-source-down .ntp-source-state {
       color: #6b7280;
     }
     .station-item {
