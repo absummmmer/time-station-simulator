@@ -215,6 +215,16 @@ function json(value) {
   check('NTP source table has no redundant tooltips',
     !sourceTable.includes('title=')
       && sourceTable.includes('ntp-last-sample-header'), sourceTable);
+  const zeroTable = window.eval(`formatNtpSourceTable({sources:[{
+    server: 'zero.test', reachable: true, offset_ms: 0, rtt_ms: 0, stratum: 1,
+    last_success_at: new Date().toISOString(), age_s: 5,
+    reach: 255, reach_octal: '377', offset_ok: true, quality_ok: true,
+    root_delay_ms: 0, root_dispersion_ms: 0, leap: 0
+  }]})`);
+  check('NTP source zero values keep units',
+    zeroTable.includes('>0us</td>')
+      && zeroTable.includes('+0us')
+      && zeroTable.includes('0us'), zeroTable);
   check('NTP source supplement column order',
     (() => {
       const sample = sourceTable.indexOf('>Last sample</th>');

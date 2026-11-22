@@ -853,12 +853,12 @@
         if (number >= 10000) return `${Math.round(number / 1000)}s`;
         if (number >= 10) return `${Math.round(number)}ms`;
         if (number >= 0.001) return `${Math.round(number * 1000)}us`;
-        return '0';
+        return '0us';
       };
       const chronySigned = value => {
         const number = Number(value);
-        if (!Number.isFinite(number)) return '—';
-        if (number === 0) return '0';
+        if (!Number.isFinite(number)) return '-';
+        if (number === 0) return '+0us';
         return `${number > 0 ? '+' : '-'}${chronyDuration(Math.abs(number))}`;
       };
       const chronyLastRx = seconds => {
