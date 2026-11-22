@@ -866,13 +866,11 @@
     function formatNtpSourceTable(view) {
       if (!view || !view.sources.length) return '';
       const hasNumber = value => value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value));
-      const trimNumber = (value, digits) => value.toFixed(digits).replace(/\.?0+$/, '');
       const chronyDuration = value => {
         const number = Math.abs(Number(value));
         if (!Number.isFinite(number)) return '—';
-        if (number >= 1000) return `${trimNumber(number / 1000, 2)}s`;
-        if (number >= 10) return `${trimNumber(number, 1)}ms`;
-        if (number >= 1) return `${trimNumber(number, 2)}ms`;
+        if (number >= 1000) return `${Math.round(number / 1000)}s`;
+        if (number >= 1) return `${Math.round(number)}ms`;
         if (number >= 0.001) return `${Math.round(number * 1000)}us`;
         return '0';
       };
@@ -890,14 +888,6 @@
         if (value < 86400) return `${Math.round(value / 3600)}h`;
         if (value < 31536000) return `${Math.min(99, Math.round(value / 86400))}d`;
         return `${Math.round(value / 31536000)}y`;
-      };
-      const rootPair = (delay, dispersion) => {
-        if (!hasNumber(delay) || !hasNumber(dispersion)) return '—';
-        const d = chronyDuration(delay);
-        const p = chronyDuration(dispersion);
-        return d.endsWith('ms') && p.endsWith('ms')
-          ? `${d.slice(0, -2)}/${p}`
-          : `${d}/${p}`;
       };
       const stateFor = source => {
         if (source.selected === true) return '*';
@@ -927,10 +917,11 @@
         const rootDistance = rootDelay !== null && rootDispersion !== null
           ? rootDelay / 2 + rootDispersion
           : null;
-        const lastSample = reachable && hasNumber(source.offset_ms)
-          ? `${offset}${rootDistance !== null ? `±${chronyDuration(rootDistance)}` : ''}`
+        const sampleError = reachable && rootDistance !== null
+          ? chronyDuration(rootDistance)
           : '—';
-        const root = reachable ? rootPair(rootDelay, rootDispersion) : '—';
+        const rootDelayText = reachable && rootDelay !== null ? chronyDuration(rootDelay) : '—';
+        const rootDispText = reachable && rootDispersion !== null ? chronyDuration(rootDispersion) : '—';
         const rawReach = source.reach_octal
           || (hasNumber(source.reach) ? Number(source.reach).toString(8) : '');
         const reach = rawReach !== ''
@@ -941,6 +932,7 @@
         const resolvedIp = source.resolved_ip && source.resolved_ip !== source.server
           ? source.resolved_ip
           : '';
+        const nameIp = resolvedIp ? `${source.server || '—'}/${resolvedIp}` : (source.server || '—');
         const titleParts = [];
         if (resolvedIp) titleParts.push(`resolved ${resolvedIp}`);
         if (source.last_success_at) titleParts.push(`last success ${formatFullTimestamp(source.last_success_at)}`);
@@ -951,14 +943,16 @@
         const title = ` title="${escapeSyncText(titleParts.join(' · '))}"`;
         return `<tr class="${rowClass}"${title}>
           <td class="ntp-source-state" title="${state === '*' ? 'selected' : state === '+' ? 'OQ pass, observation candidate' : state === 'x' ? 'unreachable' : 'reachable but not selectable'}">${state}</td>
-          <td class="ntp-source-name"><div>${escapeSyncText(source.server || '—')}</div>${resolvedIp ? `<div class="ntp-source-ip">${escapeSyncText(resolvedIp)}</div>` : ''}</td>
+          <td class="ntp-source-name">${escapeSyncText(nameIp)}</td>
           <td>${stratum}</td>
           <td>${rtt}</td>
           <td>${reach}</td>
           <td>${lastRx}</td>
-          <td>${lastSample}</td>
+          <td>${offset}</td>
+          <td>${sampleError}</td>
+          <td>${rootDelayText}</td>
+          <td>${rootDispText}</td>
           <td class="center">${flags}</td>
-          <td>${root}</td>
           <td class="center">${leap}</td>
         </tr>`;
       }).join('');
@@ -970,15 +964,14 @@
           <th>RTT</th>
           <th title="octal reachability register, no leading zero">Reach</th>
           <th>LastRx</th>
-          <th title="measured offset ± root distance (adjusted offset is not available)">LastSample</th>
+          <th title="measured offset; adjusted offset is not available">Last sample</th>
+          <th class="center" title="root distance">±</th>
+          <th colspan="2" class="center" title="root delay / root dispersion, two independent values">Rt delay/disp</th>
           <th class="center">OQ</th>
-          <th title="root delay / root dispersion, two independent values">Rt delay/disp</th>
           <th class="center" title="N=normal, +=insert, -=delete, ?=unknown">leap</th>
         </tr></thead>
         <tbody>${rows}</tbody>
-      </table>
-      <div class="ntp-source-legend">S: * selected · + OQ-pass candidate · ? reachable but not selectable · x unreachable<br>
-      LastSample = measured offset ± root distance (no adjusted offset) · Rt = root delay / root dispersion · reach is octal without leading zero</div></div>`;
+      </table></div>`;
     }
 
     function formatNtpAge(seconds) {

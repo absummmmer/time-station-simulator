@@ -437,11 +437,12 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
 - the wide table uses only the key columns and does not scroll horizontally;
   hidden metrics are available by clicking the row;
 - the NTP source table uses chrony-style columns: `S` (approximate time-api
-  state), `Name/IP Address` (domain plus resolved IP), numeric `Stratum`, `RTT`,
-  octal `Reach` without a leading zero, `LastRx`, `LastSample`, `OQ`,
-  `Rt delay/disp`, and `leap`; `LastSample` is measured offset ± root distance
-  (not adjusted offset), and `Rt` shows root delay / root dispersion as two
-  independent values, not a symmetric error interval;
+  state), one-line `Name/IP Address`, numeric `Stratum`, `RTT`, octal `Reach`
+  without a leading zero, `LastRx`, separate `Last sample`/error columns, `OQ`,
+  two `Rt delay/disp` value columns with their own units, and `leap`; `Last
+  sample` is measured offset, the error column is root distance, and no adjusted
+  offset is available; all time values use integer dynamic units (`us`/`ms`/`s`)
+  without decimal points;
 - the single 🤖 button opens the combined sync+trace analysis prompt in
   Chinese/English and exports a simplified 6-hour combined CSV; copy the prompt
   with that export. The prompt separates `clockServo*` frequency trim from

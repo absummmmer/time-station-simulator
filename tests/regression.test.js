@@ -157,18 +157,26 @@ function json(value) {
     reach: 0, reach_octal: '000', offset_ok: false, quality_ok: false,
     root_delay_ms: 0, root_dispersion_ms: 0, leap: 3
   }]})`);
-  check('NTP source chrony table', sourceTable.includes('LastSample')
+  check('NTP source chrony table', sourceTable.includes('Last sample')
+    && sourceTable.includes('>±</th>')
     && sourceTable.includes('Rt delay/disp')
-    && sourceTable.includes('+1.5ms±7ms')
-    && sourceTable.includes('10/2ms')
-    && sourceTable.includes('ntp.test')
-    && sourceTable.includes('192.0.2.1')
+    && sourceTable.includes('+2ms')
+    && sourceTable.includes('>7ms</td>')
+    && sourceTable.includes('>10ms</td>')
+    && sourceTable.includes('>2ms</td>')
+    && sourceTable.includes('ntp.test/192.0.2.1')
     && sourceTable.includes('>12</td>')
     && sourceTable.includes('>377</td>')
     && sourceTable.includes('>OQ</td>')
+    && !sourceTable.includes('ntp-source-legend')
     && !sourceTable.includes('>unc</th>'), sourceTable);
+  check('NTP source rows stay at twelve cells',
+    (sourceTable.match(/<tr class=/g) || []).length === 2
+      && (sourceTable.match(/<td/g) || []).length === 24, sourceTable);
+  check('NTP source integer units and octal reach',
+    !/\d+\.\d+(?:ms|us|s)/.test(sourceTable) && !sourceTable.includes('0377'), sourceTable);
   check('NTP source unreachable row',
-    sourceTable.includes('>down.test</div>')
+    sourceTable.includes('>down.test</td>')
       && sourceTable.includes('>x</td>')
       && !/down\.test[\s\S]*?0\/0ms/.test(sourceTable), sourceTable);
   check('NTP leap encoding',
