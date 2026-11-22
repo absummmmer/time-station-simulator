@@ -175,6 +175,8 @@ function json(value) {
       && q('ntp_detail_content').textContent.includes('+5.54ppm')
       && q('ntp_detail_content').textContent.toLowerCase().includes('sync'),
     q('ntp_detail_content').textContent.slice(0, 300));
+  window.eval('closeNtpDetailPanel(); openNtpDetailPanel();');
+  check('NTP chart re-renders after reopen', !!q('ntp_history_chart').querySelector('svg'));
   window.eval('closeNtpDetailPanel(); closeSyncAuditLog();');
 
   const correctionFields = json(window.eval(`JSON.stringify(backendCorrectionAuditFields({

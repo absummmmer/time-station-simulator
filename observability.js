@@ -930,7 +930,7 @@
     let ntpDetailEntryAt = null;
 
     function renderNtpHistoryChart(selectedAt = null) {
-      const chartEl = getUi('ntp_history_chart');
+      const chartEl = document.getElementById('ntp_history_chart');
       if (!chartEl) return;
       const cutoff = getLogNowMs() - 24 * 60 * 60 * 1000;
       const rows = syncAuditLog
