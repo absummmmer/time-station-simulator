@@ -147,15 +147,30 @@ function json(value) {
   window.eval('openNtpDetailPanel()');
   check('NTP chart renders', !!q('ntp_history_chart').querySelector('svg'));
   const sourceTable = window.eval(`formatNtpSourceTable({sources:[{
-    server: 'ntp.test', reachable: true, offset_ms: 1.5, uncertainty_ms: 2.5,
-    rtt_ms: 20, stratum: 2, last_success_at: new Date().toISOString(), age_s: 10,
-    reach: 255, offset_ok: true, quality_ok: true, root_delay_ms: 10,
-    root_dispersion_ms: 2, leap: 0
+    server: 'ntp.test', resolved_ip: '192.0.2.1', selected: true, reachable: true,
+    offset_ms: 1.5, uncertainty_ms: 2.5, rtt_ms: 20, stratum: 2,
+    last_success_at: new Date().toISOString(), age_s: 12,
+    reach: 255, reach_octal: '0377', offset_ok: true, quality_ok: true,
+    root_delay_ms: 10, root_dispersion_ms: 2, leap: 0
+  },{
+    server: 'down.test', reachable: false, offset_ms: 0, rtt_ms: 0, stratum: 0,
+    reach: 0, reach_octal: '000', offset_ok: false, quality_ok: false,
+    root_delay_ms: 0, root_dispersion_ms: 0, leap: 3
   }]})`);
-  check('NTP source units', sourceTable.includes('±2.5ms')
-    && sourceTable.includes('>unc</th>')
-    && sourceTable.includes('10.0±2.0ms')
-    && sourceTable.includes('<td>N</td>'), sourceTable);
+  check('NTP source chrony table', sourceTable.includes('LastSample')
+    && sourceTable.includes('Rt delay/disp')
+    && sourceTable.includes('+1.5ms±7ms')
+    && sourceTable.includes('10/2ms')
+    && sourceTable.includes('ntp.test')
+    && sourceTable.includes('192.0.2.1')
+    && sourceTable.includes('>12</td>')
+    && sourceTable.includes('>377</td>')
+    && sourceTable.includes('>OQ</td>')
+    && !sourceTable.includes('>unc</th>'), sourceTable);
+  check('NTP source unreachable row',
+    sourceTable.includes('>down.test</div>')
+      && sourceTable.includes('>x</td>')
+      && !/down\.test[\s\S]*?0\/0ms/.test(sourceTable), sourceTable);
   check('NTP leap encoding',
     window.eval('formatNtpLeap(0, true)') === 'N'
       && window.eval('formatNtpLeap(1, true)') === '+'

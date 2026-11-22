@@ -349,8 +349,11 @@ UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止�
 - NTP 单元格打开同一个合并详情面板和最近 24 小时趋势；
 - 审计列表向下滚动后会显示浮动的返回顶部按钮；
 - 宽表只保留关键列，不做横向滚动；被隐藏的指标通过点击行查看；
-- NTP 源表的误差列标为 `unc`，root 列显示为
-  `root delay±root dispersion`，leap 用 `N/+/-/?` 表示正常/插入/删除/未知；
+- NTP 源表按 chrony 风格排列：`S`（time-api 近似状态）、`Name/IP Address`（域名
+  与解析 IP 分行显示）、`Stratum`（数字）、`RTT`、`Reach`（八进制，无前缀 0）、
+  `LastRx`、`LastSample`、`OQ`、`Rt delay/disp`、`leap`；`LastSample` 是测量
+  offset ± root distance（不是 adjusted offset），`Rt` 是 root delay / root
+  dispersion 两个独立字段，不是对称误差区间；
 - 面板中的 🤖 按钮提供同步+轨迹合并分析提示词（中文/英文），并可导出精简的
   6 小时合并 CSV；建议把提示词和该导出一起发送。提示词会区分 `clockServo*`
   频率微调与 offset，并说明三张 trace 图的色带、跳变线和音频事件；会对长 CSV

@@ -866,58 +866,119 @@
     function formatNtpSourceTable(view) {
       if (!view || !view.sources.length) return '';
       const hasNumber = value => value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value));
+      const trimNumber = (value, digits) => value.toFixed(digits).replace(/\.?0+$/, '');
+      const chronyDuration = value => {
+        const number = Math.abs(Number(value));
+        if (!Number.isFinite(number)) return '—';
+        if (number >= 1000) return `${trimNumber(number / 1000, 2)}s`;
+        if (number >= 10) return `${trimNumber(number, 1)}ms`;
+        if (number >= 1) return `${trimNumber(number, 2)}ms`;
+        if (number >= 0.001) return `${Math.round(number * 1000)}us`;
+        return '0';
+      };
+      const chronySigned = value => {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return '—';
+        if (number === 0) return '0';
+        return `${number > 0 ? '+' : '-'}${chronyDuration(Math.abs(number))}`;
+      };
+      const chronyLastRx = seconds => {
+        const value = Number(seconds);
+        if (!Number.isFinite(value) || value < 0) return '—';
+        if (value < 1000) return `${Math.round(value)}`;
+        if (value < 6000) return `${Math.min(99, Math.round(value / 60))}m`;
+        if (value < 86400) return `${Math.round(value / 3600)}h`;
+        if (value < 31536000) return `${Math.min(99, Math.round(value / 86400))}d`;
+        return `${Math.round(value / 31536000)}y`;
+      };
+      const rootPair = (delay, dispersion) => {
+        if (!hasNumber(delay) || !hasNumber(dispersion)) return '—';
+        const d = chronyDuration(delay);
+        const p = chronyDuration(dispersion);
+        return d.endsWith('ms') && p.endsWith('ms')
+          ? `${d.slice(0, -2)}/${p}`
+          : `${d}/${p}`;
+      };
+      const stateFor = source => {
+        if (source.selected === true) return '*';
+        if (source.reachable !== true) return 'x';
+        if (source.offset_ok === true && source.quality_ok === true) return '+';
+        return '?';
+      };
       const rows = view.sources.map(source => {
         if (!source || typeof source !== 'object') return '';
         const reachable = source.reachable === true;
-        const marker = source.selected === true ? '●' : reachable ? '○' : '×';
+        const state = stateFor(source);
         const rowClass = source.selected === true ? 'ntp-source-selected' : reachable ? '' : 'ntp-source-down';
         const offset = reachable && hasNumber(source.offset_ms)
-          ? formatSignedNtpMs(Number(source.offset_ms), 2)
-          : '—';
-        const uncertainty = reachable && hasNumber(source.uncertainty_ms)
-          ? `±${Number(source.uncertainty_ms).toFixed(1)}ms`
+          ? chronySigned(Number(source.offset_ms))
           : '—';
         const rtt = reachable && hasNumber(source.rtt_ms)
-          ? `${Number(source.rtt_ms).toFixed(1)}ms`
+          ? chronyDuration(Number(source.rtt_ms))
           : '—';
         const stratum = hasNumber(source.stratum) && Number(source.stratum) > 0
-          ? `S${Number(source.stratum)}`
+          ? String(Number(source.stratum))
           : '—';
-        const age = source.last_success_at && hasNumber(source.age_s) ? formatNtpAge(Number(source.age_s)) : '—';
-        const reach = source.reach_octal
-          || (hasNumber(source.reach) ? Number(source.reach).toString(8).padStart(3, '0') : '—');
-        const failures = hasNumber(source.consecutive_failures) ? String(Number(source.consecutive_failures)) : '—';
+        const lastRx = reachable && hasNumber(source.age_s) && source.last_success_at
+          ? chronyLastRx(Number(source.age_s))
+          : '—';
+        const rootDelay = hasNumber(source.root_delay_ms) ? Number(source.root_delay_ms) : null;
+        const rootDispersion = hasNumber(source.root_dispersion_ms) ? Number(source.root_dispersion_ms) : null;
+        const rootDistance = rootDelay !== null && rootDispersion !== null
+          ? rootDelay / 2 + rootDispersion
+          : null;
+        const lastSample = reachable && hasNumber(source.offset_ms)
+          ? `${offset}${rootDistance !== null ? `±${chronyDuration(rootDistance)}` : ''}`
+          : '—';
+        const root = reachable ? rootPair(rootDelay, rootDispersion) : '—';
+        const rawReach = source.reach_octal
+          || (hasNumber(source.reach) ? Number(source.reach).toString(8) : '');
+        const reach = rawReach !== ''
+          ? String(rawReach).replace(/^0+(?=\d)/, '')
+          : '—';
         const flags = `${source.offset_ok === true ? 'O' : '-'}${source.quality_ok === true ? 'Q' : '-'}`;
-        const root = hasNumber(source.root_delay_ms) && hasNumber(source.root_dispersion_ms)
-          ? `${Number(source.root_delay_ms).toFixed(1)}±${Number(source.root_dispersion_ms).toFixed(1)}ms`
-          : '—';
         const leap = formatNtpLeap(source.leap, reachable);
+        const resolvedIp = source.resolved_ip && source.resolved_ip !== source.server
+          ? source.resolved_ip
+          : '';
         const titleParts = [];
-        if (source.resolved_ip) titleParts.push(`resolved ${source.resolved_ip}`);
+        if (resolvedIp) titleParts.push(`resolved ${resolvedIp}`);
         if (source.last_success_at) titleParts.push(`last success ${formatFullTimestamp(source.last_success_at)}`);
         if (source.last_attempt_at) titleParts.push(`last attempt ${formatFullTimestamp(source.last_attempt_at)}`);
         titleParts.push(`offset_ok=${source.offset_ok === true}`, `quality_ok=${source.quality_ok === true}`);
+        if (rootDistance !== null) titleParts.push(`root distance ${chronyDuration(rootDistance)}`);
         if (source.error) titleParts.push(`error ${source.error}`);
         const title = ` title="${escapeSyncText(titleParts.join(' · '))}"`;
         return `<tr class="${rowClass}"${title}>
-          <td class="ntp-source-marker">${marker}</td>
-          <td>${escapeSyncText(source.server || '—')}</td>
+          <td class="ntp-source-state" title="${state === '*' ? 'selected' : state === '+' ? 'OQ pass, observation candidate' : state === 'x' ? 'unreachable' : 'reachable but not selectable'}">${state}</td>
+          <td class="ntp-source-name"><div>${escapeSyncText(source.server || '—')}</div>${resolvedIp ? `<div class="ntp-source-ip">${escapeSyncText(resolvedIp)}</div>` : ''}</td>
           <td>${stratum}</td>
-          <td>${offset}</td>
-          <td>${uncertainty}</td>
           <td>${rtt}</td>
-          <td>${age}</td>
           <td>${reach}</td>
-          <td>${failures}</td>
-          <td>${flags}</td>
+          <td>${lastRx}</td>
+          <td>${lastSample}</td>
+          <td class="center">${flags}</td>
           <td>${root}</td>
-          <td>${leap}</td>
+          <td class="center">${leap}</td>
         </tr>`;
       }).join('');
       return `<div class="ntp-sources-wrap"><table class="ntp-sources">
-        <thead><tr><th></th><th>source</th><th>S</th><th>offset</th><th title="uncertainty">unc</th><th>RTT</th><th>age</th><th>reach</th><th>fail</th><th>OQ</th><th title="root delay ± root dispersion">root</th><th title="N=normal, +=insert, -=delete, ?=unknown">leap</th></tr></thead>
+        <thead><tr>
+          <th class="center" title="time-api approximate selection state">S</th>
+          <th>Name/IP Address</th>
+          <th>Stratum</th>
+          <th>RTT</th>
+          <th title="octal reachability register, no leading zero">Reach</th>
+          <th>LastRx</th>
+          <th title="measured offset ± root distance (adjusted offset is not available)">LastSample</th>
+          <th class="center">OQ</th>
+          <th title="root delay / root dispersion, two independent values">Rt delay/disp</th>
+          <th class="center" title="N=normal, +=insert, -=delete, ?=unknown">leap</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
-      </table></div>`;
+      </table>
+      <div class="ntp-source-legend">S: * selected · + OQ-pass candidate · ? reachable but not selectable · x unreachable<br>
+      LastSample = measured offset ± root distance (no adjusted offset) · Rt = root delay / root dispersion · reach is octal without leading zero</div></div>`;
     }
 
     function formatNtpAge(seconds) {
