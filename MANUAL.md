@@ -422,63 +422,19 @@ stop DUT1 from participating in the time code or station signals.
 
 The 📋 button at the end of the clock calibration row opens the sync audit panel:
 
-- `📑` sync records: key information in a wide table above `700px`
-  (state, started, before→after offset, RTT, trim, NTP); `481–700px` uses
-  two-column cards and `≤480px` uses single-column cards;
-- clicking any sync row opens the merged **SYNC / NTP DETAILS** panel with the
-  full offset, uncertainty, spread, samples, duration, trim, server time and NTP
-  source table;
+- `📑` sync records: key wide table above `700px`, two-column cards at
+  `481–700px`, single column at `≤480px`; click a row or NTP cell for details;
 - `📈` trace: offset, audio-timeline Δ, and raw wall − monotonic residual charts;
-- audit and trace records are kept locally for 48 hours; normal exports cover the
-  last 24 hours; sync CSV exports include `clockServoPpm`,
-  `clockServoState`, and `clockServoAppliedMs`;
-- NTP cells open the same merged sync/NTP detail panel and a 24-hour trend;
-- the sync audit list has a floating back-to-top button once it is scrolled;
-- the wide table uses only the key columns and does not scroll horizontally;
-  hidden metrics are available by clicking the row;
-- the NTP source table uses chrony-style columns: `S` (approximate time-api
-  state), one-line `Name/IP Address`, numeric `Stratum`, `RTT`, octal `Reach`
-  without a leading zero, `LastRx`, `Last sample` (measured offset ± root
-  distance), `OQ`, two `Rt delay/disp` value columns with their own units, and
-  `leap`; all time values use integer dynamic units (`us`/`ms`/`s`) without
-  decimal points; a source that is currently unreachable but still has nonzero
-  reach keeps its last sample and a growing `LastRx`, while current `RTT` shows
-  `-` and `OQ` shows `--`; after eight consecutive failures (reach zero) it
-  becomes `x` and its row is filled with `-`; a source that has never succeeded
-  shows `?` with defaults `Stratum=0`, `Reach=0`, `Last sample=+0us ± 0us` and
-  `leap=?`;
-- the single 🤖 button opens the combined sync+trace analysis prompt in
-  Chinese/English and exports a simplified 6-hour combined CSV; copy the prompt
-  with that export. The prompt separates `clockServo*` frequency trim from
-  offset, explains trace-chart bands/jump lines/audio events, samples long CSVs
-  and returns a conclusion-first, length-capped report;
-- sync and trace CSV files contain only local records and are never uploaded
-  automatically.
-
-Trace chart order:
-
-1. offset (ms): the page's local correction. Each successful sync also tints the
-   interval up to the next sync as a faint band around the offset: the outer band
-   is the sample spread (jitter, ΔspreadMs) and the inner band is ±uncertaintyMs;
-   the band follows the offset line's slope between syncs instead of staying a
-   horizontal rectangle, so the clock frequency trim stays centered inside it;
-   hover a sample for the exact values. The band reuses the sample series color
-   and stays translucent so it does not compete with the state colors; bands stop
-   at session/segment boundaries instead of bridging another trace series;
-2. audio timeline Δ (ms): audio scheduling timeline relative to display UTC plus
-   device compensation;
-3. raw wall − monotonic (ms): raw wall-clock drift.
-
-Audio output events are drawn only on the second audio-timeline chart:
-`CALIBRATION` is dim amber, manual output/device switching is bright fuchsia, and
-system `devicechange` is bright cyan and drawn last, on top. The offset and raw
-residual charts do not draw audio events.
-
-In trace/CSV fields, `networkCompMs` is a historical field name for base audio
-compensation and is not network latency; `deviceExtraMs` is the active device
-profile's extra compensation, `audioSkewPpm`/`audioTimeScale` are the current
-audio-clock skew estimate and scheduling multiplier, and `audioTimelineDeltaMs` is
-explained above.
+  offset bands show spread/uncertainty, audio events only appear on the audio Δ
+  chart;
+- audit and trace stay local for 48 hours; normal exports cover 24 hours; sync
+  CSV exports include `clockServoPpm`, `clockServoState`, and
+  `clockServoAppliedMs`;
+- the NTP source table follows chrony conventions; `S`, `Reach`, `-`, `x`, and
+  `?` distinguish selectable, stale, failed, and never-sampled sources without
+  repeating every column in prose;
+- the single 🤖 button provides the Chinese/English combined analysis prompt and
+  a 6-hour combined CSV; CSV files stay local and are never uploaded.
 
 ### 5.2 Display
 

@@ -212,6 +212,9 @@ function json(value) {
         && failedRow.includes('>x</td>')
         && failedRow.includes('<td class="ntp-last-sample">-</td>');
     })(), sourceTable);
+  check('NTP source table has no redundant tooltips',
+    !sourceTable.includes('title=')
+      && sourceTable.includes('ntp-last-sample-header'), sourceTable);
   check('NTP leap encoding',
     window.eval('formatNtpLeap(0, true)') === 'N'
       && window.eval('formatNtpLeap(1, true)') === '+'
@@ -223,6 +226,7 @@ function json(value) {
       && window.eval('formatAuditTrim({clockServoState:"unstable"})') === 'HOLD'
       && window.eval('formatAuditTrim({clockServoState:"idle"})') === '—');
   window.eval('openSyncAuditLog()');
+  check('sync status has no redundant tooltip', !q('sync_error').hasAttribute('title'));
   const auditRow = q('sync_log_entries').querySelector('tbody tr');
   if (auditRow) auditRow.click();
   check('audit row opens merged details',

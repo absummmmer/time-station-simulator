@@ -822,25 +822,6 @@
       return text === '—' ? '—' : `${text}ms`;
     }
 
-    function formatNtpDetails(view) {
-      if (!view) return '';
-      const parts = [];
-      if (view.source) parts.push(`${view.source}${view.resolvedIp ? ` [${view.resolvedIp}]` : ''}${view.fallback ? ' (fallback)' : ''}`);
-      if (view.offsetMs !== null) parts.push(`offset ${formatSignedNtpMs(view.offsetMs, 2)}`);
-      if (view.uncertaintyMs !== null) parts.push(`±${view.uncertaintyMs.toFixed(1)}ms`);
-      if (view.rttMs !== null) parts.push(`RTT ${view.rttMs.toFixed(1)}ms`);
-      if (view.stratum !== null) parts.push(`S${view.stratum}`);
-      if (view.ageS !== null) parts.push(`age ${Math.round(view.ageS)}s`);
-      if (view.correctionMode) parts.push(`corr ${view.correctionMode}`);
-      if (view.correctionApplied && view.correctionMs !== null) {
-        parts.push(`corr ${formatSignedNtpMs(view.correctionMs, 1)}`);
-      } else if (view.correctionReason) {
-        parts.push(`no corr:${view.correctionReason}`);
-      }
-      if (view.error) parts.push(`error ${view.error}`);
-      return parts.join(' · ');
-    }
-
     function formatNtpInline(entry) {
       const view = ntpEntryView(entry);
       if (!view) return '';
@@ -959,16 +940,8 @@
               ? `${offset.padStart(7, ' ')} ± ${sampleError.padStart(6, ' ')}`
               : offset)
             : '-');
-        const titleParts = [];
-        if (resolvedIp) titleParts.push(`resolved ${resolvedIp}`);
-        if (source.last_success_at) titleParts.push(`last success ${formatFullTimestamp(source.last_success_at)}`);
-        if (source.last_attempt_at) titleParts.push(`last attempt ${formatFullTimestamp(source.last_attempt_at)}`);
-        titleParts.push(`offset_ok=${source.offset_ok === true}`, `quality_ok=${source.quality_ok === true}`);
-        if (rootDistance !== null) titleParts.push(`root distance ${chronyDuration(rootDistance)}`);
-        if (!showValues && source.error) titleParts.push(`error ${source.error}`);
-        const title = ` title="${escapeSyncText(titleParts.join(' · '))}"`;
-        return `<tr class="${rowClass}"${title}>
-          <td class="ntp-source-state" title="${state === '*' ? 'selected' : state === '+' ? 'OQ pass, observation candidate' : state === 'x' ? 'last 8 polls failed' : state === '?' ? 'unknown or not selectable' : ''}">${state}</td>
+        return `<tr class="${rowClass}">
+          <td class="ntp-source-state">${state}</td>
           <td class="ntp-source-name">${escapeSyncText(nameIp)}</td>
           <td>${stratum}</td>
           <td>${rtt}</td>
@@ -983,16 +956,16 @@
       }).join('');
       return `<div class="ntp-sources-wrap"><table class="ntp-sources">
         <thead><tr>
-          <th class="center" title="time-api approximate selection state">S</th>
+          <th class="center">S</th>
           <th>Name/IP Address</th>
           <th>Stratum</th>
           <th>RTT</th>
-          <th title="octal reachability register, no leading zero">Reach</th>
+          <th>Reach</th>
           <th>LastRx</th>
-          <th class="ntp-last-sample-header" title="measured offset ± root distance; adjusted offset is not available">Last sample</th>
-          <th colspan="2" class="center" title="root delay / root dispersion, two independent values">Rt delay/disp</th>
+          <th class="ntp-last-sample-header">Last sample</th>
+          <th colspan="2" class="center">Rt delay/disp</th>
           <th class="center">OQ</th>
-          <th class="center" title="N=normal, +=insert, -=delete, ?=unknown">leap</th>
+          <th class="center">leap</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
@@ -1207,7 +1180,7 @@
       el.innerHTML = `${syncBlock}
       <div class="mt-5">
         <div class="mb-2">
-          <span class="ntp-badge ntp-${view.status}" title="NTP status">${ntpStatusLabel(view)}</span>
+          <span class="ntp-badge ntp-${view.status}">${ntpStatusLabel(view)}</span>
         </div>
         <div id="ntp_history_chart" class="ntp-history-chart mb-3"></div>
         <div class="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -1266,19 +1239,6 @@
       return '';
     }
 
-    function formatServoTitle(entry) {
-      if (!entry) return '';
-      if (entry.clockServoState === 'stable' && Number.isFinite(Number(entry.clockServoPpm))) {
-        const applied = Number(entry.clockServoAppliedMs);
-        const appliedText = Number.isFinite(applied) ? ` · applied ${formatSignedFixed(applied, 2)}ms` : '';
-        const points = Number(entry.clockServoPoints);
-        const pointsText = Number.isFinite(points) ? ` · ${points} syncs` : '';
-        return ` · TRIM ${formatSignedFixed(entry.clockServoPpm, 2)}ppm${appliedText}${pointsText}`;
-      }
-      if (entry.clockServoState === 'unstable') return ' · TRIM paused (unstable sync history)';
-      return '';
-    }
-
     function currentClockServoInfo() {
       if (typeof getClockServoState !== 'function') return null;
       const state = getClockServoState();
@@ -1305,17 +1265,9 @@
       const el = getUi('sync_error');
       if (!el) return;
       const last = syncAuditLog[syncAuditLog.length - 1];
-      const view = ntpEntryView(last);
       const servoInfo = currentClockServoInfo();
       el.textContent = formatLastSyncStatus(last, servoInfo);
       el.classList.toggle('text-red-400', !!(last && !last.ok));
-      const ntpTitle = last && ntpCorrectionParticipated(last) && view
-        ? ` · ${formatNtpDetails(view)}`
-        : '';
-      const servoTitle = formatServoTitle(servoInfo);
-      el.title = last
-        ? `${last.ok ? 'Last successful sync' : 'Last sync failed'}${ntpTitle}${servoTitle}`
-        : '';
       const panel = getUi('ntp_detail_panel');
       if (panel && !panel.classList.contains('hidden') && ntpDetailEntryAt === null) {
         renderNtpDetailPanel();
@@ -1416,7 +1368,7 @@
         <th class="c-arrow"></th>
         <th class="c-offset num">AFTER</th>
         <th class="c-metric c-rtt num">RTT</th>
-        <th class="c-trim num" title="clock frequency trim">TRIM</th>
+        <th class="c-trim num">TRIM</th>
         <th class="c-ntp">NTP</th>
       </tr></thead>`;
       const rows = syncAuditLog.slice().reverse().map(entry => {
@@ -1439,7 +1391,7 @@
              </span>`
           : '—';
         const ntpCellAttrs = ntpView
-          ? ` class="c-ntp ntp-entry-cell" data-label="NTP" data-ntp-at="${escapeSyncText(entry.at)}" role="button" tabindex="0" title="${escapeSyncText(formatNtpDetails(ntpView))}"`
+          ? ` class="c-ntp ntp-entry-cell" data-label="NTP" data-ntp-at="${escapeSyncText(entry.at)}" role="button" tabindex="0"`
           : ' class="c-ntp" data-label="NTP"';
         const rowTitle = entry.ok ? '' : ` title="ERROR: ${escapeSyncText(entry.error || 'sync failed')}"`;
         const rowLabel = `Sync detail · ${meta.label} · ${stamp}`;
@@ -1447,7 +1399,7 @@
           aria-label="${escapeSyncText(rowLabel)}"${rowTitle}>
           <td class="c-state" data-label="STATE">${meta.icon} ${escapeSyncText(meta.label)}</td>
           <td class="c-mark center ${entry.ok ? 'mark-ok' : 'mark-fail'}" data-label="OK">${entry.ok ? '✓' : '✗'}</td>
-          <td class="c-timestamp" data-label="STARTED" title="${fullStamp}">${stamp}</td>
+          <td class="c-timestamp" data-label="STARTED">${stamp}</td>
           <td class="c-offset c-before num" data-label="BEFORE">${before}</td>
           <td class="c-arrow">→</td>
           <td class="c-offset c-after num" data-label="AFTER">${after}</td>

@@ -338,49 +338,15 @@ UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止�
 
 时钟校准行末尾的 📋 按钮打开同步审计面板：
 
-- `📑` 同步记录：`700px` 以上为关键信息宽表（状态、开始时间、前后 offset、
-  RTT、TRIM、NTP）；`481–700px` 为双列卡片，`≤480px` 为单列卡片；
-- 点击任意同步行会打开合并的 **SYNC / NTP DETAILS** 面板，查看完整的前后
-  offset、误差、样本离散度、样本数、耗时、频率微调和 NTP 源表；
-- `📈` trace：最近一段时间的 offset、音频时间轴 Δ 和 raw wall − monotonic
-  残差图；
-- 审计和 trace 在本地保留 48 小时；普通导出取最近 24 小时；同步 CSV 会包含
-  `clockServoPpm`、`clockServoState` 和 `clockServoAppliedMs`；
-- NTP 单元格打开同一个合并详情面板和最近 24 小时趋势；
-- 审计列表向下滚动后会显示浮动的返回顶部按钮；
-- 宽表只保留关键列，不做横向滚动；被隐藏的指标通过点击行查看；
-- NTP 源表按 chrony 风格排列：`S`（time-api 近似状态）、`Name/IP Address`（域名/IP
-  一行）、`Stratum`（数字）、`RTT`、`Reach`（八进制，无前缀 0）、`LastRx`、
-  `Last sample`（测量 offset ± root distance）、`OQ`、`Rt delay/disp` 两列（各带
-  单位）、`leap`；所有时间值使用整数动态单位（`us`/`ms`/`s`），不带小数点；
-  当次不可达但 reach 仍非零时保留上一次采样值并显示增长中的 `LastRx`，但当前
-  `RTT` 显示 `-`、`OQ` 显示 `--`；连续 8 次失败、reach 归零后标成 `x` 并以 `-`
-  填充该行；从未成功过的源显示 `?`，并使用 `Stratum=0`、`Reach=0`、
-  `Last sample=+0us ± 0us`、`leap=?` 的默认值；
-- 面板中的 🤖 按钮提供同步+轨迹合并分析提示词（中文/英文），并可导出精简的
-  6 小时合并 CSV；建议把提示词和该导出一起发送。提示词会区分 `clockServo*`
-  频率微调与 offset，并说明三张 trace 图的色带、跳变线和音频事件；会对长 CSV
-  抽样，并输出先结论、限长度的简报；
-- 同步审计和 trace 的 CSV 只包含本地记录，不会自动上传。
-
-trace 图顺序为：
-
-1. offset（ms）：页面本地校正量。每次成功同步还会把到下一次同步的区间画成围绕
-   offset 的淡色带：外层为样本抖动范围（ΔspreadMs），内层为 ±uncertaintyMs；
-   色带会沿着两次同步之间 offset 的斜率变化（倾斜带），而不是水平矩形，因此
-   主时钟频移后的 offset 趋势仍保持在带内；悬停采样点可查看具体数值。色带沿用
-   该采样点所在曲线的颜色并保持半透明，避免与状态指示颜色冲突；色带在
-   session/分段边界处截止，不会跨到下一段 trace 曲线；
-2. audio timeline Δ（ms）：音频调度时间轴相对显示 UTC + 设备补偿的偏差；
-3. raw wall − monotonic（ms）：原始墙钟漂移。
-
-音频输出事件只画在第二张音频时间轴图上：`CALIBRATION` 为暗琥珀色，手动输出/
-设备切换为亮 fuchsia，系统 `devicechange` 为亮青色并最后绘制、位于最上层。
-offset 和 raw residual 图不画音频事件。
-
-trace/CSV 中的 `networkCompMs` 是历史字段名，表示基础音频补偿，不是网络延迟；
-`deviceExtraMs` 是当前设备档案额外补偿，`audioSkewPpm`/`audioTimeScale` 是当前
-音频时钟偏差估计和调度倍率，`audioTimelineDeltaMs` 的含义见上图说明。
+- `📑` 同步记录：`>700px` 关键宽表，`481–700px` 双列卡片，`≤480px` 单列；
+  点击行或 NTP 单元格打开完整详情；
+- `📈` trace：offset、audio timeline Δ、raw wall − monotonic residual 三图；
+  offset 色带外层对应 spread、内层对应 uncertainty，音频事件只画在 audio Δ 图；
+- 审计和 trace 本地保留 48 小时；普通导出 24 小时；同步 CSV 含
+  `clockServoPpm`、`clockServoState`、`clockServoAppliedMs`；
+- NTP 源表使用 chrony 风格；不可达、未采样和 noselect 状态用 `S`、`Reach`、
+  `-`、`x`、`?` 区分，不再重复解释每一列；
+- 🤖 提供中英文合并分析提示词和 6 小时合并 CSV；CSV 仅在本机导出。
 
 ### 5.2 页面展示
 
