@@ -153,15 +153,21 @@ function json(value) {
     reach: 255, reach_octal: '0377', offset_ok: true, quality_ok: true,
     root_delay_ms: 10, root_dispersion_ms: 2, leap: 0
   },{
+    server: 'stale.test', resolved_ip: '192.0.2.2', reachable: false,
+    offset_ms: 2, rtt_ms: 30, stratum: 2,
+    last_success_at: new Date(Date.now() - 1200000).toISOString(), age_s: 1200,
+    reach: 1, reach_octal: '001', offset_ok: true, quality_ok: true,
+    root_delay_ms: 2, root_dispersion_ms: 3, leap: 0
+  },{
     server: 'down.test', reachable: false, offset_ms: 0, rtt_ms: 0, stratum: 0,
     reach: 0, reach_octal: '000', offset_ok: false, quality_ok: false,
     root_delay_ms: 0, root_dispersion_ms: 0, leap: 3
   }]})`);
   check('NTP source chrony table', sourceTable.includes('Last sample')
-    && sourceTable.includes('>±</th>')
     && sourceTable.includes('Rt delay/disp')
     && sourceTable.includes('+2ms')
-    && sourceTable.includes('>7ms</td>')
+    && sourceTable.includes('±')
+    && sourceTable.includes('7ms')
     && sourceTable.includes('>10ms</td>')
     && sourceTable.includes('>2ms</td>')
     && sourceTable.includes('ntp.test/192.0.2.1')
@@ -170,15 +176,23 @@ function json(value) {
     && sourceTable.includes('>OQ</td>')
     && !sourceTable.includes('ntp-source-legend')
     && !sourceTable.includes('>unc</th>'), sourceTable);
-  check('NTP source rows stay at twelve cells',
-    (sourceTable.match(/<tr class=/g) || []).length === 2
-      && (sourceTable.match(/<td/g) || []).length === 24, sourceTable);
+  check('NTP source rows stay at eleven cells',
+    (sourceTable.match(/<tr class=/g) || []).length === 3
+      && (sourceTable.match(/<td/g) || []).length === 33, sourceTable);
   check('NTP source integer units and octal reach',
     !/\d+\.\d+(?:ms|us|s)/.test(sourceTable) && !sourceTable.includes('0377'), sourceTable);
-  check('NTP source unreachable row',
+  check('NTP source keeps last sample while reach remains',
+    sourceTable.includes('>stale.test/192.0.2.2</td>')
+      && /stale\.test\/192\.0\.2\.2[\s\S]*?\+2ms[\s\S]*?±/.test(sourceTable)
+      && sourceTable.includes('>20m</td>')
+      && (() => {
+        const staleRow = (sourceTable.match(/<tr class="ntp-source-stale"[\s\S]*?<\/tr>/) || [''])[0];
+        return !staleRow.includes('>30ms</td>') && staleRow.includes('>--</td>');
+      })(), sourceTable);
+  check('NTP source unreachable row after eight misses',
     sourceTable.includes('>down.test</td>')
       && sourceTable.includes('>x</td>')
-      && !/down\.test[\s\S]*?0\/0ms/.test(sourceTable), sourceTable);
+      && /down\.test[\s\S]*?<td>-<\/td>/.test(sourceTable), sourceTable);
   check('NTP leap encoding',
     window.eval('formatNtpLeap(0, true)') === 'N'
       && window.eval('formatNtpLeap(1, true)') === '+'

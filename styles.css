@@ -772,9 +772,17 @@
       min-width: 0;
     }
 
+    .ntp-last-sample {
+      white-space: pre;
+    }
+
     .ntp-sources tr.ntp-source-selected td {
       color: #e5e7eb;
       background: rgba(34, 211, 238, 0.06);
+    }
+
+    .ntp-sources tr.ntp-source-stale td {
+      color: #9ca3af;
     }
 
     .ntp-sources tr.ntp-source-down td {

@@ -351,9 +351,11 @@ UTC 锁只改变 BPM 发播，不隐藏 DUT1 控件，也不会让 DUT1 停止�
 - 宽表只保留关键列，不做横向滚动；被隐藏的指标通过点击行查看；
 - NTP 源表按 chrony 风格排列：`S`（time-api 近似状态）、`Name/IP Address`（域名/IP
   一行）、`Stratum`（数字）、`RTT`、`Reach`（八进制，无前缀 0）、`LastRx`、
-  `Last sample` 与误差两列、`OQ`、`Rt delay/disp` 两列（各带单位）、`leap`；
-  `Last sample` 是测量 offset，误差列是 root distance，不提供 adjusted offset；
-  所有时间值使用整数动态单位（`us`/`ms`/`s`），不带小数点；
+  `Last sample`（测量 offset ± root distance）、`OQ`、`Rt delay/disp` 两列（各带
+  单位）、`leap`；所有时间值使用整数动态单位（`us`/`ms`/`s`），不带小数点；
+  当次不可达但 reach 仍非零时保留上一次采样值并显示增长中的 `LastRx`，但当前
+  `RTT` 显示 `-`、`OQ` 显示 `--`；连续 8 次失败、reach 归零后标成 `x` 并以 `-`
+  填充该行；
 - 面板中的 🤖 按钮提供同步+轨迹合并分析提示词（中文/英文），并可导出精简的
   6 小时合并 CSV；建议把提示词和该导出一起发送。提示词会区分 `clockServo*`
   频率微调与 offset，并说明三张 trace 图的色带、跳变线和音频事件；会对长 CSV
