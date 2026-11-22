@@ -772,7 +772,7 @@
       min-width: 0;
     }
 
-    .ntp-last-sample {
+    .ntp-sources td.ntp-last-sample {
       white-space: pre;
     }
 

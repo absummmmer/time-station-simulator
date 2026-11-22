@@ -868,9 +868,9 @@
       const hasNumber = value => value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value));
       const chronyDuration = value => {
         const number = Math.abs(Number(value));
-        if (!Number.isFinite(number)) return '—';
-        if (number >= 1000) return `${Math.round(number / 1000)}s`;
-        if (number >= 1) return `${Math.round(number)}ms`;
+        if (!Number.isFinite(number)) return '-';
+        if (number >= 10000) return `${Math.round(number / 1000)}s`;
+        if (number >= 10) return `${Math.round(number)}ms`;
         if (number >= 0.001) return `${Math.round(number * 1000)}us`;
         return '0';
       };

@@ -165,11 +165,11 @@ function json(value) {
   }]})`);
   check('NTP source chrony table', sourceTable.includes('Last sample')
     && sourceTable.includes('Rt delay/disp')
-    && sourceTable.includes('+2ms')
+    && sourceTable.includes('+1500us')
     && sourceTable.includes('±')
-    && sourceTable.includes('7ms')
+    && sourceTable.includes('7000us')
     && sourceTable.includes('>10ms</td>')
-    && sourceTable.includes('>2ms</td>')
+    && sourceTable.includes('>2000us</td>')
     && sourceTable.includes('ntp.test/192.0.2.1')
     && sourceTable.includes('>12</td>')
     && sourceTable.includes('>377</td>')
@@ -183,7 +183,7 @@ function json(value) {
     !/\d+\.\d+(?:ms|us|s)/.test(sourceTable) && !sourceTable.includes('0377'), sourceTable);
   check('NTP source keeps last sample while reach remains',
     sourceTable.includes('>stale.test/192.0.2.2</td>')
-      && /stale\.test\/192\.0\.2\.2[\s\S]*?\+2ms[\s\S]*?±/.test(sourceTable)
+      && /stale\.test\/192\.0\.2\.2[\s\S]*?\+2000us[\s\S]*?±/.test(sourceTable)
       && sourceTable.includes('>20m</td>')
       && (() => {
         const staleRow = (sourceTable.match(/<tr class="ntp-source-stale"[\s\S]*?<\/tr>/) || [''])[0];
