@@ -289,7 +289,7 @@
     }
 
     #sync_log_entries {
-      overflow-x: auto;
+      overflow-x: hidden;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -364,6 +364,36 @@
     .sync-log-table td.mark-ok { color: #4ade80; }
     .sync-log-table td.mark-fail { color: #f87171; }
     .sync-log-table th.c-trim, .sync-log-table td.c-trim { min-width: 4.2rem; }
+    .sync-log-table tbody tr { cursor: pointer; }
+    .sync-log-table tbody tr:hover { background: rgba(34, 211, 238, 0.045); }
+    .sync-log-table tbody tr:focus-visible {
+      outline: 1px solid #22d3ee;
+      outline-offset: -1px;
+    }
+
+    @media (min-width: 701px) {
+      .sync-log-table th.c-server, .sync-log-table td.c-server,
+      .sync-log-table th.c-unc, .sync-log-table td.c-unc,
+      .sync-log-table th.c-spread, .sync-log-table td.c-spread,
+      .sync-log-table th.c-samples, .sync-log-table td.c-samples,
+      .sync-log-table th.c-duration, .sync-log-table td.c-duration {
+        display: none;
+      }
+      .sync-log-table .ntp-entry-meta { display: none; }
+      .sync-log-table th.c-state, .sync-log-table td.c-state {
+        min-width: 6rem;
+        max-width: 8rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sync-log-table th.c-timestamp, .sync-log-table td.c-timestamp { min-width: 6.4rem; }
+      .sync-log-table th.c-offset, .sync-log-table td.c-offset { min-width: 2.8rem; }
+      .sync-log-table th.c-arrow, .sync-log-table td.c-arrow { min-width: 0.4rem; }
+      .sync-log-table th.c-metric, .sync-log-table td.c-metric { min-width: 2.2rem; }
+      .sync-log-table th.c-trim, .sync-log-table td.c-trim { min-width: 3.2rem; }
+      .sync-log-table th.c-mark, .sync-log-table td.c-mark { min-width: 1rem; }
+      .sync-log-table th.c-ntp, .sync-log-table td.c-ntp { min-width: 7.2rem; }
+    }
 
     .audit-back-to-top {
       position: absolute;
@@ -394,13 +424,13 @@
       display: none;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 700px) {
       .sync-log-table { width: 100%; border-collapse: separate; border-spacing: 0; }
       .sync-log-table thead { display: none; }
       .sync-log-table, .sync-log-table tbody, .sync-log-table tr, .sync-log-table td { display: block; }
       .sync-log-table tr {
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.15rem 0.8rem;
         padding: 0.6rem 0;
         border-bottom: 1px solid #374151;
@@ -430,8 +460,8 @@
       .sync-log-table td.c-server { overflow-wrap: anywhere; word-break: break-all; }
     }
 
-    @media (min-width: 641px) and (max-width: 1000px) {
-      .sync-log-table { min-width: 980px; }
+    @media (max-width: 480px) {
+      .sync-log-table tr { grid-template-columns: minmax(0, 1fr); }
     }
 
     .trace-chart {

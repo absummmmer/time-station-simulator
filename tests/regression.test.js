@@ -132,6 +132,7 @@ function json(value) {
     backendNtpRttMs: 30, backendNtpStratum: 2, backendNtpAgeS: 10,
     backendNtpSource: 'ntp.test', backendNtpCorrectionApplied: true, backendNtpCorrectionMs: 0.4,
     backendNtpLastSuccessAt: new Date(Date.now() - 3600000).toISOString(),
+    clockServoPpm: 5.54, clockServoState: 'stable', clockServoAppliedMs: 0.2,
   };
   window.eval(`recordSyncAudit(${JSON.stringify(audit)})`);
   check('NTP inline shown when correction applied', q('sync_error').textContent.includes('NTP_OK'), q('sync_error').textContent);
@@ -165,6 +166,16 @@ function json(value) {
     window.eval('formatAuditTrim({clockServoState:"stable",clockServoPpm:5.54})') === '+5.54ppm'
       && window.eval('formatAuditTrim({clockServoState:"unstable"})') === 'HOLD'
       && window.eval('formatAuditTrim({clockServoState:"idle"})') === '—');
+  window.eval('openSyncAuditLog()');
+  const auditRow = q('sync_log_entries').querySelector('tbody tr');
+  if (auditRow) auditRow.click();
+  check('audit row opens merged details',
+    !!auditRow
+      && !q('ntp_detail_panel').classList.contains('hidden')
+      && q('ntp_detail_content').textContent.includes('+5.54ppm')
+      && q('ntp_detail_content').textContent.toLowerCase().includes('sync'),
+    q('ntp_detail_content').textContent.slice(0, 300));
+  window.eval('closeNtpDetailPanel(); closeSyncAuditLog();');
 
   const correctionFields = json(window.eval(`JSON.stringify(backendCorrectionAuditFields({
     clockCorrectionApplied: false,

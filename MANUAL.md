@@ -422,16 +422,20 @@ stop DUT1 from participating in the time code or station signals.
 
 The 📋 button at the end of the clock calibration row opens the sync audit panel:
 
-- `📑` sync records: state, time, offset before/after, uncertainty, samples, RTT,
-  frequency trim, and backend NTP state for each sync;
+- `📑` sync records: key information in a wide table above `700px`
+  (state, started, before→after offset, RTT, trim, NTP); `481–700px` uses
+  two-column cards and `≤480px` uses single-column cards;
+- clicking any sync row opens the merged **SYNC / NTP DETAILS** panel with the
+  full offset, uncertainty, spread, samples, duration, trim, server time and NTP
+  source table;
 - `📈` trace: offset, audio-timeline Δ, and raw wall − monotonic residual charts;
 - audit and trace records are kept locally for 48 hours; normal exports cover the
   last 24 hours; sync CSV exports include `clockServoPpm`,
   `clockServoState`, and `clockServoAppliedMs`;
-- NTP cells open NTP details and a 24-hour trend;
+- NTP cells open the same merged sync/NTP detail panel and a 24-hour trend;
 - the sync audit list has a floating back-to-top button once it is scrolled;
-- at `641–1000px` the audit list keeps the wide one-record-per-row table and
-  scrolls horizontally; at `≤640px` it switches to stacked cards;
+- the wide table uses only the key columns and does not scroll horizontally;
+  hidden metrics are available by clicking the row;
 - NTP source table labels uncertainty as `unc`, root as
   `root delay±root dispersion`, and leap as `N/+/-/?` (normal/insert/delete/unknown);
 - the single 🤖 button opens the combined sync+trace analysis prompt in

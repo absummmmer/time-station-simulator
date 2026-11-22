@@ -1080,21 +1080,37 @@
         ? syncAuditLog.find(item => item.at === ntpDetailEntryAt)
         : syncAuditLog[syncAuditLog.length - 1]);
       renderNtpHistoryChart(target && target.at);
-      const view = ntpEntryView(target);
-      if (!view) {
-        el.innerHTML = '<div class="text-gray-500">NO NTP HEALTH DATA</div>';
+      if (!target) {
+        el.innerHTML = '<div class="text-gray-500">NO SYNC DETAIL DATA</div>';
         return;
       }
       const reasonLabel = (SYNC_REASON_META[target.reason] || {}).label
         || String(target.reason || 'UNKNOWN').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
-      const metaLine = `<div class="mb-3 text-[10px] text-gray-500 break-words">
-        sync @${escapeSyncText(formatCompactTimestamp(target.at))} · ${escapeSyncText(reasonLabel)}
-      </div>`;
-
       const metric = (label, value) => `<div class="min-w-0">
         <div class="text-[10px] uppercase tracking-wide text-gray-500">${escapeSyncText(label)}</div>
         <div class="mt-0.5 text-gray-300 break-words">${escapeSyncText(value)}</div>
       </div>`;
+      const syncSamples = target.ok ? `${target.kept}/${target.samples}` : `${target.samples ?? 0}/${SYNC_SAMPLE_COUNT}`;
+      const syncBlock = `<div class="mb-4">
+        <div class="mb-2 text-[10px] uppercase tracking-wide text-gray-500">sync</div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+          ${metric('state', reasonLabel)}
+          ${metric('started', formatFullTimestamp(target.at))}
+          ${metric('server time', target.serverTime ? formatFullTimestamp(target.serverTime) : '—')}
+          ${metric('offset', `${formatSignedOffsetSeconds(target.offsetBeforeMs)} → ${formatSignedOffsetSeconds(target.offsetMs)}`)}
+          ${metric('uncertainty', target.ok ? formatMetricMs(target.uncertaintyMs) : '—')}
+          ${metric('spread', target.ok ? formatMetricMs(target.spreadMs) : '—')}
+          ${metric('rtt', target.ok ? formatMetricMs(target.rttMs, 0) : '—')}
+          ${metric('samples', syncSamples)}
+          ${metric('took', formatDurationSeconds(target.durationMs))}
+          ${metric('trim', formatAuditTrim(target))}
+        </div>
+      </div>`;
+      const view = ntpEntryView(target);
+      if (!view) {
+        el.innerHTML = `${syncBlock}<div class="text-gray-500">NO NTP HEALTH DATA</div>`;
+        return;
+      }
       const sourceLabel = view.source
         ? `${view.source}${view.fallback ? ' (fallback)' : ''}`
         : '—';
@@ -1111,9 +1127,13 @@
         ${formatNtpSourceTable(view)}
       </div>` : '';
 
-      el.innerHTML = `${metaLine}<div class="flex flex-wrap items-center gap-2">
-        <span class="ntp-badge ntp-${view.status}">${ntpStatusLabel(view)}</span>
-        <span class="text-gray-500">measured at last successful NTP sample</span>
+      el.innerHTML = `${syncBlock}
+      <div class="border-t border-dark-700 pt-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[10px] uppercase tracking-wide text-gray-500">ntp</span>
+          <span class="ntp-badge ntp-${view.status}">${ntpStatusLabel(view)}</span>
+          <span class="text-gray-500">measured at last successful NTP sample</span>
+        </div>
       </div>
       <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
         ${metric('source', sourceLabel)}
@@ -1305,10 +1325,10 @@
         <th class="c-offset num">BEFORE</th>
         <th class="c-arrow"></th>
         <th class="c-offset num">AFTER</th>
-        <th class="c-metric num" title="uncertainty">unc</th>
-        <th class="c-metric num">Δ</th>
-        <th class="c-metric num">RTT</th>
-        <th class="c-metric num">SAMPLES</th>
+        <th class="c-metric c-unc num" title="uncertainty">unc</th>
+        <th class="c-metric c-spread num">Δ</th>
+        <th class="c-metric c-rtt num">RTT</th>
+        <th class="c-metric c-samples num">SAMPLES</th>
         <th class="c-duration num">TOOK</th>
         <th class="c-trim num" title="clock frequency trim">TRIM</th>
         <th class="c-ntp">NTP</th>
@@ -1342,7 +1362,9 @@
           ? ` class="c-ntp ntp-entry-cell" data-label="NTP" data-ntp-at="${escapeSyncText(entry.at)}" role="button" tabindex="0" title="${escapeSyncText(formatNtpDetails(ntpView))}"`
           : ' class="c-ntp" data-label="NTP"';
         const rowTitle = entry.ok ? '' : ` title="ERROR: ${escapeSyncText(entry.error || 'sync failed')}"`;
-        return `<tr${rowTitle}>
+        const rowLabel = `Sync detail · ${meta.label} · ${stamp}`;
+        return `<tr data-audit-at="${escapeSyncText(entry.at)}" role="button" tabindex="0"
+          aria-label="${escapeSyncText(rowLabel)}"${rowTitle}>
           <td class="c-state" data-label="STATE">${meta.icon} ${escapeSyncText(meta.label)}</td>
           <td class="c-mark center ${entry.ok ? 'mark-ok' : 'mark-fail'}" data-label="OK">${entry.ok ? '✓' : '✗'}</td>
           <td class="c-timestamp" data-label="STARTED" title="${fullStamp}">${stamp}</td>
@@ -1350,10 +1372,10 @@
           <td class="c-offset c-before num" data-label="BEFORE">${before}</td>
           <td class="c-arrow">→</td>
           <td class="c-offset c-after num" data-label="AFTER">${after}</td>
-          <td class="c-metric num" data-label="unc">${uncertainty}</td>
-          <td class="c-metric num" data-label="Δ">${spread}</td>
-          <td class="c-metric num" data-label="RTT">${rtt}</td>
-          <td class="c-metric num" data-label="SAMPLES">${samples}</td>
+          <td class="c-metric c-unc num" data-label="unc">${uncertainty}</td>
+          <td class="c-metric c-spread num" data-label="Δ">${spread}</td>
+          <td class="c-metric c-rtt num" data-label="RTT">${rtt}</td>
+          <td class="c-metric c-samples num" data-label="SAMPLES">${samples}</td>
           <td class="c-duration num" data-label="TOOK">${duration}</td>
           <td class="c-trim num" data-label="TRIM">${trim}</td>
           <td${ntpCellAttrs}>${ntpCell}</td>

@@ -58,15 +58,18 @@
       const syncEntries = getUi('sync_log_entries');
       if (syncEntries) {
         const openEntryDetails = (target) => {
+          const row = target && target.closest ? target.closest('tr[data-audit-at]') : null;
           const cell = target && target.closest ? target.closest('[data-ntp-at]') : null;
-          if (!cell) return;
-          const entry = syncAuditLog.find(item => item.at === cell.dataset.ntpAt);
+          const at = row && row.dataset.auditAt ? row.dataset.auditAt : (cell ? cell.dataset.ntpAt : '');
+          if (!at) return;
+          const entry = syncAuditLog.find(item => item.at === at);
           if (entry) openNtpDetailPanel(entry);
         };
         syncEntries.addEventListener('click', (e) => openEntryDetails(e.target));
         syncEntries.addEventListener('keydown', (e) => {
           if (e.key !== 'Enter' && e.key !== ' ') return;
-          if (!e.target || !e.target.closest || !e.target.closest('[data-ntp-at]')) return;
+          if (!e.target || !e.target.closest
+            || !e.target.closest('tr[data-audit-at], [data-ntp-at]')) return;
           e.preventDefault();
           openEntryDetails(e.target);
         });
