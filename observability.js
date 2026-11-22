@@ -1097,7 +1097,7 @@
           ${metric('started', formatFullTimestamp(target.at))}
           ${metric('server time', target.serverTime ? formatFullTimestamp(target.serverTime) : '—')}
           ${metric('offset', `${formatSignedOffsetSeconds(target.offsetBeforeMs)} → ${formatSignedOffsetSeconds(target.offsetMs)}`)}
-          ${metric('uncertainty', target.ok ? formatMetricMs(target.uncertaintyMs) : '—')}
+          ${metric('uncertainty', target.ok ? `±${formatMetricMs(target.uncertaintyMs)}` : '—')}
           ${metric('spread', target.ok ? formatMetricMs(target.spreadMs) : '—')}
           ${metric('rtt', target.ok ? formatMetricMs(target.rttMs, 0) : '—')}
           ${metric('samples', syncSamples)}
@@ -1161,6 +1161,8 @@
     function openNtpDetailPanel(entry = null) {
       ntpDetailEntryAt = entry && entry.at ? entry.at : null;
       renderNtpDetailPanel(entry);
+      const content = getUi('ntp_detail_content');
+      if (content) content.scrollTop = 0;
       getUi('ntp_detail_panel').classList.remove('hidden');
       syncModalBodyLock();
     }
@@ -1332,15 +1334,10 @@
         <th class="c-state">STATE</th>
         <th class="c-mark center">OK</th>
         <th class="c-timestamp">STARTED</th>
-        <th class="c-server">SERVER</th>
         <th class="c-offset num">BEFORE</th>
         <th class="c-arrow"></th>
         <th class="c-offset num">AFTER</th>
-        <th class="c-metric c-unc num" title="uncertainty">unc</th>
-        <th class="c-metric c-spread num">Δ</th>
         <th class="c-metric c-rtt num">RTT</th>
-        <th class="c-metric c-samples num">SAMPLES</th>
-        <th class="c-duration num">TOOK</th>
         <th class="c-trim num" title="clock frequency trim">TRIM</th>
         <th class="c-ntp">NTP</th>
       </tr></thead>`;
@@ -1353,13 +1350,7 @@
         const stamp = escapeSyncText(formatAuditTimestamp(entry.at));
         const before = formatSignedOffsetSeconds(entry.offsetBeforeMs);
         const after = formatSignedOffsetSeconds(entry.offsetMs);
-        const uncertainty = entry.ok ? formatMetricMs(entry.uncertaintyMs) : '—';
-        const spread = entry.ok ? formatMetricMs(entry.spreadMs) : '—';
         const rtt = entry.ok ? formatMetricMs(entry.rttMs, 0) : '—';
-        const samples = entry.ok ? `${entry.kept}/${entry.samples}` : `${entry.samples ?? 0}/${SYNC_SAMPLE_COUNT}`;
-        const duration = formatDurationSeconds(entry.durationMs);
-        const fullServer = entry.ok ? escapeSyncText(formatFullTimestamp(entry.serverTime)) : '';
-        const server = entry.ok ? escapeSyncText(formatAuditTimestamp(entry.serverTime)) : '—';
         const trim = formatAuditTrim(entry);
         const ntpView = ntpEntryView(entry);
         const ntpPair = formatNtpOffsetPair(ntpView);
@@ -1379,15 +1370,10 @@
           <td class="c-state" data-label="STATE">${meta.icon} ${escapeSyncText(meta.label)}</td>
           <td class="c-mark center ${entry.ok ? 'mark-ok' : 'mark-fail'}" data-label="OK">${entry.ok ? '✓' : '✗'}</td>
           <td class="c-timestamp" data-label="STARTED" title="${fullStamp}">${stamp}</td>
-          <td class="c-server" data-label="SERVER" title="${fullServer}">${server}</td>
           <td class="c-offset c-before num" data-label="BEFORE">${before}</td>
           <td class="c-arrow">→</td>
           <td class="c-offset c-after num" data-label="AFTER">${after}</td>
-          <td class="c-metric c-unc num" data-label="unc">${uncertainty}</td>
-          <td class="c-metric c-spread num" data-label="Δ">${spread}</td>
           <td class="c-metric c-rtt num" data-label="RTT">${rtt}</td>
-          <td class="c-metric c-samples num" data-label="SAMPLES">${samples}</td>
-          <td class="c-duration num" data-label="TOOK">${duration}</td>
           <td class="c-trim num" data-label="TRIM">${trim}</td>
           <td${ntpCellAttrs}>${ntpCell}</td>
         </tr>`;

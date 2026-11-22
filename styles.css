@@ -717,7 +717,7 @@
 
     @media (min-width: 640px) {
       .ntp-detail-shell {
-        max-height: 85vh;
+        max-height: min(85vh, calc(100dvh - 5rem));
       }
     }
 
