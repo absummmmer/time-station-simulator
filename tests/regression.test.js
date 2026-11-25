@@ -242,6 +242,13 @@ function json(value) {
       && window.eval('formatAuditTrim({clockServoState:"idle"})') === '—');
   window.eval('openSyncAuditLog()');
   check('sync status has no redundant tooltip', !q('sync_error').hasAttribute('title'));
+  check('audit externals use uncertainty not RTT',
+    (() => {
+      const headers = [...q('sync_log_entries').querySelectorAll('th')].map(th => th.textContent.trim());
+      return headers.includes('UNC') && !headers.includes('RTT')
+        && q('sync_log_entries').querySelector('td.c-unc').textContent.includes('±2ms');
+    })(),
+    q('sync_log_entries').textContent.slice(0, 300));
   const auditRow = q('sync_log_entries').querySelector('tbody tr');
   if (auditRow) auditRow.click();
   check('audit row opens merged details',

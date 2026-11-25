@@ -1255,7 +1255,7 @@
       if (!entry) return '';
       const stamp = formatCompactTimestamp(entry.at);
       if (!entry.ok) return `SYNC FAILED @${stamp}`;
-      const metrics = `±${formatMetricMs(entry.uncertaintyMs)} Δ${formatMetricMs(entry.spreadMs)} ${entry.kept}/${entry.samples} RTT=${formatMetricMs(entry.rttMs, 0)}`;
+      const metrics = `±${formatMetricMs(entry.uncertaintyMs)} Δ${formatMetricMs(entry.spreadMs)} ${entry.kept}/${entry.samples}`;
       const ntp = ntpCorrectionParticipated(entry) ? formatNtpInline(entry) : '';
       const servo = formatServoStatus(servoInfo || entry);
       return `${metrics}${ntp ? ` ${ntp}` : ''}${servo ? ` ${servo}` : ''} @${stamp}`;
@@ -1367,7 +1367,7 @@
         <th class="c-offset num">BEFORE</th>
         <th class="c-arrow"></th>
         <th class="c-offset num">AFTER</th>
-        <th class="c-metric c-rtt num">RTT</th>
+        <th class="c-metric c-unc num">UNC</th>
         <th class="c-trim num">TRIM</th>
         <th class="c-ntp">NTP</th>
       </tr></thead>`;
@@ -1380,7 +1380,7 @@
         const stamp = escapeSyncText(formatAuditTimestamp(entry.at));
         const before = formatSignedOffsetSeconds(entry.offsetBeforeMs);
         const after = formatSignedOffsetSeconds(entry.offsetMs);
-        const rtt = entry.ok ? formatMetricMs(entry.rttMs, 0) : '—';
+        const uncertainty = entry.ok ? `±${formatMetricMs(entry.uncertaintyMs, 0)}` : '—';
         const trim = formatAuditTrim(entry);
         const ntpView = ntpEntryView(entry);
         const ntpPair = formatNtpOffsetPair(ntpView);
@@ -1403,7 +1403,7 @@
           <td class="c-offset c-before num" data-label="BEFORE">${before}</td>
           <td class="c-arrow">→</td>
           <td class="c-offset c-after num" data-label="AFTER">${after}</td>
-          <td class="c-metric c-rtt num" data-label="RTT">${rtt}</td>
+          <td class="c-metric c-unc num" data-label="UNC">${uncertainty}</td>
           <td class="c-trim num" data-label="TRIM">${trim}</td>
           <td${ntpCellAttrs}>${ntpCell}</td>
         </tr>`;

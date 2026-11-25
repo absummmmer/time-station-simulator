@@ -384,6 +384,7 @@
     .sync-log-table th.c-offset, .sync-log-table td.c-offset { min-width: 2.8rem; }
     .sync-log-table th.c-arrow, .sync-log-table td.c-arrow { min-width: 0.4rem; }
     .sync-log-table th.c-metric, .sync-log-table td.c-metric { min-width: 2.2rem; }
+    .sync-log-table th.c-unc, .sync-log-table td.c-unc { min-width: 3.2rem; }
     .sync-log-table th.c-trim, .sync-log-table td.c-trim { min-width: 3.2rem; }
     .sync-log-table th.c-mark, .sync-log-table td.c-mark { min-width: 1rem; }
     .sync-log-table th.c-ntp, .sync-log-table td.c-ntp { min-width: 7.2rem; }
@@ -798,8 +799,7 @@
       color: #4ade80;
     }
 
-    .ntp-sources tr.ntp-source-unknown .ntp-source-state,
-    .ntp-sources tr.ntp-source-down .ntp-source-state {
+    .ntp-sources tr.ntp-source-unknown .ntp-source-state {
       color: #6b7280;
     }
     .station-item {

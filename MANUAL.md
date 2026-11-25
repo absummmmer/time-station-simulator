@@ -304,7 +304,7 @@ see section 8 for persistence.
   timestamp is taken at header arrival, so the JSON body download is not charged
   to the path estimate; older backends fall back to the body timestamps.
 - After a sync, the page re-anchors the audio timeline.
-- The clock calibration row shows the last sync's uncertainty, kept samples, RTT,
+- The clock calibration row shows the last sync's uncertainty, kept samples,
   and sample spread.
 - When the last few hours of sync offsets form a consistent trend, the page applies
   a slow frequency trim between syncs and appends `TRIM ±x.xxppm` to the last-sync
@@ -424,6 +424,7 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
 
 - `📑` sync records: key wide table above `700px`, two-column cards at
   `481–700px`, single column at `≤480px`; click a row or NTP cell for details;
+  the external quality column is `UNC`, not RTT;
 - `📈` trace: offset, audio-timeline Δ, and raw wall − monotonic residual charts;
   offset bands show spread/uncertainty, audio events only appear on the audio Δ
   chart;
