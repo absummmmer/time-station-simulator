@@ -359,6 +359,79 @@
       }
     }
 
+    const SYNC_HOLD_MIN_SPREAD_MS = 80;
+    const SYNC_HOLD_MIN_UNCERTAINTY_MS = 50;
+    const SYNC_HOLD_MIN_JUMP_MS = 80;
+    const SYNC_HOLD_CONFIRM_DELAY_MS = 2600;
+    const SYNC_HOLD_MAX_ATTEMPTS = 2;
+
+    function syncHoldBaseline() {
+      const recent = syncAuditLog
+        .filter(entry => entry && entry.ok === true && entry.syncDecision !== 'held')
+        .slice(-12);
+      const spreads = recent
+        .map(entry => Number(entry.spreadMs))
+        .filter(Number.isFinite);
+      const uncertainties = recent
+        .map(entry => Number(entry.uncertaintyMs))
+        .filter(Number.isFinite);
+      const spread = medianNumber(spreads);
+      const uncertainty = medianNumber(uncertainties);
+      return {
+        spread: Number.isFinite(spread) ? spread : 10,
+        uncertainty: Number.isFinite(uncertainty) ? uncertainty : 10,
+        count: recent.length,
+      };
+    }
+
+    function syncHoldAssessment(candidateOffsetMs, currentOffsetMs, spreadMs, uncertaintyMs) {
+      const baseline = syncHoldBaseline();
+      if (baseline.count === 0) {
+        return { suspicious: false, initial: true, reasons: [], baseline };
+      }
+      const spreadLimit = Math.max(SYNC_HOLD_MIN_SPREAD_MS, baseline.spread * 4);
+      const uncertaintyLimit = Math.max(SYNC_HOLD_MIN_UNCERTAINTY_MS, baseline.uncertainty * 4);
+      const jumpLimit = Math.max(SYNC_HOLD_MIN_JUMP_MS, 2 * (baseline.uncertainty + uncertaintyMs));
+      const delta = Math.abs(candidateOffsetMs - currentOffsetMs);
+      const reasons = [];
+      if (spreadMs > spreadLimit) reasons.push('spread');
+      if (uncertaintyMs > uncertaintyLimit) reasons.push('unc');
+      if (delta > jumpLimit) reasons.push('jump');
+      return {
+        suspicious: reasons.length > 0,
+        initial: false,
+        reasons,
+        baseline,
+        spreadLimit,
+        uncertaintyLimit,
+        jumpLimit,
+        delta,
+      };
+    }
+
+    function clearHeldConfirmation() {
+      if (syncController.heldTimer) {
+        clearTimeout(syncController.heldTimer);
+        syncController.heldTimer = null;
+      }
+      syncController.heldCandidate = null;
+      syncController.heldAttempts = 0;
+    }
+
+    function scheduleHeldConfirmation(delay = SYNC_HOLD_CONFIRM_DELAY_MS) {
+      if (syncController.heldTimer) return;
+      if (syncController.heldAttempts >= SYNC_HOLD_MAX_ATTEMPTS) return;
+      syncController.heldTimer = setTimeout(() => {
+        syncController.heldTimer = null;
+        if (syncController.inFlight) {
+          scheduleHeldConfirmation(1200);
+          return;
+        }
+        if (!isTimeApiConfigured()) return;
+        if (!triggerSyncButtonClick('held-confirm')) scheduleHeldConfirmation(1200);
+      }, delay);
+    }
+
     async function autoSyncTime() {
       markCurrentCarrierHandled();
       if (!isTimeApiConfigured()) {
@@ -370,6 +443,10 @@
         return;
       }
       if (syncController.inFlight) return;
+      if (syncController.heldTimer) {
+        clearTimeout(syncController.heldTimer);
+        syncController.heldTimer = null;
+      }
       if (syncController.afterDoneTimer) {
         clearTimeout(syncController.afterDoneTimer);
         syncController.afterDoneTimer = null;
@@ -418,16 +495,7 @@
         const bestRtt = sorted[0].rtt;
         const spread = offsets[offsets.length - 1] - offsets[0];
 
-        localOffset = Math.round(median * 10) / 10;
-        updateOffsetDisplay();
-        // Rebuild the audio timeline from the same offset that the display now
-        // uses. This is intentionally unconditional: a sync that leaves the
-        // rounded offset unchanged can still need a fresh audio anchor.
-        NextAudio.reanchor('sync');
-        // A completed sync always ends the warning state. If a jump was
-        // detected during the sync, the retry still runs in finally, but the
-        // clock face no longer needs a separate "recalibrating" presentation.
-        clearClockUncertain();
+        const candidateOffset = Math.round(median * 10) / 10;
         const n = offsets.length;
         const meanOffset = offsets.reduce((sum, value) => sum + value, 0) / n;
         const variance = n > 1
@@ -443,6 +511,80 @@
         const backendHealth = backendHealthAuditFields(sorted[0] && sorted[0].clockHealth);
         const backendCorrection = backendCorrectionAuditFields(sorted[0]);
         const firstServerTime = new Date(samples[0].serverMs).toISOString();
+
+        const assessment = syncHoldAssessment(
+          candidateOffset,
+          auditOffsetBefore,
+          spread,
+          errorMs,
+        );
+        const priorHold = syncController.heldCandidate;
+        let holdNow = false;
+        let confirmedHold = false;
+        if (priorHold) {
+          const tolerance = Math.max(25, Math.min(150,
+            Math.max(Number(priorHold.uncertaintyMs) || 0, errorMs)));
+          const agrees = Math.abs(candidateOffset - priorHold.candidateOffsetMs) <= tolerance;
+          const nearCurrent = Math.abs(candidateOffset - auditOffsetBefore)
+            <= Math.max(25, 2 * assessment.baseline.uncertainty);
+          confirmedHold = agrees || nearCurrent || !assessment.suspicious;
+          holdNow = !confirmedHold;
+        } else {
+          holdNow = assessment.suspicious;
+        }
+
+        if (holdNow) {
+          const holdReasons = assessment.reasons.length ? assessment.reasons : ['confirmation'];
+          if (!priorHold) {
+            syncController.heldCandidate = {
+              at: auditStartedAtIso,
+              candidateOffsetMs: candidateOffset,
+              uncertaintyMs: errorMs,
+              spreadMs: spread,
+              reasons: holdReasons,
+            };
+          }
+          syncController.heldAttempts += 1;
+          setClockWarningVisible(true);
+          setClockWarningHeld(true);
+          recordSyncAudit({
+            at: auditStartedAtIso,
+            reason: auditReason,
+            ok: false,
+            offsetBeforeMs: auditOffsetBefore,
+            offsetMs: auditOffsetBefore,
+            candidateOffsetMs: candidateOffset,
+            appliedOffsetMs: auditOffsetBefore,
+            uncertaintyMs: errorMs,
+            rttMs: bestRtt,
+            spreadMs: spread,
+            samples: samples.length,
+            kept: kept.length,
+            durationMs: performance.now() - auditStartedAt,
+            serverTime: firstServerTime,
+            error: `held: ${holdReasons.join(', ')}`,
+            syncDecision: 'held',
+            syncHoldReason: holdReasons.join(','),
+            ...backendHealth,
+            ...backendCorrection,
+          });
+          recordClockTrace('SYNC_HELD');
+          syncBtn.textContent = 'HELD';
+          syncBtn.disabled = false;
+          scheduleHeldConfirmation();
+          return;
+        }
+
+        localOffset = candidateOffset;
+        updateOffsetDisplay();
+        // Rebuild the audio timeline from the same offset that the display now
+        // uses. This is intentionally unconditional: a sync that leaves the
+        // rounded offset unchanged can still need a fresh audio anchor.
+        NextAudio.reanchor('sync');
+        // A completed sync always ends the warning state. If a jump was
+        // detected during the sync, the retry still runs in finally, but the
+        // clock face no longer needs a separate "recalibrating" presentation.
+        clearClockUncertain();
         markTrustedServerTime(samples[0].serverMs);
         // Feed this sync into the frequency servo before recording the audit row,
         // so the status line shows the trim that will drive the next interval.
@@ -459,12 +601,24 @@
           });
           Object.assign(servoFields, clockServoAuditFields(servoAppliedMs));
         }
+        const confirmedFromAt = confirmedHold && priorHold ? priorHold.at : '';
+        const syncDecision = confirmedHold
+          ? 'confirmed'
+          : (assessment.initial ? 'accepted-initial' : 'accepted');
+        if (syncDecision === 'confirmed') {
+          clearHeldConfirmation();
+        }
         recordSyncAudit({
           at: auditStartedAtIso,
           reason: auditReason,
           ok: true,
           offsetBeforeMs: auditOffsetBefore,
           offsetMs: localOffset,
+          candidateOffsetMs: candidateOffset,
+          appliedOffsetMs: localOffset,
+          syncDecision,
+          syncHoldReason: confirmedHold && priorHold ? priorHold.reasons.join(',') : '',
+          confirmedFromAt,
           uncertaintyMs: errorMs,
           rttMs: bestRtt,
           spreadMs: spread,
@@ -490,6 +644,7 @@
         console.error('Sync failed:', e);
         // Keep the clock face live and rely on the warning badge; a retry may
         // still be queued when a jump landed during this sync.
+        setClockWarningHeld(false);
         setClockWarningVisible(true);
         updateTimeDisplay();
         recordSyncAudit({
@@ -526,16 +681,28 @@
       const el = document.getElementById('clock_warning');
       if (el) el.classList.toggle('hidden', !visible);
     }
+    function setClockWarningHeld(held) {
+      clockWarningHeld = held;
+      const el = document.getElementById('clock_warning');
+      if (!el) return;
+      el.classList.toggle('clock-warning-held', held);
+      el.setAttribute('aria-label', held
+        ? 'Sync held for confirmation; open clock calibration'
+        : 'Clock may be out of sync; click to dismiss');
+    }
     function markClockUncertain() {
+      setClockWarningHeld(false);
       setClockWarningVisible(true);
     }
     function clearClockUncertain() {
+      setClockWarningHeld(false);
       setClockWarningVisible(false);
       updateTimeDisplay();
     }
     function dismissClockWarning() {
       // Acknowledge only the visual warning. This deliberately does not touch
       // syncController.inFlight, syncController.pendingClockResync, or the in-flight fetch request.
+      setClockWarningHeld(false);
       setClockWarningVisible(false);
       updateTimeDisplay();
     }
@@ -1332,6 +1499,10 @@
         clockWarningBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           openSettingsTab('clock');
+          if (clockWarningHeld) {
+            if (!syncController.inFlight) triggerSyncButtonClick('held-confirm');
+            return;
+          }
           dismissClockWarning();
           if (autoSyncMode) triggerSyncButtonClick('clock-warning');
         });

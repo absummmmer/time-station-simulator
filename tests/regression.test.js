@@ -240,8 +240,25 @@ function json(value) {
     window.eval('formatAuditTrim({clockServoState:"stable",clockServoPpm:5.54})') === '+5.54ppm'
       && window.eval('formatAuditTrim({clockServoState:"unstable"})') === 'HOLD'
       && window.eval('formatAuditTrim({clockServoState:"idle"})') === '—');
+  const holdAssessment = window.eval('syncHoldAssessment(29.1,321.2,331.1,95.3)');
+  const normalAssessment = window.eval('syncHoldAssessment(316.3,314.5,9.9,7.5)');
+  check('sync hold catches the bad network batch',
+    holdAssessment.suspicious
+      && holdAssessment.reasons.includes('spread')
+      && holdAssessment.reasons.includes('unc')
+      && holdAssessment.reasons.includes('jump')
+      && !normalAssessment.suspicious,
+    JSON.stringify({ holdAssessment, normalAssessment }));
+  check('held sync status is distinct from failure',
+    window.eval('formatLastSyncStatus({at:new Date().toISOString(),ok:false,syncDecision:"held",uncertaintyMs:95.3,spreadMs:331.1})')
+      .startsWith('SYNC HELD'));
   window.eval('openSyncAuditLog()');
   check('sync status has no redundant tooltip', !q('sync_error').hasAttribute('title'));
+  window.eval('setClockWarningHeld(true); setClockWarningVisible(true);');
+  check('held warning guides confirmation',
+    q('clock_warning').classList.contains('clock-warning-held')
+      && q('clock_warning').getAttribute('aria-label').includes('confirmation'));
+  window.eval('setClockWarningHeld(false); setClockWarningVisible(false);');
   check('audit externals use uncertainty not RTT',
     (() => {
       const headers = [...q('sync_log_entries').querySelectorAll('th')].map(th => th.textContent.trim());

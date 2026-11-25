@@ -1136,26 +1136,35 @@
       }
       const reasonLabel = (SYNC_REASON_META[target.reason] || {}).label
         || String(target.reason || 'UNKNOWN').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+      const held = target.syncDecision === 'held';
+      const qualityAvailable = target.ok === true || held;
       const metric = (label, value) => `<div class="min-w-0">
         <div class="text-[10px] uppercase tracking-wide text-gray-500">${escapeSyncText(label)}</div>
         <div class="mt-0.5 text-gray-300 break-words">${escapeSyncText(value)}</div>
       </div>`;
-      const syncSamples = target.ok ? `${target.kept}/${target.samples}` : `${target.samples ?? 0}/${SYNC_SAMPLE_COUNT}`;
+      const syncSamples = qualityAvailable ? `${target.kept}/${target.samples}` : `${target.samples ?? 0}/${SYNC_SAMPLE_COUNT}`;
       const syncBlock = `<div class="mb-4">
         <div class="mb-2 text-[10px] uppercase tracking-wide text-gray-500">sync</div>
         <div class="grid grid-cols-2 gap-x-4 gap-y-3">
-          ${metric('state', reasonLabel)}
+          ${metric('state', held ? `HELD · ${reasonLabel}` : reasonLabel)}
           ${metric('started', formatFullTimestamp(target.at))}
           ${metric('server time', target.serverTime ? formatFullTimestamp(target.serverTime) : '—')}
           ${metric('offset', `${formatSignedOffsetSeconds(target.offsetBeforeMs)} → ${formatSignedOffsetSeconds(target.offsetMs)}`)}
-          ${metric('uncertainty', target.ok ? `±${formatMetricMs(target.uncertaintyMs)}` : '—')}
-          ${metric('spread', target.ok ? formatMetricMs(target.spreadMs) : '—')}
-          ${metric('rtt', target.ok ? formatMetricMs(target.rttMs, 0) : '—')}
+          ${metric('decision', target.syncDecision || 'accepted')}
+          ${metric('candidate', target.candidateOffsetMs !== undefined && target.candidateOffsetMs !== null
+            ? formatSignedOffsetSeconds(target.candidateOffsetMs) : '—')}
+          ${metric('uncertainty', qualityAvailable ? `±${formatMetricMs(target.uncertaintyMs)}` : '—')}
+          ${metric('spread', qualityAvailable ? formatMetricMs(target.spreadMs) : '—')}
+          ${metric('rtt', qualityAvailable ? formatMetricMs(target.rttMs, 0) : '—')}
           ${metric('samples', syncSamples)}
           ${metric('took', formatDurationSeconds(target.durationMs))}
           ${metric('trim', formatAuditTrim(target))}
         </div>
       </div>`;
+      const holdBlock = held && target.error ? `<div class="mt-4 rounded-lg border border-yellow-900/60 bg-yellow-950/20 p-2">
+        <div class="text-[10px] uppercase tracking-wide text-yellow-400">hold reason</div>
+        <div class="mt-1 whitespace-pre-wrap break-words text-gray-400">${escapeSyncText(target.error)}</div>
+      </div>` : '';
       const view = ntpEntryView(target);
       if (!view) {
         el.innerHTML = `${syncBlock}<div class="text-gray-500">NO NTP HEALTH DATA</div>`;
@@ -1177,7 +1186,7 @@
         ${formatNtpSourceTable(view)}
       </div>` : '';
 
-      el.innerHTML = `${syncBlock}
+      el.innerHTML = `${syncBlock}${holdBlock}
       <div class="mt-5">
         <div class="mb-2">
           <span class="ntp-badge ntp-${view.status}">${ntpStatusLabel(view)}</span>
@@ -1254,6 +1263,9 @@
     function formatLastSyncStatus(entry, servoInfo) {
       if (!entry) return '';
       const stamp = formatCompactTimestamp(entry.at);
+      if (entry.syncDecision === 'held') {
+        return `SYNC HELD ±${formatMetricMs(entry.uncertaintyMs)} Δ${formatMetricMs(entry.spreadMs)} @${stamp}`;
+      }
       if (!entry.ok) return `SYNC FAILED @${stamp}`;
       const metrics = `±${formatMetricMs(entry.uncertaintyMs)} Δ${formatMetricMs(entry.spreadMs)} ${entry.kept}/${entry.samples}`;
       const ntp = ntpCorrectionParticipated(entry) ? formatNtpInline(entry) : '';
@@ -1267,7 +1279,9 @@
       const last = syncAuditLog[syncAuditLog.length - 1];
       const servoInfo = currentClockServoInfo();
       el.textContent = formatLastSyncStatus(last, servoInfo);
-      el.classList.toggle('text-red-400', !!(last && !last.ok));
+      const held = !!(last && last.syncDecision === 'held');
+      el.classList.toggle('text-red-400', !!(last && !last.ok && !held));
+      el.classList.toggle('text-yellow-400', held);
       const panel = getUi('ntp_detail_panel');
       if (panel && !panel.classList.contains('hidden') && ntpDetailEntryAt === null) {
         renderNtpDetailPanel();
@@ -1372,10 +1386,11 @@
         <th class="c-ntp">NTP</th>
       </tr></thead>`;
       const rows = syncAuditLog.slice().reverse().map(entry => {
-        const meta = SYNC_REASON_META[entry.reason] || {
+        const held = entry.syncDecision === 'held';
+        const meta = held ? { icon: '⏸', label: 'HELD' } : (SYNC_REASON_META[entry.reason] || {
           icon: '❔',
           label: String(entry.reason || 'UNKNOWN').toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
-        };
+        });
         const fullStamp = escapeSyncText(formatFullTimestamp(entry.at));
         const stamp = escapeSyncText(formatAuditTimestamp(entry.at));
         const before = formatSignedOffsetSeconds(entry.offsetBeforeMs);
@@ -1393,12 +1408,12 @@
         const ntpCellAttrs = ntpView
           ? ` class="c-ntp ntp-entry-cell" data-label="NTP" data-ntp-at="${escapeSyncText(entry.at)}" role="button" tabindex="0"`
           : ' class="c-ntp" data-label="NTP"';
-        const rowTitle = entry.ok ? '' : ` title="ERROR: ${escapeSyncText(entry.error || 'sync failed')}"`;
-        const rowLabel = `Sync detail · ${meta.label} · ${stamp}`;
+        const rowTitle = entry.ok || held ? '' : ` title="ERROR: ${escapeSyncText(entry.error || 'sync failed')}"`;
+        const rowLabel = `Sync detail · ${held ? 'HELD' : meta.label} · ${stamp}`;
         return `<tr data-audit-at="${escapeSyncText(entry.at)}" role="button" tabindex="0"
           aria-label="${escapeSyncText(rowLabel)}"${rowTitle}>
           <td class="c-state" data-label="STATE">${meta.icon} ${escapeSyncText(meta.label)}</td>
-          <td class="c-mark center ${entry.ok ? 'mark-ok' : 'mark-fail'}" data-label="OK">${entry.ok ? '✓' : '✗'}</td>
+          <td class="c-mark center ${held ? 'mark-held' : entry.ok ? 'mark-ok' : 'mark-fail'}" data-label="OK">${held ? '⏸' : entry.ok ? '✓' : '✗'}</td>
           <td class="c-timestamp" data-label="STARTED">${stamp}</td>
           <td class="c-offset c-before num" data-label="BEFORE">${before}</td>
           <td class="c-arrow">→</td>
@@ -1440,6 +1455,7 @@
 
     const SIMPLE_SYNC_HEADERS = [
       'at', 'reason', 'ok', 'offsetBeforeMs', 'offsetMs',
+      'syncDecision', 'candidateOffsetMs', 'syncHoldReason',
       'uncertaintyMs', 'rttMs', 'spreadMs', 'kept', 'samples', 'durationMs',
       'backendNtpSource', 'backendNtpFallback', 'backendNtpCorrectionApplied',
       'backendNtpCorrectionReason',
@@ -1447,6 +1463,7 @@
     ];
     const SIMPLE_COMBINED_HEADERS = [
       'kind', 'at', 'rawAt', 'monoMs', 'offsetBeforeMs', 'offsetMs', 'reason', 'ok',
+      'syncDecision', 'candidateOffsetMs', 'syncHoldReason',
       'uncertaintyMs', 'rttMs', 'spreadMs', 'kept', 'samples', 'durationMs',
       'visibility', 'session', 'deviceProfile', 'audioTimelineDeltaMs',
       'audioContextSession', 'audioSkewPpm', 'reanchorReason', 'calibrationSteps',
@@ -1459,6 +1476,8 @@
       const simple = options && options.simple === true;
       const headers = simple ? SIMPLE_SYNC_HEADERS : [
         'at', 'reason', 'ok', 'offsetBeforeMs', 'offsetMs',
+        'syncDecision', 'candidateOffsetMs', 'appliedOffsetMs', 'syncHoldReason',
+        'confirmedFromAt',
         'uncertaintyMs', 'rttMs', 'spreadMs', 'samples', 'kept',
         'durationMs', 'serverTime', 'error',
         'backendNtpReachable', 'backendNtpSynchronized', 'backendNtpHoldover',

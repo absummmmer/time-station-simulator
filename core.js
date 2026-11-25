@@ -289,9 +289,13 @@
       autoScheduled: false,
       autoScheduledKey: 0,
       lastAutoSegment: -1,
+      heldCandidate: null,
+      heldTimer: null,
+      heldAttempts: 0,
     };
     let pendingSyncReason = 'manual';
     let clockWarningVisible = false;
+    let clockWarningHeld = false;
     let autoSyncMode = false;
     let zenModeActive = false;
     let zenFullscreenObserved = false;

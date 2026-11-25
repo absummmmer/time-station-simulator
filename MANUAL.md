@@ -425,6 +425,11 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
 - `📑` sync records: key wide table above `700px`, two-column cards at
   `481–700px`, single column at `≤480px`; click a row or NTP cell for details;
   the external quality column is `UNC`, not RTT;
+- when spread, uncertainty, or a jump from the current offset looks abnormal,
+  the result is recorded as `HELD` and not applied; a confirmation sync runs
+  after about 2.6s and only a confirmed result is applied. While waiting, the
+  status bar shows a low-key warning icon; clicking it opens calibration and
+  starts confirmation immediately;
 - `📈` trace: offset, audio-timeline Δ, and raw wall − monotonic residual charts;
   offset bands show spread/uncertainty, audio events only appear on the audio Δ
   chart;

@@ -31,7 +31,9 @@ const { boot, wait } = require('./dom-harness');
   }
 
   const sync = await exportAndRead('exportSyncAuditCsv({simple:true})');
-  assert.strictEqual(sync.lines[0].split(',').length, 18);
+  assert.strictEqual(sync.lines[0].split(',').length, 21);
+  assert.ok(sync.lines[0].includes('syncDecision'));
+  assert.ok(sync.lines[0].includes('syncHoldReason'));
   assert.ok(sync.lines[0].includes('backendNtpCorrectionApplied'));
   assert.ok(sync.lines[0].includes('clockServoPpm'));
   assert.ok(sync.lines[1].includes('5.54'));
