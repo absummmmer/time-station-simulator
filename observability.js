@@ -1395,7 +1395,7 @@
         const stamp = escapeSyncText(formatAuditTimestamp(entry.at));
         const before = formatSignedOffsetSeconds(entry.offsetBeforeMs);
         const after = formatSignedOffsetSeconds(entry.offsetMs);
-        const uncertainty = entry.ok ? `±${formatMetricMs(entry.uncertaintyMs, 0)}` : '—';
+        const uncertainty = entry.ok ? `±${formatMetricMs(entry.uncertaintyMs, 1)}` : '—';
         const trim = formatAuditTrim(entry);
         const ntpView = ntpEntryView(entry);
         const ntpPair = formatNtpOffsetPair(ntpView);
