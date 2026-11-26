@@ -985,7 +985,7 @@
 - 输出总长不超过350中文字；除必要字段名外不堆术语。
 
 字段：
-- sync：offsetBeforeMs→offsetMs 是本次同步前后的页面校正量，不是原始晶振频偏；uncertaintyMs/rttMs/spreadMs/kept 是同步质量；ok/error/reason 是结果。
+- sync：offsetBeforeMs→offsetMs 是本次同步前后的页面校正量，不是原始晶振频偏；uncertaintyMs/rttMs/spreadMs/kept 是同步质量；ok/error/reason 是结果。syncDecision=held 表示候选被拒、未应用（不是网络失败），此时 offsetMs 仍是旧值，candidateOffsetMs 才是被拒候选，syncHoldReason 记录原因；统计时把 held 单列，趋势和台阶只使用 accepted/accepted-initial/confirmed。
 - trace：rawAt 是未校正墙钟，monoMs 是页面单调钟（START 重置），offsetMs 是当前校正量。只有同一连续 session 内 (rawAt−monoMs) 的变化能算原始漂移；跨 session 不能连起来算。
 - audioTimelineDeltaMs = 音频调度时间轴 −（显示UTC+设备补偿），不是扬声器延迟；audioSkewPpm/audioTimeScale 是音频时钟偏差/倍率；CALIBRATION、AUDIO_OUTPUT_MANUAL/SYSTEM 是事件；只在音频Δ图解读，不能当offset或raw漂移。
 - backendNtp* 是后端上游观测；只有 backendNtpCorrectionApplied=true 才表示参与页面时间；backendNtpOffsetMs ≠ offsetMs。
@@ -998,7 +998,7 @@
 - NTP 趋势图横轴是时间，不是采样序号；不要把它和 trace 三图混读。
 
 计算（能给数就给数，不能就说明）：
-1. 同步质量：成功/失败数，中位 uncertainty、RTT、kept/samples；先判断同步是否可信。
+1. 同步质量：已应用/held/失败数，中位 uncertainty、RTT、kept/samples；先判断同步是否可信。
 2. 校正趋势：只用间距≥5分钟的同步，对 offsetMs 与 at 做稳健斜率，ppm = ΔoffsetMs / Δt(s) × 1000；给出累计变化和稳定区段。
 3. 台阶：列出最大1–3个 |ΔoffsetMs| 及时间、原因；台阶不等于频偏。
 4. trace原始漂移：每个连续session内拟合 (rawAt−monoMs) 的ppm和跨度；session断裂单独说明。
@@ -1022,7 +1022,7 @@ Data handling and context limits:
 - Total output ≤250 English words; plain language, no jargon pile-up.
 
 Semantics:
-- sync: offsetBeforeMs→offsetMs is the page correction before/after this sync, not raw oscillator error; uncertaintyMs/rttMs/spreadMs/kept are quality; ok/error/reason is outcome.
+- sync: offsetBeforeMs→offsetMs is the page correction before/after this sync, not raw oscillator error; uncertaintyMs/rttMs/spreadMs/kept are quality; ok/error/reason is outcome. syncDecision=held means the candidate was rejected and not applied (not a network failure): offsetMs remains the old value and candidateOffsetMs is the rejected candidate, while syncHoldReason records why. Count held separately; use only accepted/accepted-initial/confirmed for trend and steps.
 - trace: rawAt is uncorrected wall time; monoMs is page monotonic time (resets on START); offsetMs is current correction. Only within one continuous session can changes in (rawAt−monoMs) estimate raw drift; never connect across sessions.
 - audioTimelineDeltaMs = audio scheduling timeline − (display UTC + device compensation), not speaker latency; audioSkewPpm/audioTimeScale are the audio-clock skew/rate; CALIBRATION and AUDIO_OUTPUT_MANUAL/SYSTEM are events; read them only on the audio-Δ chart, never as offset or raw drift.
 - backendNtp* are upstream observations; only backendNtpCorrectionApplied=true means they affected page time; backendNtpOffsetMs ≠ offsetMs.
@@ -1035,7 +1035,7 @@ Charts (with trace screenshots):
 - NTP trend uses a time axis, not the trace x-axis.
 
 Calculations (give numbers when possible; otherwise say why not):
-1. Sync quality: success/failure counts, median uncertainty, RTT, kept/samples; first decide whether sync is trustworthy.
+1. Sync quality: applied/held/failed counts, median uncertainty, RTT, kept/samples; first decide whether sync is trustworthy.
 2. Correction trend: use only syncs ≥5 minutes apart; fit offsetMs against at robustly, ppm = ΔoffsetMs / Δt(s) × 1000; report cumulative change and stable sections.
 3. Steps: list the largest 1–3 |ΔoffsetMs| with time and reason; a step is not a frequency error.
 4. Raw trace drift: per continuous session fit (rawAt−monoMs) and report ppm and span; describe session breaks separately.

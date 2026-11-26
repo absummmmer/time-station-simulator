@@ -22,6 +22,8 @@ for (const [name, body] of [['combined zh', combinedZh], ['combined en', combine
   assert.ok(body.text.includes('backendNtpOffsetMs'), `${name} must separate backend NTP offset`);
   assert.ok(body.text.includes('clockServoPpm') && body.text.includes('clockServoState')
     && body.text.includes('clockServoAppliedMs'), `${name} must explain TRIM fields`);
+  assert.ok(body.text.includes('syncDecision') && body.text.includes('candidateOffsetMs')
+    && body.text.includes('syncHoldReason'), `${name} must explain held sync rows`);
   assert.ok(body.text.includes('spread/2') || body.text.includes('spread / 2'),
     `${name} must map the outer sync band to spread`);
   assert.ok(body.text.includes('采样序号') || body.text.includes('sample order'),
@@ -41,7 +43,7 @@ for (const [name, body] of [['combined zh', combinedZh], ['combined en', combine
 }
 
 assert.ok(combinedZh.text.length <= 2500, `combined zh prompt is ${combinedZh.text.length} chars, limit 2500`);
-assert.ok(combinedEn.text.length <= 4500, `combined en prompt is ${combinedEn.text.length} chars, limit 4500`);
+assert.ok(combinedEn.text.length <= 4900, `combined en prompt is ${combinedEn.text.length} chars, limit 4900`);
 assert.ok(!source.includes('trace: trace:'), 'duplicated trace header');
 assert.ok(!source.includes('图上分别画亮线') && !source.includes('bright/dim lines'), 'stale marker wording');
 
@@ -49,6 +51,6 @@ console.log(JSON.stringify({
   bodies: bodies.map(body => ({ lang: body.lang, chars: body.text.length })),
   limits: [
     { name: 'combined zh', chars: combinedZh.text.length, limit: 2500 },
-    { name: 'combined en', chars: combinedEn.text.length, limit: 4500 },
+    { name: 'combined en', chars: combinedEn.text.length, limit: 4900 },
   ],
 }, null, 2));
