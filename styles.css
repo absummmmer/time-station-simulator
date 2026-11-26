@@ -1133,6 +1133,10 @@
       opacity: 0.95;
     }
 
+    #ntp_detail_content .ntp-hold-reason {
+      margin-bottom: 1.25rem;
+    }
+
     #bpm_dut1 {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }

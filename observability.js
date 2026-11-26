@@ -1161,7 +1161,7 @@
           ${metric('trim', formatAuditTrim(target))}
         </div>
       </div>`;
-      const holdBlock = held && target.error ? `<div class="mt-4 rounded-lg border border-yellow-900/60 bg-yellow-950/20 p-2">
+      const holdBlock = held && target.error ? `<div class="ntp-hold-reason mt-4 mb-5 rounded-lg border border-yellow-900/60 bg-yellow-950/20 p-2">
         <div class="text-[10px] uppercase tracking-wide text-yellow-400">hold reason</div>
         <div class="mt-1 whitespace-pre-wrap break-words text-gray-400">${escapeSyncText(target.error)}</div>
       </div>` : '';
