@@ -429,7 +429,11 @@ The 📋 button at the end of the clock calibration row opens the sync audit pan
   the result is recorded as `HELD` and not applied; a confirmation sync runs
   after about 2.6s and only a confirmed result is applied. While waiting, the
   status bar shows a low-key warning icon; clicking it opens calibration and
-  starts confirmation immediately;
+  starts confirmation immediately. Manual retries that cluster near each other
+  or return near the current offset are accepted; after two unconfirmed
+  attempts the icon changes to `⍻`, meaning intervention is needed. A pending
+  hold survives a tab refresh for up to 10 minutes instead of restarting from
+  scratch;
 - `📈` trace: offset, audio-timeline Δ, and raw wall − monotonic residual charts;
   offset bands show spread/uncertainty, audio events only appear on the audio Δ
   chart;

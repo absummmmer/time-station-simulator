@@ -1129,6 +1129,10 @@
       opacity: 0.65;
     }
 
+    #clock_warning.clock-warning-action {
+      opacity: 0.95;
+    }
+
     #bpm_dut1 {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }

@@ -364,6 +364,8 @@
     const SYNC_HOLD_MIN_JUMP_MS = 80;
     const SYNC_HOLD_CONFIRM_DELAY_MS = 2600;
     const SYNC_HOLD_MAX_ATTEMPTS = 2;
+    const SYNC_HELD_SESSION_KEY = 'bpm_sync_held_pending_v1';
+    const SYNC_HELD_TTL_MS = 10 * 60 * 1000;
 
     function syncHoldBaseline() {
       const recent = syncAuditLog
@@ -409,6 +411,56 @@
       };
     }
 
+    function syncCandidateConfirmsHold(priorHold, candidateOffsetMs, currentOffsetMs, uncertaintyMs, assessment) {
+      if (!priorHold) return false;
+      const tolerance = Math.max(80, Math.min(200,
+        2 * Math.max(Number(priorHold.uncertaintyMs) || 0, uncertaintyMs)));
+      const agrees = Math.abs(candidateOffsetMs - priorHold.candidateOffsetMs) <= tolerance;
+      const nearCurrent = Math.abs(candidateOffsetMs - currentOffsetMs)
+        <= Math.max(25, 2 * assessment.baseline.uncertainty);
+      return agrees || nearCurrent || !assessment.suspicious;
+    }
+
+    function saveHeldState() {
+      if (!syncController.heldCandidate) return;
+      try {
+        sessionStorage.setItem(SYNC_HELD_SESSION_KEY, JSON.stringify({
+          ...syncController.heldCandidate,
+          attempts: syncController.heldAttempts,
+          savedAt: Date.now(),
+        }));
+      } catch (e) { }
+    }
+
+    function restoreHeldState() {
+      if (syncController.heldCandidate) return true;
+      try {
+        const raw = sessionStorage.getItem(SYNC_HELD_SESSION_KEY);
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        if (!saved || !Number.isFinite(Number(saved.candidateOffsetMs))
+          || !Number.isFinite(Number(saved.savedAt))
+          || Date.now() - Number(saved.savedAt) > SYNC_HELD_TTL_MS) {
+          sessionStorage.removeItem(SYNC_HELD_SESSION_KEY);
+          return false;
+        }
+        syncController.heldCandidate = {
+          at: saved.at || '',
+          candidateOffsetMs: Number(saved.candidateOffsetMs),
+          uncertaintyMs: Number(saved.uncertaintyMs) || 0,
+          spreadMs: Number(saved.spreadMs) || 0,
+          reasons: Array.isArray(saved.reasons) ? saved.reasons : [],
+        };
+        syncController.heldAttempts = Math.min(
+          SYNC_HOLD_MAX_ATTEMPTS,
+          Math.max(1, Number(saved.attempts) || 1),
+        );
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
     function clearHeldConfirmation() {
       if (syncController.heldTimer) {
         clearTimeout(syncController.heldTimer);
@@ -416,6 +468,7 @@
       }
       syncController.heldCandidate = null;
       syncController.heldAttempts = 0;
+      try { sessionStorage.removeItem(SYNC_HELD_SESSION_KEY); } catch (e) { }
     }
 
     function scheduleHeldConfirmation(delay = SYNC_HOLD_CONFIRM_DELAY_MS) {
@@ -447,6 +500,7 @@
         clearTimeout(syncController.heldTimer);
         syncController.heldTimer = null;
       }
+      restoreHeldState();
       if (syncController.afterDoneTimer) {
         clearTimeout(syncController.afterDoneTimer);
         syncController.afterDoneTimer = null;
@@ -522,12 +576,13 @@
         let holdNow = false;
         let confirmedHold = false;
         if (priorHold) {
-          const tolerance = Math.max(25, Math.min(150,
-            Math.max(Number(priorHold.uncertaintyMs) || 0, errorMs)));
-          const agrees = Math.abs(candidateOffset - priorHold.candidateOffsetMs) <= tolerance;
-          const nearCurrent = Math.abs(candidateOffset - auditOffsetBefore)
-            <= Math.max(25, 2 * assessment.baseline.uncertainty);
-          confirmedHold = agrees || nearCurrent || !assessment.suspicious;
+          confirmedHold = syncCandidateConfirmsHold(
+            priorHold,
+            candidateOffset,
+            auditOffsetBefore,
+            errorMs,
+            assessment,
+          );
           holdNow = !confirmedHold;
         } else {
           holdNow = assessment.suspicious;
@@ -546,7 +601,8 @@
           }
           syncController.heldAttempts += 1;
           setClockWarningVisible(true);
-          setClockWarningHeld(true);
+          setClockWarningHeld(true, syncController.heldAttempts >= SYNC_HOLD_MAX_ATTEMPTS);
+          saveHeldState();
           recordSyncAudit({
             at: auditStartedAtIso,
             reason: auditReason,
@@ -644,7 +700,8 @@
         console.error('Sync failed:', e);
         // Keep the clock face live and rely on the warning badge; a retry may
         // still be queued when a jump landed during this sync.
-        setClockWarningHeld(false);
+        if (syncController.heldCandidate) setClockWarningHeld(true, true);
+        else setClockWarningHeld(false);
         setClockWarningVisible(true);
         updateTimeDisplay();
         recordSyncAudit({
@@ -681,13 +738,17 @@
       const el = document.getElementById('clock_warning');
       if (el) el.classList.toggle('hidden', !visible);
     }
-    function setClockWarningHeld(held) {
+    function setClockWarningHeld(held, needsIntervention = false) {
       clockWarningHeld = held;
       const el = document.getElementById('clock_warning');
       if (!el) return;
       el.classList.toggle('clock-warning-held', held);
+      el.classList.toggle('clock-warning-action', held && needsIntervention);
+      el.textContent = held && needsIntervention ? '⍻' : '⚠';
       el.setAttribute('aria-label', held
-        ? 'Sync held for confirmation; open clock calibration'
+        ? (needsIntervention
+          ? 'Sync retries did not resolve; open clock calibration to retry'
+          : 'Sync held for confirmation; open clock calibration')
         : 'Clock may be out of sync; click to dismiss');
     }
     function markClockUncertain() {

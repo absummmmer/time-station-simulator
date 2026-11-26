@@ -252,12 +252,25 @@ function json(value) {
   check('held sync status is distinct from failure',
     window.eval('formatLastSyncStatus({at:new Date().toISOString(),ok:false,syncDecision:"held",uncertaintyMs:95.3,spreadMs:331.1})')
       .startsWith('SYNC HELD'));
+  const confirmsRealJump = window.eval(`syncCandidateConfirmsHold(
+    { candidateOffsetMs: -519.5, uncertaintyMs: 25.4 },
+    -569.7, 5.8, 19.6, { suspicious: true, baseline: { uncertainty: 10 } })`);
+  const rejectsUnrelated = window.eval(`syncCandidateConfirmsHold(
+    { candidateOffsetMs: 29.1, uncertaintyMs: 95 },
+    -300, 321.2, 95, { suspicious: true, baseline: { uncertainty: 10 } })`);
+  check('manual retry confirms a consistent real jump',
+    confirmsRealJump && !rejectsUnrelated, JSON.stringify({ confirmsRealJump, rejectsUnrelated }));
   window.eval('openSyncAuditLog()');
   check('sync status has no redundant tooltip', !q('sync_error').hasAttribute('title'));
   window.eval('setClockWarningHeld(true); setClockWarningVisible(true);');
   check('held warning guides confirmation',
     q('clock_warning').classList.contains('clock-warning-held')
       && q('clock_warning').getAttribute('aria-label').includes('confirmation'));
+  window.eval('setClockWarningHeld(true, true);');
+  check('exhausted retry warning asks for intervention',
+    q('clock_warning').textContent === '⍻'
+      && q('clock_warning').classList.contains('clock-warning-action')
+      && q('clock_warning').getAttribute('aria-label').includes('did not resolve'));
   window.eval('setClockWarningHeld(false); setClockWarningVisible(false);');
   check('audit externals use uncertainty not RTT',
     (() => {
