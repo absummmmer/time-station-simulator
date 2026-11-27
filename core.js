@@ -300,6 +300,12 @@
     let zenModeActive = false;
     let zenFullscreenObserved = false;
     let zenExitClickGuardUntil = 0;
+    const OBS_MODE = (() => {
+      try { return new URLSearchParams(location.search).get('obs') === '1'; } catch (e) { return false; }
+    })();
+    const OBS_INTERACTIVE = OBS_MODE && (() => {
+      try { return new URLSearchParams(location.search).get('interactive') === '1'; } catch (e) { return false; }
+    })();
     let antiBurnActive = false;
     let mainContainer = null;
     let dut1AutoMode = false;
@@ -916,10 +922,18 @@
       return true;
     }
 
-    function buildSettingsShareUrl() {
+    function buildSettingsShareUrl(options = {}) {
       const url = new URL(location.href);
       url.searchParams.delete('settings');
       url.searchParams.delete('setup');
+      if (options.obs) {
+        url.searchParams.set('obs', '1');
+        url.searchParams.delete('interactive');
+      } else {
+        url.searchParams.delete('obs');
+        url.searchParams.delete('interactive');
+        url.searchParams.delete('scale');
+      }
       url.searchParams.set('cfg', encodeSettingsUrlConfig(settingsUrlConfigSnapshot()));
       return url.toString();
     }

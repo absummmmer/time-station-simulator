@@ -1128,6 +1128,63 @@
       color-scheme: dark;
     }
 
+    /* OBS Browser Source mode: fixed narrow layout, scaled as one block. */
+    html.obs-mode body {
+      min-width: 320px;
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: transparent !important;
+      justify-content: flex-start !important;
+    }
+
+    html.obs-mode .max-w-3xl {
+      width: 320px !important;
+      min-width: 320px !important;
+      max-width: 320px !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      zoom: var(--obs-scale, 1);
+      transform-origin: top center;
+    }
+
+    html.obs-mode #master_control {
+      display: none !important;
+    }
+
+    html.obs-mode:not(.obs-interactive) body {
+      pointer-events: none;
+    }
+
+    html.obs-mode:not(.obs-interactive) #settings_panel,
+    html.obs-mode:not(.obs-interactive) .station-volume-panel,
+    html.obs-mode:not(.obs-interactive) .station-volume-toggle {
+      display: none !important;
+    }
+
+    #obs_audio_overlay:not(.hidden) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+      background: rgba(0, 0, 0, 0.72);
+      pointer-events: auto;
+    }
+
+    #obs_audio_start {
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.92);
+      color: #e5e7eb;
+      padding: 1.5rem 2rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      cursor: pointer;
+    }
+
+    #obs_audio_start:hover {
+      border-color: #7dd3fc;
+      color: #f8fafc;
+    }
+
     #settings_share_url,
     #settings_share_css {
       background-color: #0f172a !important;

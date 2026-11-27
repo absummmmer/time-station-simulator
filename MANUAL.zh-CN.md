@@ -217,7 +217,8 @@ https://time-api.example.com
 - URL 参数 `?settings=clock|display|stations|noise`；
 - `?setup=backend` 直接打开后端地址设置；
 - 设置面板关闭按钮左侧的 🔗 按钮会打开分享窗口：上方是 `?cfg=` URL 和复制按钮，
-  下方是可编辑的 OBS Custom CSS 模板和复制按钮。
+  下方是可编辑的 OBS 颜色 CSS 模板和复制按钮；OBS URL 有单独的 “COPY OBS URL”
+  按钮。
 
 面板顶部四个图标依次为：
 
@@ -506,12 +507,15 @@ RWM 不发送一天中的时刻，只发送标准时间间隔和 DUT1/dUT1。CW 
 | `?setup=backend` | 直接打开 Time API 地址设置 |
 | `?offset=±整数分钟` | 给显示 UTC 和音频增加全局偏移；不改变网络同步使用的设备时钟 |
 | `?cfg=1.<base64url>` | 从设置面板 🔗 按钮生成的静态设置集合；加载时覆盖本地设置。可能包含 Time API 地址，分享前注意 |
+| `?obs=1` | OBS 模式：固定 320px 内容宽度、透明背景、主音量固定最大，并显示音频启动覆盖层 |
+| `?interactive=1` | 与 `?obs=1` 联用；允许打开设置面板和各台比例滑块。默认 OBS 模式禁止交互 |
+| `?scale=0.25…4` | OBS 模式整体缩放系数；只缩放页面，不改变任何字号设置 |
 
 `?offset` 只用于演示或临时偏移，不会保存；状态栏会显示偏移标记。
 
 `?cfg` 包含显示、混音、台站、音频补偿、设备延迟档案和时钟策略等静态设置；同步历史、NTP 健康不会写入。DUT1 在自动获取关闭时写入当前值，时钟校正量在 AUTO 同步关闭时写入，因此清空数据后可以用 URL 恢复手动设定。URL 设置优先于 localStorage；`?settings=`/`?setup=` 仅负责打开面板，不会被复制进新 URL。
 
-分享窗口下方的 CSS 只是复制到 OBS Browser Source 的 Custom CSS 字段的模板，不会写入页面设置或 URL；页面本身不加载外部 CSS。
+OBS 模式默认不允许交互，只保留音频启动覆盖层；加 `?interactive=1` 后才允许操作设置与比例滑块。分享窗口的 OBS CSS 只应修改颜色；字号由 `?scale=` 统一缩放，不要写 `font-size`。
 
 ## 10. 精度与范围
 

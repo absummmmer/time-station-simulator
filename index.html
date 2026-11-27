@@ -8,6 +8,19 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Time Station Simulator</title>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      if (params.get('obs') !== '1') return;
+      document.documentElement.classList.add('obs-mode');
+      if (params.get('interactive') === '1') {
+        document.documentElement.classList.add('obs-interactive');
+      }
+      const rawScale = Number(params.get('scale'));
+      const scale = Number.isFinite(rawScale) ? Math.min(4, Math.max(0.25, rawScale)) : 1;
+      document.documentElement.style.setProperty('--obs-scale', String(scale));
+    })();
+  </script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="tailwind.css?v=20261122-10">
@@ -561,6 +574,10 @@
           <button id="settings_share_url_copy" type="button"
             class="px-3 py-2 bg-blue-600 rounded hover:bg-blue-500 transition text-xs">COPY</button>
         </div>
+        <div class="mt-2 flex justify-end">
+          <button id="settings_share_obs_copy" type="button"
+            class="px-3 py-2 bg-dark-700 rounded hover:bg-dark-600 transition text-xs">COPY OBS URL</button>
+        </div>
       </div>
       <div class="flex-1 min-h-0 flex flex-col">
         <div class="text-[10px] uppercase tracking-wide text-gray-500 mb-1">OBS custom CSS template</div>
@@ -605,6 +622,14 @@
           class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">SAVE</button>
       </div>
     </form>
+  </div>
+
+  <div id="obs_audio_overlay" class="hidden fixed inset-0 items-center justify-center p-4">
+    <button id="obs_audio_start" type="button">
+      <span class="block text-2xl mb-2">&#128266;</span>
+      <span class="block text-sm">CLICK TO ENABLE AUDIO</span>
+      <span class="block text-xs mt-1 text-gray-400">点击启用音频</span>
+    </button>
   </div>
 
   <script src="audio/wwv/sprite.js?v=20261122-10"></script>

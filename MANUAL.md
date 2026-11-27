@@ -275,7 +275,8 @@ The settings panel has no permanent entry point. Open it by:
 - URL parameter `?settings=clock|display|stations|noise`;
 - `?setup=backend` to open backend address settings directly;
 - the 🔗 button left of the settings close button opens a share window with the
-  `?cfg=` URL plus a copy button, and an editable OBS Custom CSS template below.
+  `?cfg=` URL and a copy button, an OBS colour-only CSS template below, and a
+  separate **COPY OBS URL** button.
 
 The four icons at the top are:
 
@@ -624,6 +625,9 @@ for "audio path delay vs page clock". Do not mix them.
 | `?setup=backend` | Open the Time API address setup directly |
 | `?offset=±integer minutes` | Add a global offset to displayed UTC and audio; does not change the device clock used for network sync |
 | `?cfg=1.<base64url>` | Static settings payload copied by the 🔗 button; overrides local settings on load. May contain the Time API base, so review before sharing |
+| `?obs=1` | OBS mode: fixed 320px content width, transparent background, master volume locked to maximum, and an audio-start overlay |
+| `?interactive=1` | With `?obs=1`, allow settings and station-ratio sliders; OBS mode is non-interactive by default |
+| `?scale=0.25…4` | OBS-mode global scale; scales the page without changing any font-size setting |
 
 `?offset` is intended for demonstrations or temporary shifts and is not saved. The
 status bar shows the offset marker.
@@ -636,9 +640,9 @@ restored from the URL. URL settings take precedence over localStorage.
 `?settings=`/`?setup=` only control which panel opens and are not copied into
 the share URL.
 
-The CSS in the share window is a template to paste into the OBS Browser Source
-Custom CSS field; it does not change page settings or the URL, and the page does
-not load external CSS.
+OBS mode is non-interactive by default; only the audio-start overlay remains.
+Add `?interactive=1` to allow settings and station sliders. The shared OBS CSS
+should change colours only; use `?scale=` for size and do not add `font-size`.
 
 ## 10. Accuracy and scope
 

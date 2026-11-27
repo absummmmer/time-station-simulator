@@ -1335,7 +1335,9 @@
 
       const masterSlider = document.getElementById('master_volume');
       if (masterSlider) {
-        masterVolume = 0;
+        masterVolume = OBS_MODE ? 1 : 0;
+        masterSlider.value = String(masterVolume);
+        masterSlider.disabled = OBS_MODE;
         updateMasterVolumeDisplay();
         const armAudioFromMaster = () => {
           if (isRunning && NextAudio.isRunning()) {
@@ -1499,6 +1501,7 @@
     }
 
     function openSettingsTab(tab = 'clock') {
+      if (OBS_MODE && !OBS_INTERACTIVE) return;
       if (zenModeActive) exitZenMode();
       const panel = document.getElementById('settings_panel');
       if (!panel) return;
@@ -1520,24 +1523,43 @@
       saveSettings();
     }
 
-    const OBS_CSS_TEMPLATE = `/* OBS Browser Source custom CSS.
-   Paste this into the browser source's Custom CSS field,
-   then adjust the selectors below for your scene. */
+    function applyObsModeClasses() {
+      if (!OBS_MODE) return;
+      document.documentElement.classList.add('obs-mode');
+      if (OBS_INTERACTIVE) document.documentElement.classList.add('obs-interactive');
+      let scale = 1;
+      try {
+        const raw = Number(new URLSearchParams(location.search).get('scale'));
+        if (Number.isFinite(raw)) scale = Math.max(0.25, Math.min(4, raw));
+      } catch (e) { }
+      document.documentElement.style.setProperty('--obs-scale', String(scale));
+    }
+
+    function bindObsAudioOverlay() {
+      if (!OBS_MODE) return;
+      const overlay = document.getElementById('obs_audio_overlay');
+      const button = document.getElementById('obs_audio_start');
+      if (!overlay || !button) return;
+      overlay.classList.remove('hidden');
+      button.addEventListener('click', () => {
+        masterVolume = 1;
+        updateMasterVolumeDisplay();
+        NextAudio.setMasterVolume(1);
+        start();
+        overlay.classList.add('hidden');
+      });
+    }
+
+    const OBS_CSS_TEMPLATE = `/* OBS Browser Source colour template.
+   Paste this into the browser source's Custom CSS field.
+   Size is controlled by ?scale=... in the URL; do not set font-size
+   or line-height here. */
 html, body {
   background: transparent !important;
-  overflow: hidden !important;
-}
-
-.max-w-3xl {
-  max-width: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
 }
 
 #time_display {
   color: #f8fafc !important;
-  font-size: 120px !important;
-  line-height: 0.9 !important;
 }
 
 #timezone_offset {
@@ -1546,21 +1568,21 @@ html, body {
 
 #status_bar {
   color: #94a3b8 !important;
-  font-size: 14px !important;
 }
 
-/* Hide everything that is not part of the OBS clock overlay. */
-#settings_panel,
-#sync_log_panel,
-#ntp_detail_panel,
-#settings_share_panel,
-#combined_prompt_panel,
-#backend_config_panel {
-  display: none !important;
+#ut1_time {
+  color: #4ade80 !important;
 }
 
-/* Optional: hide station rows / controls
-.station-item { display: none !important; }
+.station-name,
+.station-status,
+.station-volume-toggle {
+  color: #cbd5e1 !important;
+}
+
+/* Optional colour examples:
+#global_offset_indicator { color: #22d3ee !important; }
+#station_mixer { color: #94a3b8 !important; }
 */
 `;
 
@@ -1629,6 +1651,12 @@ html, body {
       if (shareUrlInput && shareUrlCopy) {
         shareUrlCopy.addEventListener('click', () => {
           copyTextWithFeedback(shareUrlInput.value, shareUrlCopy);
+        });
+      }
+      const shareObsCopy = document.getElementById('settings_share_obs_copy');
+      if (shareObsCopy) {
+        shareObsCopy.addEventListener('click', () => {
+          copyTextWithFeedback(buildSettingsShareUrl({ obs: true }), shareObsCopy);
         });
       }
       const shareCss = document.getElementById('settings_share_css');
@@ -2135,6 +2163,7 @@ html, body {
     document.addEventListener('DOMContentLoaded', function () {
       if (appInitialized) return;
       appInitialized = true;
+      applyObsModeClasses();
       loadSettings();
       loadDeviceProfiles();
       loadTimeApiBase();
@@ -2154,12 +2183,14 @@ html, body {
       bindEopUpload();
       bindAudioOutputChanges();
       finishAppStartup();
+      bindObsAudioOverlay();
       const urlParams = new URLSearchParams(location.search);
+      const allowPanels = !OBS_MODE || OBS_INTERACTIVE;
       const requestedSettings = urlParams.get('settings');
-      if (requestedSettings && ['clock', 'display', 'stations', 'noise'].includes(requestedSettings)) {
+      if (allowPanels && requestedSettings && ['clock', 'display', 'stations', 'noise'].includes(requestedSettings)) {
         openSettingsTab(requestedSettings);
       }
-      if (urlParams.get('setup') === 'backend') {
+      if (allowPanels && urlParams.get('setup') === 'backend') {
         openBackendSetup({ mode: 'edit' });
       }
     });
