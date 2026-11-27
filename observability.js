@@ -1209,7 +1209,7 @@
     }
 
     function syncModalBodyLock() {
-      const ids = ['sync_log_panel', 'ntp_detail_panel', 'combined_prompt_panel', 'backend_config_panel'];
+      const ids = ['sync_log_panel', 'ntp_detail_panel', 'combined_prompt_panel', 'settings_share_panel', 'backend_config_panel'];
       const anyOpen = ids.some(id => {
         const el = getUi(id);
         return !!el && !el.classList.contains('hidden');

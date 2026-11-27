@@ -128,10 +128,13 @@ function json(value) {
         && decoded.stationVolumes.wwv === 0.5
         && decoded.wwvAdjustments.wwv.ident === 0.7;
     })());
-  check('settings share URL and copy button',
-    q('settings_copy_url')
-      && window.eval('buildSettingsShareUrl()').includes('cfg=1.')
-      && !window.eval('buildSettingsShareUrl()').includes('settings='));
+  q('settings_copy_url').click();
+  check('settings share URL and CSS modal',
+    !q('settings_share_panel').classList.contains('hidden')
+      && q('settings_share_url').value.includes('cfg=1.')
+      && !q('settings_share_url').value.includes('settings=')
+      && q('settings_share_css').value.includes('#time_display'));
+  window.eval('closeSettingsSharePanel()');
   const code = window.eval('getWWVDigitalCode(new Date(Date.UTC(2026,10,6,12,1,0)), 300)');
   check('WWV BCD DUT1 bits', code[49] === 'one' && code[55] === 'one' && code[56] === 'one' && code[57] === 'zero');
 

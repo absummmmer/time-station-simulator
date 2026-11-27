@@ -802,7 +802,6 @@
         rwmBeatHz: rwmBeatHz,
         rwmLockMode: rwmLockMode,
         noiseVolume: noiseVolume,
-        localOffset: localOffset,
         networkCompensation: networkCompensation,
         forceUtcOnly: forceUtcOnly,
         showLocalTime: showLocalTime,
@@ -813,6 +812,23 @@
         stationBalances: { ...stationBalances },
         language: language,
       };
+      // A fixed DUT1 / clock correction only makes sense when its automatic
+      // source is off. Keeping it out of automatic modes prevents a copied URL
+      // from re-applying a stale value before the next fetch/sync.
+      if (!dut1AutoMode) config.dut1 = window.bpmDUT1;
+      if (!autoSyncMode) config.localOffset = localOffset;
+      if (deviceProfiles && deviceProfiles.profiles) {
+        const profiles = {};
+        for (const [name, entry] of Object.entries(deviceProfiles.profiles)) {
+          if (entry && Number.isFinite(Number(entry.offsetMs))) {
+            profiles[name] = { offsetMs: clampDeviceOffset(entry.offsetMs) };
+          }
+        }
+        config.deviceProfiles = {
+          active: activeDeviceName,
+          profiles,
+        };
+      }
       const api = typeof getTimeApiBase === 'function' ? getTimeApiBase() : '';
       if (api) config.timeApiBase = api;
       return config;
@@ -868,6 +884,32 @@
       if (typeof config.timeApiBase === 'string' && config.timeApiBase.trim()) {
         const result = setTimeApiBase(config.timeApiBase);
         if (!result.ok) console.warn('URL settings ignored invalid Time API base');
+      }
+      if (config.deviceProfiles && typeof config.deviceProfiles === 'object') {
+        const incoming = config.deviceProfiles.profiles;
+        const profiles = {};
+        if (incoming && typeof incoming === 'object') {
+          for (const [rawName, entry] of Object.entries(incoming)) {
+            const name = normalizeDeviceName(rawName);
+            if (!name || name === '__proto__' || name === 'constructor' || name === 'prototype') continue;
+            const offset = Number(entry && entry.offsetMs);
+            if (!Number.isFinite(offset)) continue;
+            profiles[name] = { offsetMs: clampDeviceOffset(offset) };
+          }
+        }
+        if (Object.keys(profiles).length === 0) {
+          profiles[DEVICE_DEFAULT_NAME] = { offsetMs: 0 };
+        }
+        let active = normalizeDeviceName(config.deviceProfiles.active);
+        if (!profiles[active]) {
+          active = profiles[DEVICE_DEFAULT_NAME]
+            ? DEVICE_DEFAULT_NAME
+            : Object.keys(profiles).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))[0];
+        }
+        deviceProfiles = { version: 1, active, profiles };
+        activeDeviceName = active;
+        deviceExtraMs = profiles[active].offsetMs;
+        saveDeviceProfiles();
       }
       const ut1Toggle = document.getElementById('ut1_detail_mode');
       if (ut1Toggle) ut1Toggle.checked = ut1DetailMode;

@@ -118,10 +118,13 @@
         });
       }
       const backendPanel = getUi('backend_config_panel');
+      const settingsSharePanel = getUi('settings_share_panel');
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         if (backendPanel && !backendPanel.classList.contains('hidden')) {
           closeBackendSetup();
+        } else if (settingsSharePanel && !settingsSharePanel.classList.contains('hidden')) {
+          closeSettingsSharePanel();
         } else if (ntpDetailPanel && !ntpDetailPanel.classList.contains('hidden')) {
           closeNtpDetailPanel();
         } else if (combinedPanel && !combinedPanel.classList.contains('hidden')) {
@@ -1517,8 +1520,51 @@
       saveSettings();
     }
 
-    async function copySettingsUrl(button) {
-      const text = buildSettingsShareUrl();
+    const OBS_CSS_TEMPLATE = `/* OBS Browser Source custom CSS.
+   Paste this into the browser source's Custom CSS field,
+   then adjust the selectors below for your scene. */
+html, body {
+  background: transparent !important;
+  overflow: hidden !important;
+}
+
+.max-w-3xl {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#time_display {
+  color: #f8fafc !important;
+  font-size: 120px !important;
+  line-height: 0.9 !important;
+}
+
+#timezone_offset {
+  color: #7dd3fc !important;
+}
+
+#status_bar {
+  color: #94a3b8 !important;
+  font-size: 14px !important;
+}
+
+/* Hide everything that is not part of the OBS clock overlay. */
+#settings_panel,
+#sync_log_panel,
+#ntp_detail_panel,
+#settings_share_panel,
+#combined_prompt_panel,
+#backend_config_panel {
+  display: none !important;
+}
+
+/* Optional: hide station rows / controls
+.station-item { display: none !important; }
+*/
+`;
+
+    async function copyTextWithFeedback(text, button) {
       let copied = false;
       try {
         if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -1528,20 +1574,70 @@
       } catch (e) {
         copied = false;
       }
-      if (!copied) copied = copyTextFallback(text);
-      if (!button) return;
-      const previous = button.textContent;
-      button.textContent = copied ? '\u2713' : '!';
-      window.setTimeout(() => {
-        button.textContent = previous || '\u{1F517}';
-      }, 1200);
+      if (!copied && typeof copyTextFallback === 'function') copied = copyTextFallback(text);
+      if (button) {
+        const previous = button.textContent;
+        button.textContent = copied ? '\u2713' : '!';
+        window.setTimeout(() => {
+          button.textContent = previous;
+        }, 1200);
+      }
+      return copied;
+    }
+
+    function openSettingsSharePanel() {
+      const panel = document.getElementById('settings_share_panel');
+      if (!panel) return;
+      const input = document.getElementById('settings_share_url');
+      if (input) input.value = buildSettingsShareUrl();
+      const css = document.getElementById('settings_share_css');
+      if (css && !css.value) css.value = OBS_CSS_TEMPLATE;
+      panel.classList.remove('hidden');
+      syncModalBodyLock();
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    function closeSettingsSharePanel() {
+      const panel = document.getElementById('settings_share_panel');
+      if (!panel) return;
+      panel.classList.add('hidden');
+      syncModalBodyLock();
+    }
+
+    async function copySettingsUrl(button) {
+      return copyTextWithFeedback(buildSettingsShareUrl(), button);
     }
 
     function bindPanelControls() {
       const closeButton = document.getElementById('settings_close');
       if (closeButton) closeButton.addEventListener('click', closeSettingsPanel);
       const copyButton = document.getElementById('settings_copy_url');
-      if (copyButton) copyButton.addEventListener('click', () => copySettingsUrl(copyButton));
+      if (copyButton) copyButton.addEventListener('click', openSettingsSharePanel);
+      const shareClose = document.getElementById('settings_share_close');
+      if (shareClose) shareClose.addEventListener('click', closeSettingsSharePanel);
+      const sharePanel = document.getElementById('settings_share_panel');
+      if (sharePanel) {
+        sharePanel.addEventListener('click', (event) => {
+          if (event.target === sharePanel) closeSettingsSharePanel();
+        });
+      }
+      const shareUrlInput = document.getElementById('settings_share_url');
+      const shareUrlCopy = document.getElementById('settings_share_url_copy');
+      if (shareUrlInput && shareUrlCopy) {
+        shareUrlCopy.addEventListener('click', () => {
+          copyTextWithFeedback(shareUrlInput.value, shareUrlCopy);
+        });
+      }
+      const shareCss = document.getElementById('settings_share_css');
+      const shareCssCopy = document.getElementById('settings_share_css_copy');
+      if (shareCss && shareCssCopy) {
+        shareCssCopy.addEventListener('click', () => {
+          copyTextWithFeedback(shareCss.value, shareCssCopy);
+        });
+      }
       const openers = [
         ['clock_emoji', 'clock'],
         ['ut1_time', 'display'],

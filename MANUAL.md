@@ -274,7 +274,8 @@ The settings panel has no permanent entry point. Open it by:
 - clicking the clock warning or global offset marker → **Clock calibration**;
 - URL parameter `?settings=clock|display|stations|noise`;
 - `?setup=backend` to open backend address settings directly;
-- the 🔗 button left of the settings close button copies a `?cfg=` URL with all static settings.
+- the 🔗 button left of the settings close button opens a share window with the
+  `?cfg=` URL plus a copy button, and an editable OBS Custom CSS template below.
 
 The four icons at the top are:
 
@@ -627,10 +628,17 @@ for "audio path delay vs page clock". Do not mix them.
 `?offset` is intended for demonstrations or temporary shifts and is not saved. The
 status bar shows the offset marker.
 
-`?cfg` carries display, mixer, station, audio-compensation and clock-policy
-settings only; sync history, NTP health and live DUT1 values are excluded. URL
-settings take precedence over localStorage. `?settings=`/`?setup=` only control
-which panel opens and are not copied into the share URL.
+`?cfg` carries display, mixer, station, audio-compensation, device-latency
+profiles and clock-policy settings; sync history and NTP health are excluded.
+When DUT1 auto-fetch is off, the current DUT1 value is included; when AUTO sync
+is off, the current clock correction is included, so clearing data can still be
+restored from the URL. URL settings take precedence over localStorage.
+`?settings=`/`?setup=` only control which panel opens and are not copied into
+the share URL.
+
+The CSS in the share window is a template to paste into the OBS Browser Source
+Custom CSS field; it does not change page settings or the URL, and the page does
+not load external CSS.
 
 ## 10. Accuracy and scope
 
