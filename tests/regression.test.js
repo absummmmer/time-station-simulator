@@ -112,6 +112,11 @@ function json(value) {
     q('wwvh_status').textContent.includes('StationID')
       && !q('wwvh_status').textContent.includes('StationIntroduction'),
     q('wwvh_status').textContent);
+  check('WWV/WWVH voice split controls',
+    ['wwv', 'wwvh'].every(station =>
+      ['tone', 'code', 'announce', 'ident'].every(kind =>
+        q(`${station}_${kind}_volume`) && q(`${station}_${kind}_label`))),
+    [...q('wwv_station_panel').querySelectorAll('input[type=range]')].map(el => el.id).join(','));
   const code = window.eval('getWWVDigitalCode(new Date(Date.UTC(2026,10,6,12,1,0)), 300)');
   check('WWV BCD DUT1 bits', code[49] === 'one' && code[55] === 'one' && code[56] === 'one' && code[57] === 'zero');
 

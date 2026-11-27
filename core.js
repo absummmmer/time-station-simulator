@@ -120,8 +120,8 @@
       return Number.isFinite(number) ? Math.max(-100, Math.min(100, Math.round(number))) : 0;
     }
     const wwvAdjustments = {
-      wwv: { tone: 1, code: 1, voice: 1 },
-      wwvh: { tone: 1, code: 1, voice: 1 },
+      wwv: { tone: 1, code: 1, announce: 1, ident: 1 },
+      wwvh: { tone: 1, code: 1, announce: 1, ident: 1 },
     };
     const rwmAdjustments = { pulse10: 1, morse: 1 };
     let rwmLockMode = 'off';
@@ -692,7 +692,15 @@
               wwvAdjustments[station].code = Math.min(2, Math.max(0, saved.code));
             }
             if (typeof saved.voice === 'number') {
-              wwvAdjustments[station].voice = Math.min(1, Math.max(0, saved.voice));
+              const migrated = Math.min(1, Math.max(0, saved.voice));
+              wwvAdjustments[station].announce = migrated;
+              wwvAdjustments[station].ident = migrated;
+            }
+            if (typeof saved.announce === 'number') {
+              wwvAdjustments[station].announce = Math.min(1, Math.max(0, saved.announce));
+            }
+            if (typeof saved.ident === 'number') {
+              wwvAdjustments[station].ident = Math.min(1, Math.max(0, saved.ident));
             }
           }
         }
@@ -1176,7 +1184,8 @@
         const adjust = wwvAdjustments[stationId];
         const codePercent = customPercent(adjust.code);
         const tonePercent = customPercent(adjust.tone);
-        const voicePercent = customPercent(adjust.voice);
+        const announcePercent = customPercent(adjust.announce ?? adjust.voice ?? 1);
+        const identPercent = customPercent(adjust.ident ?? adjust.voice ?? 1);
         if (codePercent === 0) {
           html = '<span class="status-strike">BCD</span>';
         } else {
@@ -1184,24 +1193,24 @@
         }
         if (identActive) {
           const content = 'StationID';
-          if (voicePercent === 0) {
+          if (identPercent === 0) {
             html += '+<span class="status-strike">\u{1F5E3} ' + content + '</span>';
-          } else if (voicePercent === 100) {
+          } else if (identPercent === 100) {
             html += `+\u{1F5E3} ${content}`;
           } else {
-            html += `+\u{1F5E3}${statusSubPercent(voicePercent)}${content}`;
+            html += `+\u{1F5E3}${statusSubPercent(identPercent)}${content}`;
           }
         } else if (voiceActive) {
           const announced = new Date(minuteStart + 60000);
           const hh = String(announced.getUTCHours()).padStart(2, '0');
           const mm = String(announced.getUTCMinutes()).padStart(2, '0');
           const content = `${hh}:${mm} UTC`;
-          if (voicePercent === 0) {
+          if (announcePercent === 0) {
             html += '+<span class="status-strike">\u{1F5E3} ' + content + '</span>';
-          } else if (voicePercent === 100) {
+          } else if (announcePercent === 100) {
             html += `+\u{1F5E3} ${content}`;
           } else {
-            html += `+\u{1F5E3}${statusSubPercent(voicePercent)}${content}`;
+            html += `+\u{1F5E3}${statusSubPercent(announcePercent)}${content}`;
           }
         } else if (base !== '0' && /^\d+$/.test(base) && second > 0 && second <= 44) {
           if (tonePercent === 0) {
