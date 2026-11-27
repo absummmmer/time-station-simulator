@@ -1129,9 +1129,15 @@
     }
 
     /* OBS Browser Source mode: fixed narrow layout, scaled as one block. */
+    html.obs-mode,
+    html.obs-mode body,
+    html.obs-mode .max-w-3xl {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
     html.obs-mode body {
       min-width: 320px;
-      padding: 0 !important;
       overflow: hidden !important;
       background: transparent !important;
       justify-content: flex-start !important;
@@ -1141,10 +1147,8 @@
       width: 320px !important;
       min-width: 320px !important;
       max-width: 320px !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
       zoom: var(--obs-scale, 1);
-      transform-origin: top center;
+      transform-origin: top left;
     }
 
     html.obs-mode #master_control {
