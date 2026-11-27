@@ -1124,6 +1124,23 @@
       cursor: pointer;
     }
 
+    :root {
+      color-scheme: dark;
+    }
+
+    #settings_share_url,
+    #settings_share_css {
+      background-color: #0f172a !important;
+      color: #e5e7eb !important;
+      border-color: #374151 !important;
+    }
+
+    #settings_share_url:focus,
+    #settings_share_css:focus {
+      outline: 1px solid #64748b;
+      outline-offset: 1px;
+    }
+
     #clock_warning.clock-warning-held {
       color: #fbbf24;
       opacity: 0.65;
