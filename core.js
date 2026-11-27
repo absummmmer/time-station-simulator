@@ -781,6 +781,106 @@
     function loadSettings() {
       SettingsStore.load();
     }
+
+    // URL settings snapshot. Keep this list limited to deterministic UI/audio
+    // preferences; live sync, NTP health, DUT1 values and trace data stay out.
+    const SETTINGS_URL_CONFIG_VERSION = '1';
+
+    function settingsUrlConfigSnapshot() {
+      const config = {
+        balanceVersion: 3,
+        timeDecimals: getTimeDecimals(),
+        ut1DetailMode: ut1DetailMode,
+        low_freq_volume: lowFreqVolume,
+        bpmMorseAdjust: bpmMorseAdjust,
+        bpmVoiceAdjust: bpmVoiceAdjust,
+        wwvAdjustments: {
+          wwv: { ...wwvAdjustments.wwv },
+          wwvh: { ...wwvAdjustments.wwvh },
+        },
+        rwmAdjustments: { ...rwmAdjustments },
+        rwmBeatHz: rwmBeatHz,
+        rwmLockMode: rwmLockMode,
+        noiseVolume: noiseVolume,
+        localOffset: localOffset,
+        networkCompensation: networkCompensation,
+        forceUtcOnly: forceUtcOnly,
+        showLocalTime: showLocalTime,
+        autoSyncMode: autoSyncMode,
+        dut1AutoMode: dut1AutoMode,
+        dut1SourceMode: dut1SourceMode,
+        stationVolumes: { ...stationVolumes },
+        stationBalances: { ...stationBalances },
+        language: language,
+      };
+      const api = typeof getTimeApiBase === 'function' ? getTimeApiBase() : '';
+      if (api) config.timeApiBase = api;
+      return config;
+    }
+
+    function encodeBase64Url(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 1) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function decodeBase64Url(text) {
+      const padded = text.replace(/-/g, '+').replace(/_/g, '/')
+        + '='.repeat((4 - text.replace(/-/g, '+').replace(/_/g, '/').length % 4) % 4);
+      const binary = atob(padded);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    function encodeSettingsUrlConfig(config) {
+      return `${SETTINGS_URL_CONFIG_VERSION}.${encodeBase64Url(JSON.stringify(config))}`;
+    }
+
+    function decodeSettingsUrlConfig(raw) {
+      if (!raw || typeof raw !== 'string') return null;
+      const dot = raw.indexOf('.');
+      if (dot <= 0 || raw.slice(0, dot) !== SETTINGS_URL_CONFIG_VERSION) return null;
+      try {
+        const parsed = JSON.parse(decodeBase64Url(raw.slice(dot + 1)));
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function applySettingsUrlConfig() {
+      let raw = '';
+      try {
+        raw = new URLSearchParams(location.search).get('cfg') || '';
+      } catch (e) {
+        return false;
+      }
+      const config = decodeSettingsUrlConfig(raw);
+      if (!config) return false;
+      // Old or hand-written configs may omit balanceVersion. The settings
+      // fields use the current schema; apply it before calling SettingsStore.
+      config.balanceVersion = 3;
+      SettingsStore.apply(config);
+      if (typeof config.timeApiBase === 'string' && config.timeApiBase.trim()) {
+        const result = setTimeApiBase(config.timeApiBase);
+        if (!result.ok) console.warn('URL settings ignored invalid Time API base');
+      }
+      const ut1Toggle = document.getElementById('ut1_detail_mode');
+      if (ut1Toggle) ut1Toggle.checked = ut1DetailMode;
+      return true;
+    }
+
+    function buildSettingsShareUrl() {
+      const url = new URL(location.href);
+      url.searchParams.delete('settings');
+      url.searchParams.delete('setup');
+      url.searchParams.set('cfg', encodeSettingsUrlConfig(settingsUrlConfigSnapshot()));
+      return url.toString();
+    }
     // Time code bit definition (fully implemented according to paper's BCD rule)
     function generateTimeCode(date, dut1Ms = window.bpmDUT1) {
       const bits = new Array(60).fill(0);

@@ -215,7 +215,8 @@ https://time-api.example.com
 - 点击任意台站状态文本 → `电台控制`；
 - 点击时钟警告或全局 offset 标记 → `时钟校准`；
 - URL 参数 `?settings=clock|display|stations|noise`；
-- `?setup=backend` 直接打开后端地址设置。
+- `?setup=backend` 直接打开后端地址设置；
+- 设置面板关闭按钮左侧的 🔗 按钮会复制一份带全部静态设置的 `?cfg=` URL。
 
 面板顶部四个图标依次为：
 
@@ -503,8 +504,11 @@ RWM 不发送一天中的时刻，只发送标准时间间隔和 DUT1/dUT1。CW 
 | `?settings=clock\|display\|stations\|noise` | 打开设置面板并跳到对应分区 |
 | `?setup=backend` | 直接打开 Time API 地址设置 |
 | `?offset=±整数分钟` | 给显示 UTC 和音频增加全局偏移；不改变网络同步使用的设备时钟 |
+| `?cfg=1.<base64url>` | 从设置面板 🔗 按钮生成的静态设置集合；加载时覆盖本地设置。可能包含 Time API 地址，分享前注意 |
 
 `?offset` 只用于演示或临时偏移，不会保存；状态栏会显示偏移标记。
+
+`?cfg` 包含显示、混音、台站、音频补偿和时钟策略等静态设置，不包含同步历史、NTP 健康或 DUT1 实时值。URL 中的设置优先于 localStorage；`?settings=`/`?setup=` 仅负责打开面板，不会被复制进新 URL。
 
 ## 10. 精度与范围
 

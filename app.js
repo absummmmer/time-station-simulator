@@ -1048,6 +1048,10 @@
         const button = document.querySelector(`[data-settings-tab="${key}"]`);
         if (button) button.setAttribute('aria-label', title);
       }
+      const copyButton = document.getElementById('settings_copy_url');
+      if (copyButton) {
+        copyButton.setAttribute('aria-label', language === 'zh' ? '复制设置 URL' : 'Copy settings URL');
+      }
       for (const key of ['bpm', 'wwv', 'wwvh', 'rwm']) {
         const item = document.querySelector(`.station-item[data-station="${key}"]`);
         if (item) item.setAttribute('aria-label', labels[key]);
@@ -1513,9 +1517,31 @@
       saveSettings();
     }
 
+    async function copySettingsUrl(button) {
+      const text = buildSettingsShareUrl();
+      let copied = false;
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        }
+      } catch (e) {
+        copied = false;
+      }
+      if (!copied) copied = copyTextFallback(text);
+      if (!button) return;
+      const previous = button.textContent;
+      button.textContent = copied ? '\u2713' : '!';
+      window.setTimeout(() => {
+        button.textContent = previous || '\u{1F517}';
+      }, 1200);
+    }
+
     function bindPanelControls() {
       const closeButton = document.getElementById('settings_close');
       if (closeButton) closeButton.addEventListener('click', closeSettingsPanel);
+      const copyButton = document.getElementById('settings_copy_url');
+      if (copyButton) copyButton.addEventListener('click', () => copySettingsUrl(copyButton));
       const openers = [
         ['clock_emoji', 'clock'],
         ['ut1_time', 'display'],
@@ -2016,6 +2042,7 @@
       loadSettings();
       loadDeviceProfiles();
       loadTimeApiBase();
+      applySettingsUrlConfig();
       backendMigrationPending = detectLegacyBackendInstall() && !isTimeApiConfigured();
       initMediaSession();
       setupSettingsSections();

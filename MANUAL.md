@@ -273,7 +273,8 @@ The settings panel has no permanent entry point. Open it by:
 - clicking any station's status text → **Station controls**;
 - clicking the clock warning or global offset marker → **Clock calibration**;
 - URL parameter `?settings=clock|display|stations|noise`;
-- `?setup=backend` to open backend address settings directly.
+- `?setup=backend` to open backend address settings directly;
+- the 🔗 button left of the settings close button copies a `?cfg=` URL with all static settings.
 
 The four icons at the top are:
 
@@ -621,9 +622,15 @@ for "audio path delay vs page clock". Do not mix them.
 | `?settings=clock\|display\|stations\|noise` | Open the settings panel on a specific tab |
 | `?setup=backend` | Open the Time API address setup directly |
 | `?offset=±integer minutes` | Add a global offset to displayed UTC and audio; does not change the device clock used for network sync |
+| `?cfg=1.<base64url>` | Static settings payload copied by the 🔗 button; overrides local settings on load. May contain the Time API base, so review before sharing |
 
 `?offset` is intended for demonstrations or temporary shifts and is not saved. The
 status bar shows the offset marker.
+
+`?cfg` carries display, mixer, station, audio-compensation and clock-policy
+settings only; sync history, NTP health and live DUT1 values are excluded. URL
+settings take precedence over localStorage. `?settings=`/`?setup=` only control
+which panel opens and are not copied into the share URL.
 
 ## 10. Accuracy and scope
 

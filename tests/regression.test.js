@@ -117,6 +117,21 @@ function json(value) {
       ['tone', 'code', 'announce', 'ident'].every(kind =>
         q(`${station}_${kind}_volume`) && q(`${station}_${kind}_label`))),
     [...q('wwv_station_panel').querySelectorAll('input[type=range]')].map(el => el.id).join(','));
+  check('settings URL config round-trips',
+    (() => {
+      const encoded = window.eval(`encodeSettingsUrlConfig({
+        timeDecimals: 2, stationVolumes: { wwv: 0.5 },
+        wwvAdjustments: { wwv: { announce: 0.4, ident: 0.7 } }
+      })`);
+      const decoded = window.eval(`decodeSettingsUrlConfig(${JSON.stringify(encoded)})`);
+      return encoded.startsWith('1.') && decoded.timeDecimals === 2
+        && decoded.stationVolumes.wwv === 0.5
+        && decoded.wwvAdjustments.wwv.ident === 0.7;
+    })());
+  check('settings share URL and copy button',
+    q('settings_copy_url')
+      && window.eval('buildSettingsShareUrl()').includes('cfg=1.')
+      && !window.eval('buildSettingsShareUrl()').includes('settings='));
   const code = window.eval('getWWVDigitalCode(new Date(Date.UTC(2026,10,6,12,1,0)), 300)');
   check('WWV BCD DUT1 bits', code[49] === 'one' && code[55] === 'one' && code[56] === 'one' && code[57] === 'zero');
 
