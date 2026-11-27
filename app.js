@@ -1166,7 +1166,7 @@
       for (const station of ['wwv', 'wwvh']) {
         for (const kind of ['tone', 'code', 'announce', 'ident']) {
           const letter = kind === 'tone' ? '\u266A'
-            : (kind === 'code' ? 'BCD' : (kind === 'announce' ? '\u{1F5E3}' : 'ID'));
+            : (kind === 'code' ? 'BCD' : (kind === 'announce' ? '\u{1F5E3}UTC' : '\u{1F5E3}ID'));
           bindAdjust(`${station}_${kind}_volume`, `${station}_${kind}_label`, letter, {
             get: () => wwvAdjustments[station][kind],
             set: (value) => {
@@ -1295,7 +1295,7 @@
         } else if (station === 'wwv' || station === 'wwvh') {
           for (const kind of ['tone', 'code', 'announce', 'ident']) {
             const letter = kind === 'tone' ? '\u266A'
-              : (kind === 'code' ? 'BCD' : (kind === 'announce' ? '\u{1F5E3}' : 'ID'));
+              : (kind === 'code' ? 'BCD' : (kind === 'announce' ? '\u{1F5E3}UTC' : '\u{1F5E3}ID'));
             wwvAdjustments[station][kind] = 1;
             NextAudio.setWWVAdjustment(station, kind, 1);
             syncAdjustControl(`${station}_${kind}_volume`, `${station}_${kind}_label`, letter, 1);

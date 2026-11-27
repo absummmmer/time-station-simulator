@@ -155,9 +155,7 @@ right:
   when released inside the detent the thumb parks at `0`. The row percentage
   appends `·Lnn` or `·Rnn` only when off-centre (for example `50%·L50`); at the
   centre only the volume is shown. The station reset button recentres PAN but
-  does not change that station's master volume. WWV/WWVH BCD goes through a
-  dedicated centre bus and does not follow PAN; tones, announcements, and
-  station ID still do.
+  does not change that station's master volume.
 
 ### 3.4 Zen mode
 
@@ -487,14 +485,13 @@ Each station has four independent sliders:
 ```text
 BCD(100%)   100 Hz BCD time code, 0–200%
 ♪(100%)     standard tones, 0–100%
-🗣(100%)     time-announcement voice, 0–100%
-ID(100%)    station identification voice, 0–100%
+🗣UTC(100%)  time-announcement voice, 0–100%
+🗣ID(100%)   station identification voice, 0–100%
 ```
 
 The default ratios follow the NIST SP 432 100/50/50/75 relationship relative to
 the second pulse. The ↺ to the right of the station title restores BCD, tone,
-announcement voice, and station ID to 100%. BCD uses a dedicated centre bus and
-does not follow the station PAN; tone, announcements, and station ID still do.
+announcement voice, and station ID to 100%.
 
 #### RWM
 

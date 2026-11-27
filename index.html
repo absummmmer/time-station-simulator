@@ -193,27 +193,29 @@
             <input type="range" id="wwv_balance" data-station-balance="wwv" min="-105" max="105" step="1" value="0"
               aria-label="WWV PAN" class="station-slider station-balance-slider flex-1 min-w-0">
           </div>
-          <div class="flex items-center gap-2">
-            <span id="wwv_code_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
-            <input type="range" id="wwv_code_volume" min="0" max="200" step="1" value="100"
-              class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
-          </div>
           <div class="grid grid-cols-2 gap-3">
+            <label class="space-y-1 min-w-0">
+              <span id="wwv_code_label" class="block text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
+              <input type="range" id="wwv_code_volume" min="0" max="200" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+            </label>
             <label class="space-y-1 min-w-0">
               <span id="wwv_tone_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#9834;(100%)</span>
               <input type="range" id="wwv_tone_volume" min="0" max="100" step="1" value="100"
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
             </label>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
             <label class="space-y-1 min-w-0">
-              <span id="wwv_announce_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;(100%)</span>
+              <span id="wwv_announce_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;UTC(100%)</span>
               <input type="range" id="wwv_announce_volume" min="0" max="100" step="1" value="100"
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
             </label>
-          </div>
-          <div class="flex items-center gap-2">
-            <span id="wwv_ident_label" class="text-gray-400 text-xs font-mono whitespace-pre">ID(100%)</span>
-            <input type="range" id="wwv_ident_volume" min="0" max="100" step="1" value="100"
-              class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+            <label class="space-y-1 min-w-0">
+              <span id="wwv_ident_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;ID(100%)</span>
+              <input type="range" id="wwv_ident_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+            </label>
           </div>
         </div>
         <div class="border-t border-dark-700"></div>
@@ -228,27 +230,29 @@
             <input type="range" id="wwvh_balance" data-station-balance="wwvh" min="-105" max="105" step="1" value="0"
               aria-label="WWVH PAN" class="station-slider station-balance-slider flex-1 min-w-0">
           </div>
-          <div class="flex items-center gap-2">
-            <span id="wwvh_code_label" class="text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
-            <input type="range" id="wwvh_code_volume" min="0" max="200" step="1" value="100"
-              class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
-          </div>
           <div class="grid grid-cols-2 gap-3">
+            <label class="space-y-1 min-w-0">
+              <span id="wwvh_code_label" class="block text-gray-400 text-xs font-mono whitespace-pre">BCD(100%)</span>
+              <input type="range" id="wwvh_code_volume" min="0" max="200" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+            </label>
             <label class="space-y-1 min-w-0">
               <span id="wwvh_tone_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#9834;(100%)</span>
               <input type="range" id="wwvh_tone_volume" min="0" max="100" step="1" value="100"
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
             </label>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
             <label class="space-y-1 min-w-0">
-              <span id="wwvh_announce_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;(100%)</span>
+              <span id="wwvh_announce_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;UTC(100%)</span>
               <input type="range" id="wwvh_announce_volume" min="0" max="100" step="1" value="100"
                 class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
             </label>
-          </div>
-          <div class="flex items-center gap-2">
-            <span id="wwvh_ident_label" class="text-gray-400 text-xs font-mono whitespace-pre">ID(100%)</span>
-            <input type="range" id="wwvh_ident_volume" min="0" max="100" step="1" value="100"
-              class="flex-1 min-w-0 h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+            <label class="space-y-1 min-w-0">
+              <span id="wwvh_ident_label" class="block text-gray-400 text-xs font-mono whitespace-pre">&#128483;ID(100%)</span>
+              <input type="range" id="wwvh_ident_volume" min="0" max="100" step="1" value="100"
+                class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+            </label>
           </div>
         </div>
         <div class="border-t border-dark-700"></div>

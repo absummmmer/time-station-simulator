@@ -161,7 +161,6 @@
       let wwvhGain = null;
       let rwmGain = null;
       let stationPanners = null;
-      let wwvCodeCenterGains = null;
       let wwvAdjustNodes = null;
       let rwmAdjustNodes = null;
       let pulseGain = null;
@@ -369,19 +368,12 @@
         rwmAdjustNodes.pulse10.connect(rwmGain);
         rwmAdjustNodes.morse.connect(rwmGain);
         wwvAdjustNodes = { wwv: {}, wwvh: {} };
-        wwvCodeCenterGains = {};
         for (const station of ['wwv', 'wwvh']) {
           const parent = station === 'wwv' ? wwvGain : wwvhGain;
-          // BCD is common time information, not a station-specific program.
-          // Keep its image centered while preserving the station's volume.
-          const codeCenter = ctx.createGain();
-          codeCenter.gain.value = stationVolumes[station];
-          codeCenter.connect(masterGain);
-          wwvCodeCenterGains[station] = codeCenter;
           for (const kind of ['tone', 'code', 'announce', 'ident']) {
             const node = ctx.createGain();
             node.gain.value = wwvAdjustments[station][kind];
-            node.connect(kind === 'code' ? codeCenter : parent);
+            node.connect(parent);
             wwvAdjustNodes[station][kind] = node;
           }
         }
@@ -1113,7 +1105,6 @@
         rwmGain = null;
         stationPanners = null;
         wwvAdjustNodes = null;
-        wwvCodeCenterGains = null;
         rwmAdjustNodes = null;
         pulseGain = null;
         morseGain = null;
@@ -1235,8 +1226,6 @@
           ? wwvGain
           : (station === 'wwvh' ? wwvhGain : (station === 'rwm' ? rwmGain : bpmGain));
         if (gain && ctx) gain.gain.setTargetAtTime(value, ctx.currentTime, 0.01);
-        const codeCenter = wwvCodeCenterGains && wwvCodeCenterGains[station];
-        if (codeCenter && ctx) codeCenter.gain.setTargetAtTime(value, ctx.currentTime, 0.01);
       }
 
       function setStationBalance(station, value) {
