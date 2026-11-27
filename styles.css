@@ -1151,6 +1151,10 @@
       display: none !important;
     }
 
+    html.hide-stations #station_mixer {
+      display: none !important;
+    }
+
     html.obs-mode:not(.obs-interactive) body {
       pointer-events: none;
     }

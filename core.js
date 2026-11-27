@@ -924,17 +924,32 @@
 
     function buildSettingsShareUrl(options = {}) {
       const url = new URL(location.href);
+      const rawScale = url.searchParams.get('scale');
+      const currentScale = rawScale === null ? NaN : Number(rawScale);
+      const currentHide = url.searchParams.get('hide') || '';
+      const scale = Number.isFinite(currentScale)
+        ? String(Math.max(0.25, Math.min(4, currentScale)))
+        : '1';
       url.searchParams.delete('settings');
       url.searchParams.delete('setup');
-      if (options.obs) {
-        url.searchParams.set('obs', '1');
-        url.searchParams.delete('interactive');
-      } else {
-        url.searchParams.delete('obs');
-        url.searchParams.delete('interactive');
-        url.searchParams.delete('scale');
-      }
+      url.searchParams.delete('cfg');
+      url.searchParams.delete('obs');
+      url.searchParams.delete('interactive');
+      url.searchParams.delete('scale');
+      url.searchParams.delete('hide');
       url.searchParams.set('cfg', encodeSettingsUrlConfig(settingsUrlConfigSnapshot()));
+      if (options.obs) {
+        // Keep OBS-only knobs at the end so they are easy to edit by hand.
+        url.searchParams.set('obs', '1');
+        if (options.interactive) url.searchParams.set('interactive', '1');
+        url.searchParams.set('scale', scale);
+        const hideStations = typeof options.hideStations === 'boolean'
+          ? options.hideStations
+          : currentHide.split(',').includes('stations');
+        if (hideStations) {
+          url.searchParams.set('hide', 'stations');
+        }
+      }
       return url.toString();
     }
     // Time code bit definition (fully implemented according to paper's BCD rule)

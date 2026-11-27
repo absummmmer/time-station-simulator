@@ -510,12 +510,15 @@ RWM 不发送一天中的时刻，只发送标准时间间隔和 DUT1/dUT1。CW 
 | `?obs=1` | OBS 模式：固定 320px 内容宽度、透明背景、主音量固定最大，并显示音频启动覆盖层 |
 | `?interactive=1` | 与 `?obs=1` 联用；允许打开设置面板和各台比例滑块。默认 OBS 模式禁止交互 |
 | `?scale=0.25…4` | OBS 模式整体缩放系数；只缩放页面，不改变任何字号设置 |
+| `?hide=stations` | 隐藏整个台站状态/比例区域，适合只保留主时钟；OBS 分享窗口可勾选 |
 
 `?offset` 只用于演示或临时偏移，不会保存；状态栏会显示偏移标记。
 
 `?cfg` 包含显示、混音、台站、音频补偿、设备延迟档案和时钟策略等静态设置；同步历史、NTP 健康不会写入。DUT1 在自动获取关闭时写入当前值，时钟校正量在 AUTO 同步关闭时写入，因此清空数据后可以用 URL 恢复手动设定。URL 设置优先于 localStorage；`?settings=`/`?setup=` 仅负责打开面板，不会被复制进新 URL。
 
-OBS 模式默认不允许交互，只保留音频启动覆盖层；加 `?interactive=1` 后才允许操作设置与比例滑块。分享窗口的 OBS CSS 只应修改颜色；字号由 `?scale=` 统一缩放，不要写 `font-size`。
+OBS 模式默认不允许交互，只保留音频启动覆盖层；加 `?interactive=1` 后才允许操作设置与比例滑块。分享窗口的 OBS CSS 只应修改颜色；字号由 `?scale=` 统一缩放，不要写 `font-size`。OBS 专属复制按钮会默认写入 `scale=1`，并把 `obs`、`scale`、`hide` 排在 `cfg` 之后，便于在链接末尾修改。
+
+模板各颜色变量相互独立：`--obs-bg-color`、`--obs-clock-color`、`--obs-decimal-color`、`--obs-timezone-color`、`--obs-station-name-color`、`--obs-station-status-color`、`--obs-station-ratio-color`、`--obs-warning-color`、`--obs-offset-color`、`--obs-ut1-color`。其中 `--obs-ut1-color` 同时作用于 UT1 时钟和台站状态里的 DUT1 显示。
 
 ## 10. 精度与范围
 

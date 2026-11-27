@@ -1524,12 +1524,18 @@
     }
 
     function applyObsModeClasses() {
+      let params = null;
+      try { params = new URLSearchParams(location.search); } catch (e) { }
+      if (params && (params.get('hide') || '').split(',').includes('stations')) {
+        document.documentElement.classList.add('hide-stations');
+      }
       if (!OBS_MODE) return;
       document.documentElement.classList.add('obs-mode');
       if (OBS_INTERACTIVE) document.documentElement.classList.add('obs-interactive');
       let scale = 1;
       try {
-        const raw = Number(new URLSearchParams(location.search).get('scale'));
+        const rawText = params && params.get('scale');
+        const raw = rawText === null ? NaN : Number(rawText);
         if (Number.isFinite(raw)) scale = Math.max(0.25, Math.min(4, raw));
       } catch (e) { }
       document.documentElement.style.setProperty('--obs-scale', String(scale));
@@ -1552,38 +1558,67 @@
 
     const OBS_CSS_TEMPLATE = `/* OBS Browser Source colour template.
    Paste this into the browser source's Custom CSS field.
-   Size is controlled by ?scale=... in the URL; do not set font-size
-   or line-height here. */
+   Every colour below is independent. Size is controlled by ?scale=...
+   in the URL; do not set font-size or line-height here. */
+:root {
+  --obs-bg-color: transparent;
+  --obs-clock-color: #f8fafc;
+  --obs-decimal-color: #9ca3af;
+  --obs-timezone-color: #7dd3fc;
+  --obs-station-name-color: #d1d5db;
+  --obs-station-status-color: #cbd5e1;
+  --obs-station-ratio-color: #94a3b8;
+  --obs-warning-color: #facc15;
+  --obs-offset-color: #22d3ee;
+  --obs-ut1-color: #4ade80;
+}
+
 html, body {
-  background: transparent !important;
+  background: var(--obs-bg-color) !important;
 }
 
 #time_display {
-  color: #f8fafc !important;
+  color: var(--obs-clock-color) !important;
+}
+
+#ms_display,
+#ms_display .seg-dot,
+#ms_display .ms-digits {
+  color: var(--obs-decimal-color) !important;
 }
 
 #timezone_offset {
-  color: #7dd3fc !important;
+  color: var(--obs-timezone-color) !important;
 }
 
-#status_bar {
-  color: #94a3b8 !important;
+.station-name {
+  color: var(--obs-station-name-color) !important;
 }
 
-#ut1_time {
-  color: #4ade80 !important;
+.station-status {
+  color: var(--obs-station-status-color) !important;
 }
 
-.station-name,
-.station-status,
 .station-volume-toggle {
-  color: #cbd5e1 !important;
+  color: var(--obs-station-ratio-color) !important;
 }
 
-/* Optional colour examples:
-#global_offset_indicator { color: #22d3ee !important; }
-#station_mixer { color: #94a3b8 !important; }
-*/
+#clock_warning,
+#clock_warning.clock-warning-held {
+  color: var(--obs-warning-color) !important;
+}
+
+#global_offset_indicator {
+  color: var(--obs-offset-color) !important;
+}
+
+#ut1_time,
+#ut1_indicator,
+#bpm_dut1,
+.station-status .status-dut1-label,
+.station-status .status-dut1-value {
+  color: var(--obs-ut1-color) !important;
+}
 `;
 
     async function copyTextWithFeedback(text, button) {
@@ -1614,6 +1649,15 @@ html, body {
       if (input) input.value = buildSettingsShareUrl();
       const css = document.getElementById('settings_share_css');
       if (css && !css.value) css.value = OBS_CSS_TEMPLATE;
+      const hideStations = document.getElementById('settings_share_hide_stations');
+      if (hideStations) {
+        try {
+          hideStations.checked = (new URLSearchParams(location.search).get('hide') || '')
+            .split(',').includes('stations');
+        } catch (e) {
+          hideStations.checked = false;
+        }
+      }
       panel.classList.remove('hidden');
       syncModalBodyLock();
       if (input) {
@@ -1656,7 +1700,11 @@ html, body {
       const shareObsCopy = document.getElementById('settings_share_obs_copy');
       if (shareObsCopy) {
         shareObsCopy.addEventListener('click', () => {
-          copyTextWithFeedback(buildSettingsShareUrl({ obs: true }), shareObsCopy);
+          const hideStations = document.getElementById('settings_share_hide_stations');
+          copyTextWithFeedback(buildSettingsShareUrl({
+            obs: true,
+            hideStations: !!(hideStations && hideStations.checked),
+          }), shareObsCopy);
         });
       }
       const shareCss = document.getElementById('settings_share_css');

@@ -628,6 +628,7 @@ for "audio path delay vs page clock". Do not mix them.
 | `?obs=1` | OBS mode: fixed 320px content width, transparent background, master volume locked to maximum, and an audio-start overlay |
 | `?interactive=1` | With `?obs=1`, allow settings and station-ratio sliders; OBS mode is non-interactive by default |
 | `?scale=0.25…4` | OBS-mode global scale; scales the page without changing any font-size setting |
+| `?hide=stations` | Hide the whole station status/ratio area, useful for a clock-only overlay; available as a checkbox in the share window |
 
 `?offset` is intended for demonstrations or temporary shifts and is not saved. The
 status bar shows the offset marker.
@@ -643,6 +644,14 @@ the share URL.
 OBS mode is non-interactive by default; only the audio-start overlay remains.
 Add `?interactive=1` to allow settings and station sliders. The shared OBS CSS
 should change colours only; use `?scale=` for size and do not add `font-size`.
+The OBS copy button writes `scale=1` by default and puts `obs`, `scale`, and
+`hide` after `cfg` so they are easy to edit at the end of the URL.
+
+The independent colour variables are `--obs-bg-color`, `--obs-clock-color`,
+`--obs-decimal-color`, `--obs-timezone-color`, `--obs-station-name-color`,
+`--obs-station-status-color`, `--obs-station-ratio-color`,
+`--obs-warning-color`, `--obs-offset-color`, and `--obs-ut1-color`.
+`--obs-ut1-color` also covers the DUT1 values shown in station status rows.
 
 ## 10. Accuracy and scope
 
