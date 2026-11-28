@@ -496,6 +496,11 @@ The default ratios follow the NIST SP 432 100/50/50/75 relationship relative to
 the second pulse. The ↺ to the right of the station title restores BCD, tone,
 announcement voice, and station ID to 100%.
 
+The WWV/WWVH station-ID recordings contain their own second pulses/minute
+markers. Playback notches the recorded 1000/1200 Hz pulses (and the WWV 1500 Hz
+marker at minute 0), while the page regenerates the pulses and marker. The
+station-ID volume therefore does not change the final pulse level.
+
 #### RWM
 
 - Three-state lock on the left: `NORMAL` / `1Hz🔒` / `10Hz🔒`.

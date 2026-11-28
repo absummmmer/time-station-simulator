@@ -117,6 +117,28 @@ function json(value) {
       ['tone', 'code', 'announce', 'ident'].every(kind =>
         q(`${station}_${kind}_volume`) && q(`${station}_${kind}_label`))),
     [...q('wwv_station_panel').querySelectorAll('input[type=range]')].map(el => el.id).join(','));
+  q('wwv_ident_volume').value = '0';
+  q('wwv_ident_volume').dispatchEvent(new window.Event('input', { bubbles: true }));
+  const wwvIdentBase = Date.UTC(2026, 10, 6, 12, 0, 0);
+  const wwvIdentEvents = window.eval(`buildWWVEvents(${wwvIdentBase}, ${wwvIdentBase + 60000})`);
+  const wwvIdentPulses = wwvIdentEvents.filter(
+    event => event.station === 'wwv' && String(event.generatedPulse || '').startsWith('pulse'),
+  ).length;
+  const wwvIdentCodes = wwvIdentEvents.filter(
+    event => event.station === 'wwv' && String(event.spriteKey || '').startsWith('digital_'),
+  ).length;
+  check('muted station ID keeps second pulses',
+    wwvIdentPulses > 40 && wwvIdentCodes > 40,
+    JSON.stringify({ wwvIdentPulses, wwvIdentCodes }));
+  q('wwv_ident_volume').value = '100';
+  q('wwv_ident_volume').dispatchEvent(new window.Event('input', { bubbles: true }));
+  const wwvFullEvents = window.eval(`buildWWVEvents(${wwvIdentBase}, ${wwvIdentBase + 60000})`);
+  const wwvFullPulses = wwvFullEvents.filter(
+    event => event.station === 'wwv' && String(event.generatedPulse || '').startsWith('pulse'),
+  ).length;
+  check('station ID volume does not change pulse count',
+    wwvFullPulses === wwvIdentPulses,
+    JSON.stringify({ muted: wwvIdentPulses, full: wwvFullPulses }));
   check('settings URL config round-trips',
     (() => {
       const encoded = window.eval(`encodeSettingsUrlConfig({

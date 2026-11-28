@@ -2630,13 +2630,14 @@
             });
           }
 
-          if (identDuration <= 0) {
-            const marker = minute === 0 ? 'marker1500' : `marker${config.pulseHz}`;
-            pushWWVPulse(events, stationId, marker, minuteStart);
-          }
+          const marker = minute === 0 ? 'marker1500' : `marker${config.pulseHz}`;
+          pushWWVPulse(events, stationId, marker, minuteStart);
 
+          // Station-ID recordings include the station's own second pulses.
+          // The audio engine notches those recorded pulses out of the ident
+          // channel and we generate the pulses here unconditionally, so the
+          // final pulse level is independent of the ID voice level.
           for (let second = 1; second < 60; second += 1) {
-            if (second * 1000 < identDuration) continue;
             if (second !== 29 && second !== 59) {
               pushWWVPulse(events, stationId, `pulse${config.pulseHz}`, minuteStart + second * 1000);
               if (doubledSeconds.has(second)) {
