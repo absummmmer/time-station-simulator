@@ -2581,8 +2581,8 @@
       events.push({ station, generatedTone: Number(hz), utcMs, durationMs });
     }
 
-    function pushWWVPulse(events, station, pulseBuffer, utcMs) {
-      events.push({ station, generatedPulse: pulseBuffer, utcMs });
+    function pushWWVPulse(events, station, pulseBuffer, utcMs, extra = {}) {
+      events.push({ station, generatedPulse: pulseBuffer, utcMs, ...extra });
     }
 
     function buildWWVEvents(fromUtcMs, toUtcMs) {
@@ -2614,6 +2614,10 @@
           const identDuration = base === 'ident'
             ? (wwvIdentDurations[prefix] || 0)
             : 0;
+          // The ID recording contains its own second pulses. Crossfade our
+          // generated pulses against them using the ID volume, so the pulse
+          // level stays constant instead of stacking two copies.
+          const identGain = Math.max(0, 1 - (wwvAdjustments[stationId].ident || 0));
           const voiceClips = buildWWVVoiceClips(config, minuteStart);
           const voiceStart = voiceClips.length ? voiceClips[0].startMs : Infinity;
           const lastVoiceClip = voiceClips[voiceClips.length - 1];
@@ -2631,17 +2635,20 @@
           }
 
           const marker = minute === 0 ? 'marker1500' : `marker${config.pulseHz}`;
-          pushWWVPulse(events, stationId, marker, minuteStart);
+          pushWWVPulse(events, stationId, marker, minuteStart,
+            identDuration > 0 ? { gain: identGain } : {});
 
           // Station-ID recordings include the station's own second pulses.
-          // The audio engine notches those recorded pulses out of the ident
-          // channel and we generate the pulses here unconditionally, so the
-          // final pulse level is independent of the ID voice level.
+          // Generated pulses crossfade with those recorded pulses through the
+          // ID volume, so any ID level yields the same final pulse level.
           for (let second = 1; second < 60; second += 1) {
+            const insideIdent = identDuration > 0 && second * 1000 < identDuration;
             if (second !== 29 && second !== 59) {
-              pushWWVPulse(events, stationId, `pulse${config.pulseHz}`, minuteStart + second * 1000);
+              pushWWVPulse(events, stationId, `pulse${config.pulseHz}`, minuteStart + second * 1000,
+                insideIdent ? { gain: identGain } : {});
               if (doubledSeconds.has(second)) {
-                pushWWVPulse(events, stationId, `pulse${config.pulseHz}`, minuteStart + second * 1000 + 100);
+                pushWWVPulse(events, stationId, `pulse${config.pulseHz}`, minuteStart + second * 1000 + 100,
+                  insideIdent ? { gain: identGain } : {});
               }
             }
             if (base !== '0' && base !== 'ident' && second <= 44) {

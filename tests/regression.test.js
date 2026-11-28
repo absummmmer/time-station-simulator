@@ -139,6 +139,18 @@ function json(value) {
   check('station ID volume does not change pulse count',
     wwvFullPulses === wwvIdentPulses,
     JSON.stringify({ muted: wwvIdentPulses, full: wwvFullPulses }));
+  const mutedInsidePulse = wwvIdentEvents.find(
+    event => event.station === 'wwv' && event.generatedPulse
+      && event.utcMs === wwvIdentBase + 1000,
+  );
+  const fullInsidePulse = wwvFullEvents.find(
+    event => event.station === 'wwv' && event.generatedPulse
+      && event.utcMs === wwvIdentBase + 1000,
+  );
+  check('station ID pulses crossfade by volume',
+    mutedInsidePulse && mutedInsidePulse.gain === 1
+      && fullInsidePulse && fullInsidePulse.gain === 0,
+    JSON.stringify({ mutedGain: mutedInsidePulse && mutedInsidePulse.gain, fullGain: fullInsidePulse && fullInsidePulse.gain }));
   check('settings URL config round-trips',
     (() => {
       const encoded = window.eval(`encodeSettingsUrlConfig({

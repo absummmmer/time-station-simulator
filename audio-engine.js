@@ -162,7 +162,6 @@
       let rwmGain = null;
       let stationPanners = null;
       let wwvAdjustNodes = null;
-      let wwvIdentNotches = null;
       let rwmAdjustNodes = null;
       let pulseGain = null;
       let morseGain = null;
@@ -369,31 +368,12 @@
         rwmAdjustNodes.pulse10.connect(rwmGain);
         rwmAdjustNodes.morse.connect(rwmGain);
         wwvAdjustNodes = { wwv: {}, wwvh: {} };
-        wwvIdentNotches = { wwv: [], wwvh: [] };
         for (const station of ['wwv', 'wwvh']) {
           const parent = station === 'wwv' ? wwvGain : wwvhGain;
           for (const kind of ['tone', 'code', 'announce', 'ident']) {
             const node = ctx.createGain();
             node.gain.value = wwvAdjustments[station][kind];
-            if (kind === 'ident') {
-              // The ID recordings contain the station's own second pulses.
-              // Remove those carriers so the independently generated pulses
-              // stay at a constant level at any ID voice volume.
-              let tail = node;
-              const notchFreqs = station === 'wwv' ? [1000, 1000, 1500] : [1200, 1200];
-              for (const notchHz of notchFreqs) {
-                const notch = ctx.createBiquadFilter();
-                notch.type = 'notch';
-                notch.frequency.value = notchHz;
-                notch.Q.value = 10;
-                tail.connect(notch);
-                tail = notch;
-                wwvIdentNotches[station].push(notch);
-              }
-              tail.connect(parent);
-            } else {
-              node.connect(parent);
-            }
+            node.connect(parent);
             wwvAdjustNodes[station][kind] = node;
           }
         }
@@ -668,7 +648,7 @@
           ? wwvAdjustNodes[station][category]
           : stationGain;
         if (!destination || duration <= 0) return;
-        const level = Number.isFinite(gain) && gain > 0 ? gain : 1;
+        const level = Number.isFinite(gain) ? Math.max(0, gain) : 1;
         const src = ctx.createBufferSource();
         src.buffer = buffer;
         const levelGain = ctx.createGain();
@@ -700,6 +680,7 @@
         } else if (ev.generatedPulse) {
           buffer = wwvBuffers && wwvBuffers[ev.generatedPulse];
           duration = buffer ? buffer.duration : 0;
+          gain = Number.isFinite(ev.gain) ? Math.max(0, ev.gain) : 1;
         } else if (ev.ident) {
           buffer = wwvIdentBuffers[config.prefix];
           duration = (ev.durationMs || (buffer ? buffer.duration * 1000 : 0)) / 1000;
@@ -1125,7 +1106,6 @@
         rwmGain = null;
         stationPanners = null;
         wwvAdjustNodes = null;
-        wwvIdentNotches = null;
         rwmAdjustNodes = null;
         pulseGain = null;
         morseGain = null;
